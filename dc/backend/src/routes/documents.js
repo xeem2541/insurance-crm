@@ -126,4 +126,36 @@ router.delete('/:id', authenticateToken, async (req, res) => {
   }
 });
 
+// Save Cloudinary URL
+router.post('/save-url', authenticateToken, async (req, res) => {
+  const { customer_id, policy_id, document_type_id, name, file_path, file_type, file_size, note } = req.body;
+  
+  if (!file_path) return res.status(400).json({ error: 'No file_path provided' });
+
+  try {
+    const [result] = await req.db.query(
+      `INSERT INTO documents (customer_id, policy_id, document_type_id, name, file_path, file_type, file_size, version, note, uploaded_by)
+       VALUES (?, ?, ?, ?, ?, ?, ?, 1, ?, ?)`,
+      [
+        customer_id, 
+        policy_id || null, 
+        document_type_id, 
+        name, 
+        file_path, 
+        file_type || 'image/jpeg', 
+        file_size || 0, 
+        note, 
+        req.user.id
+      ]
+    );
+
+    await req.db.query('INSERT INTO activity_logs (user_id, action, target_table, target_id, details) VALUES (?, ?, ?, ?, ?)',
+      [req.user.id, 'UPLOAD', 'documents', result.insertId, `Uploaded Cloudinary document ${name}`]);
+
+    res.status(201).json({ id: result.insertId, message: 'Document saved successfully', file_path });
+  } catch (error) {
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
 module.exports = router;

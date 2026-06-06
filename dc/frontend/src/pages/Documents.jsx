@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import api from '../services/api';
 import { Modal, Button, Form } from 'react-bootstrap';
 import Select from 'react-select';
+import CloudinaryUpload from '../components/CloudinaryUpload';
 
 const Documents = () => {
   const [documents, setDocuments] = useState([]);
@@ -19,7 +20,9 @@ const Documents = () => {
   const [formData, setFormData] = useState({
     customer_id: '', policy_id: '', vehicle_id: '', document_type_id: '', name: '', note: ''
   });
-  const [file, setFile] = useState(null);
+  const [fileUrl, setFileUrl] = useState('');
+  const [fileType, setFileType] = useState('');
+  const [fileSize, setFileSize] = useState(0);
 
   const fetchDocuments = async () => {
     try {
@@ -55,29 +58,34 @@ const Documents = () => {
     fetchDependencies();
   }, []);
 
-  const handleUpload = async (e) => {
-    e.preventDefault();
-    if (!file) return alert('กรุณาเลือกไฟล์');
+  const handleUploadSuccess = (info) => {
+    setFileUrl(info.secure_url);
+    setFileType(info.format === 'pdf' ? 'application/pdf' : `image/${info.format}`);
+    setFileSize(info.bytes);
+    if (!formData.name) {
+      setFormData({ ...formData, name: info.original_filename });
+    }
+  };
 
-    const uploadData = new FormData();
-    uploadData.append('file', file);
-    uploadData.append('customer_id', formData.customer_id);
-    if (formData.policy_id) uploadData.append('policy_id', formData.policy_id);
-    if (formData.vehicle_id) uploadData.append('vehicle_id', formData.vehicle_id);
-    uploadData.append('document_type_id', formData.document_type_id);
-    uploadData.append('name', formData.name);
-    uploadData.append('note', formData.note);
+  const handleSaveDocument = async (e) => {
+    e.preventDefault();
+    if (!fileUrl) return alert('กรุณาอัปโหลดไฟล์ผ่านระบบ Cloudinary ก่อนบันทึก');
+
+    const data = {
+      ...formData,
+      file_path: fileUrl,
+      file_type: fileType,
+      file_size: fileSize
+    };
 
     try {
-      await api.post('/documents/upload', uploadData, {
-        headers: { 'Content-Type': 'multipart/form-data' }
-      });
+      await api.post('/documents/save-url', data);
       setShowUploadModal(false);
-      setFile(null);
+      setFileUrl('');
       setFormData({ customer_id: '', policy_id: '', vehicle_id: '', document_type_id: '', name: '', note: '' });
       fetchDocuments();
     } catch (error) {
-      alert(error.response?.data?.error || 'เกิดข้อผิดพลาดในการอัปโหลด');
+      alert(error.response?.data?.error || 'เกิดข้อผิดพลาดในการบันทึกเอกสาร');
     }
   };
 
@@ -93,8 +101,11 @@ const Documents = () => {
   };
 
   const openPreview = (doc) => {
-    const baseUrl = import.meta.env.VITE_API_URL ? import.meta.env.VITE_API_URL.replace('/api', '') : 'http://localhost:5000';
-    setPreviewUrl(`${baseUrl}${doc.file_path}`);
+    // If it's a Cloudinary URL (starts with http), use it directly. Otherwise use local URL.
+    const url = doc.file_path.startsWith('http') 
+      ? doc.file_path 
+      : `${import.meta.env.VITE_API_URL ? import.meta.env.VITE_API_URL.replace('/api', '') : 'http://localhost:5000'}${doc.file_path}`;
+    setPreviewUrl(url);
     setPreviewType(doc.file_type);
     setShowPreviewModal(true);
   };
@@ -158,7 +169,7 @@ const Documents = () => {
                       <i className="bi bi-eye"></i> ตัวอย่าง
                     </button>
                     <a 
-                      href={`${import.meta.env.VITE_API_URL ? import.meta.env.VITE_API_URL.replace('/api', '') : 'http://localhost:5000'}${d.file_path}`} 
+                      href={d.file_path.startsWith('http') ? d.file_path : `${import.meta.env.VITE_API_URL ? import.meta.env.VITE_API_URL.replace('/api', '') : 'http://localhost:5000'}${d.file_path}`} 
                       target="_blank" 
                       rel="noopener noreferrer" 
                       className="btn btn-sm btn-outline-secondary me-2"
@@ -232,8 +243,15 @@ const Documents = () => {
                 <Form.Control type="text" value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} required placeholder="เช่น ใบเสร็จรับเงิน, รูปรถด้านซ้าย" />
               </div>
               <div className="col-md-12">
-                <Form.Label>แนบไฟล์ (PDF, JPG, PNG - สูงสุด 20MB) <span className="text-danger">*</span></Form.Label>
-                <Form.Control type="file" accept=".pdf, .jpg, .jpeg, .png" onChange={e => setFile(e.target.files[0])} required />
+                <Form.Label>แนบไฟล์เอกสาร <span className="text-danger">*</span></Form.Label>
+                <div className="d-flex align-items-center">
+                  <CloudinaryUpload 
+                    onUploadSuccess={handleUploadSuccess} 
+                    cloudName="djnuhaq6b" 
+                    uploadPreset="unsigned_preset" 
+                  />
+                  {fileUrl && <span className="ms-3 text-success fw-bold"><i className="bi bi-check-circle-fill"></i> อัปโหลดเรียบร้อยแล้ว</span>}
+                </div>
               </div>
               <div className="col-12">
                 <Form.Label>หมายเหตุ</Form.Label>
@@ -242,7 +260,7 @@ const Documents = () => {
             </div>
             <div className="text-end mt-4 pt-3 border-top">
               <Button variant="secondary" className="me-2" onClick={() => setShowUploadModal(false)}>ยกเลิก</Button>
-              <Button variant="primary" type="submit"><i className="bi bi-cloud-arrow-up-fill"></i> อัปโหลดไฟล์</Button>
+              <Button variant="primary" type="button" onClick={handleSaveDocument} disabled={!fileUrl}><i className="bi bi-save"></i> บันทึกข้อมูล</Button>
             </div>
           </Form>
         </Modal.Body>
