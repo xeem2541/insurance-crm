@@ -11,6 +11,8 @@ import Policies from './pages/Policies';
 import Documents from './pages/Documents';
 import Reports from './pages/Reports';
 import MasterData from './pages/MasterData';
+import CalendarView from './pages/CalendarView';
+import PrintPolicy from './pages/PrintPolicy';
 
 const PrivateRoute = ({ children }) => {
   const { user, loading } = useContext(AuthContext);
@@ -28,9 +30,16 @@ const AppRoutes = () => {
         <Route path="vehicles" element={<Vehicles />} />
         <Route path="policies" element={<Policies />} />
         <Route path="documents" element={<Documents />} />
+        <Route path="calendar" element={<CalendarView />} />
         <Route path="reports" element={<Reports />} />
         <Route path="master-data" element={<MasterData />} />
       </Route>
+      {/* Route for printing without Layout (sidebar/header) */}
+      <Route path="/print-policy/:id" element={
+        <PrivateRoute>
+          <PrintPolicy />
+        </PrivateRoute>
+      } />
     </Routes>
   );
 };

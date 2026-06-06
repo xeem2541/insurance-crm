@@ -5,6 +5,7 @@ const path = require('path');
 const mysql = require('mysql2/promise');
 const bcrypt = require('bcrypt');
 require('dotenv').config();
+const { startCronJobs } = require('./cron');
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -47,6 +48,9 @@ async function initDb() {
     }
     
     connection.release();
+    
+    // Start background cron jobs
+    startCronJobs(pool);
   } catch (err) {
     console.error('Database connection failed:', err);
   }

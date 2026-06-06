@@ -200,8 +200,11 @@ const Policies = () => {
                   <td>{new Date(p.start_date).toLocaleDateString('th-TH')} - {new Date(p.expiry_date).toLocaleDateString('th-TH')}</td>
                   <td>{getStatusBadge(p.status)}</td>
                   <td>
-                    <button className="btn btn-sm btn-outline-primary" onClick={() => handleOpenModal(p)}>
+                    <button className="btn btn-sm btn-outline-primary me-2" onClick={() => handleOpenModal(p)} title="แก้ไข">
                       <i className="bi bi-pencil"></i>
+                    </button>
+                    <button className="btn btn-sm btn-outline-danger" onClick={() => window.open(`/print-policy/${p.id}`, '_blank')} title="พิมพ์ใบเสนอราคา">
+                      <i className="bi bi-file-pdf"></i>
                     </button>
                   </td>
                 </tr>

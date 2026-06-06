@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const { authenticateToken } = require('../middlewares/auth');
+const { sendLineNotify } = require('../services/lineNotify');
 
 // Get all policies (with search and filter)
 router.get('/', authenticateToken, async (req, res) => {
@@ -87,6 +88,12 @@ router.post('/', authenticateToken, async (req, res) => {
     
     await req.db.query('INSERT INTO activity_logs (user_id, action, target_table, target_id, details) VALUES (?, ?, ?, ?, ?)',
       [req.user.id, 'CREATE', 'policies', result.insertId, `Created policy ${policy_no}`]);
+
+    // Send LINE Notify if status is success or closed
+    if (status === 'สำเร็จ' || status === 'ชำระครบแล้ว') {
+      const msg = `🎉 ปิดการขายใหม่!\nกรมธรรม์: ${policy_no}\nบริษัท: ${company} (${type})\nเบี้ยรวม: ${total_premium} บาท\nสถานะ: ${status}`;
+      sendLineNotify(msg);
+    }
 
     res.status(201).json({ id: result.insertId, message: 'Policy created successfully' });
   } catch (error) {
