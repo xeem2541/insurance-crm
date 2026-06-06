@@ -113,7 +113,9 @@ const Dashboard = () => {
           <div className="card shadow-sm border-0 h-100">
             <div className="card-body">
               <h5 className="card-title fw-bold mb-4">ยอดขายรายเดือน (ปีปัจจุบัน)</h5>
-              <Bar data={barChartData} options={{ responsive: true, maintainAspectRatio: false }} height={300} />
+              <div style={{height: '300px'}}>
+                <Bar data={barChartData} options={{ responsive: true, maintainAspectRatio: false }} />
+              </div>
             </div>
           </div>
         </div>
