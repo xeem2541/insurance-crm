@@ -27,7 +27,7 @@ const Documents = () => {
   const fetchDocuments = async () => {
     try {
       const res = await api.get(`/documents?search=${search}`);
-      setDocuments(res.data);
+      setDocuments(Array.isArray(res.data) ? res.data : []);
     } catch (error) {
       console.error(error);
     }
@@ -36,15 +36,15 @@ const Documents = () => {
   const fetchDependencies = async () => {
     try {
       const [typeRes, custRes, polRes, vehRes] = await Promise.all([
-        api.get('/documents/types'),
-        api.get('/customers'),
-        api.get('/policies'),
-        api.get('/vehicles')
+        api.get('/documents/types').catch(() => ({ data: [] })),
+        api.get('/customers').catch(() => ({ data: [] })),
+        api.get('/policies').catch(() => ({ data: [] })),
+        api.get('/vehicles').catch(() => ({ data: [] }))
       ]);
-      setDocumentTypes(typeRes.data);
-      setCustomers(custRes.data);
-      setPolicies(polRes.data);
-      setVehicles(vehRes.data);
+      setDocumentTypes(Array.isArray(typeRes.data) ? typeRes.data : []);
+      setCustomers(Array.isArray(custRes.data) ? custRes.data : []);
+      setPolicies(Array.isArray(polRes.data) ? polRes.data : []);
+      setVehicles(Array.isArray(vehRes.data) ? vehRes.data : []);
     } catch (error) {
       console.error(error);
     }

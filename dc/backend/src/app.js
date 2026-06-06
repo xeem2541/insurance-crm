@@ -46,6 +46,52 @@ async function initDb() {
       );
       console.log('Seed Admin user created');
     }
+
+    // Auto-migrate tables for Document Upload feature
+    await connection.query(`
+      CREATE TABLE IF NOT EXISTS document_types (
+        id INT PRIMARY KEY AUTO_INCREMENT,
+        name VARCHAR(100) NOT NULL,
+        description TEXT,
+        is_active BOOLEAN DEFAULT TRUE,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      )
+    `);
+    
+    const [docTypesCount] = await connection.query('SELECT COUNT(*) as count FROM document_types');
+    if (docTypesCount[0].count === 0) {
+      await connection.query(`
+        INSERT INTO document_types (id, name, description) VALUES 
+        (1, 'ตารางกรมธรรม์', 'หน้าตารางกรมธรรม์ประกันภัย'),
+        (2, 'ใบเสร็จรับเงิน', 'หลักฐานการชำระเงิน'),
+        (3, 'สำเนาบัตรประชาชน', 'เอกสารยืนยันตัวตนลูกค้า'),
+        (4, 'สำเนาทะเบียนรถ', 'เอกสารแสดงความเป็นเจ้าของรถ'),
+        (5, 'รูปถ่ายรถยนต์', 'รูปถ่ายสภาพรถยนต์ก่อนทำประกัน'),
+        (6, 'อื่นๆ', 'เอกสารอื่นๆ')
+      `);
+    }
+
+    await connection.query(`
+      CREATE TABLE IF NOT EXISTS documents (
+        id INT PRIMARY KEY AUTO_INCREMENT,
+        customer_id INT NOT NULL,
+        policy_id INT,
+        document_type_id INT NOT NULL,
+        name VARCHAR(255) NOT NULL,
+        file_path VARCHAR(500) NOT NULL,
+        file_type VARCHAR(100),
+        file_size INT,
+        version INT DEFAULT 1,
+        note TEXT,
+        uploaded_by INT,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        deleted_at TIMESTAMP NULL,
+        FOREIGN KEY (customer_id) REFERENCES customers(id) ON DELETE CASCADE,
+        FOREIGN KEY (policy_id) REFERENCES policies(id) ON DELETE SET NULL,
+        FOREIGN KEY (document_type_id) REFERENCES document_types(id)
+      )
+    `);
+    console.log('Document tables verified');
     
     connection.release();
     
