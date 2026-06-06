@@ -51,7 +51,7 @@ async function seedData() {
     const [salesRow] = await pool.query('SELECT id FROM users WHERE username="sales1"');
     const salesId = salesRow[0].id;
 
-    for (let i = 1; i <= 20; i++) {
+    for (let i = 1; i <= 10; i++) {
       // 2. Seed Customers
       const fn = firstNames[Math.floor(Math.random() * firstNames.length)];
       const ln = lastNames[Math.floor(Math.random() * lastNames.length)];
@@ -138,7 +138,7 @@ async function seedData() {
       ]);
     }
 
-    console.log('Successfully seeded 20 customers, vehicles, and policies!');
+    console.log('Successfully seeded 10 customers, vehicles, and policies!');
     pool.end();
   } catch (err) {
     console.error('Seeding failed:', err);
