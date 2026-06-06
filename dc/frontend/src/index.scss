@@ -1,0 +1,266 @@
+// Premium UI Design Tokens
+$primary: #4f46e5; // Indigo 600
+$primary-light: #818cf8;
+$primary-dark: #3730a3;
+$secondary: #10b981; // Emerald 500
+$dark: #0f172a; // Slate 900
+$light: #f8fafc; // Slate 50
+$text-main: #1e293b;
+$text-muted: #64748b;
+
+$font-en: 'Outfit', sans-serif;
+$font-th: 'Prompt', sans-serif;
+
+body {
+  font-family: $font-th;
+  background-color: $light;
+  color: $text-main;
+  -webkit-font-smoothing: antialiased;
+}
+
+// Typography mixing
+h1, h2, h3, h4, h5, h6, .display-1, .display-2, .display-3, .display-4, .brand-text {
+  font-family: $font-en;
+}
+
+h1, h2, h3, h4, h5, h6 {
+  font-weight: 700;
+  color: $dark;
+}
+
+// Cards
+.card {
+  background: #ffffff;
+  border-radius: 16px;
+  border: 1px solid rgba(255, 255, 255, 0.4);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.03), 0 1px 3px rgba(0,0,0,0.02);
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+  overflow: hidden;
+
+  &.hover-elevate:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 12px 24px rgba(0, 0, 0, 0.06), 0 4px 8px rgba(0,0,0,0.03);
+  }
+
+  .card-header {
+    background-color: transparent;
+    border-bottom: 1px solid #f1f5f9;
+    padding: 1.25rem 1.5rem;
+    font-weight: 600;
+  }
+}
+
+// Buttons
+.btn {
+  font-family: $font-th;
+  font-weight: 500;
+  border-radius: 10px;
+  padding: 0.5rem 1.25rem;
+  transition: all 0.2s ease;
+  letter-spacing: 0.3px;
+}
+
+.btn-primary {
+  background: linear-gradient(135deg, $primary, $primary-dark);
+  border: none;
+  box-shadow: 0 4px 10px rgba(79, 70, 229, 0.3);
+
+  &:hover {
+    background: linear-gradient(135deg, $primary-light, $primary);
+    box-shadow: 0 6px 14px rgba(79, 70, 229, 0.4);
+    transform: translateY(-1px);
+  }
+}
+
+.btn-outline-primary {
+  color: $primary;
+  border: 2px solid $primary;
+  background: transparent;
+  
+  &:hover {
+    background: rgba(79, 70, 229, 0.05);
+    color: $primary-dark;
+  }
+}
+
+// Sidebar
+.sidebar {
+  background-color: $dark;
+  color: white;
+  min-height: 100vh;
+  box-shadow: 4px 0 24px rgba(0,0,0,0.05);
+  border-right: none;
+  padding: 1rem 0;
+
+  .nav-link {
+    color: rgba(255,255,255,0.7);
+    border-radius: 10px;
+    margin: 0.25rem 1rem;
+    padding: 0.75rem 1rem;
+    font-weight: 500;
+    transition: all 0.3s ease;
+    display: flex;
+    align-items: center;
+
+    i {
+      font-size: 1.1rem;
+      margin-right: 0.75rem;
+      opacity: 0.8;
+      transition: all 0.3s ease;
+    }
+
+    &:hover {
+      background-color: rgba(255,255,255,0.05);
+      color: white;
+      transform: translateX(4px);
+      i { opacity: 1; transform: scale(1.1); }
+    }
+
+    &.active {
+      background: linear-gradient(135deg, $primary, $primary-dark);
+      color: white;
+      box-shadow: 0 4px 12px rgba(79, 70, 229, 0.3);
+      font-weight: 600;
+      i { opacity: 1; }
+    }
+  }
+
+  .brand-text {
+    color: white !important;
+    letter-spacing: 0.5px;
+    font-size: 1.4rem;
+  }
+}
+
+// Inputs
+.form-control, .form-select {
+  border-radius: 10px;
+  border: 1px solid #cbd5e1;
+  padding: 0.6rem 1rem;
+  font-size: 0.95rem;
+  transition: all 0.2s ease;
+  background-color: #f8fafc;
+
+  &:focus {
+    background-color: #ffffff;
+    border-color: $primary-light;
+    box-shadow: 0 0 0 4px rgba(79, 70, 229, 0.1);
+  }
+}
+
+// Tables
+.table {
+  vertical-align: middle;
+  
+  th {
+    font-weight: 600;
+    color: $text-muted;
+    border-bottom-width: 1px;
+    font-size: 0.85rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    padding: 1rem;
+  }
+  
+  td {
+    color: $text-main;
+    padding: 1rem;
+    border-bottom: 1px solid #f1f5f9;
+  }
+
+  tbody tr {
+    transition: background-color 0.2s ease;
+    &:hover {
+      background-color: #f8fafc;
+    }
+  }
+}
+
+// Badges
+.badge {
+  padding: 0.4rem 0.6rem;
+  border-radius: 6px;
+  font-weight: 500;
+  letter-spacing: 0.3px;
+
+  &.bg-primary { background-color: rgba(79, 70, 229, 0.1) !important; color: $primary !important; }
+  &.bg-success { background-color: rgba(16, 185, 129, 0.1) !important; color: $secondary !important; }
+  &.bg-danger { background-color: rgba(239, 68, 68, 0.1) !important; color: #ef4444 !important; }
+  &.bg-warning { background-color: rgba(245, 158, 11, 0.1) !important; color: #f59e0b !important; }
+}
+
+// Dashboard Widgets
+.stat-card {
+  padding: 1.5rem;
+  position: relative;
+  overflow: hidden;
+  
+  .stat-icon {
+    position: absolute;
+    right: -10px;
+    bottom: -20px;
+    font-size: 6rem;
+    opacity: 0.05;
+    transform: rotate(-15deg);
+    transition: all 0.3s ease;
+  }
+
+  &:hover .stat-icon {
+    transform: rotate(0deg) scale(1.1);
+    opacity: 0.1;
+  }
+
+  .stat-value {
+    font-size: 2.5rem;
+    font-weight: 800;
+    font-family: $font-en;
+    line-height: 1;
+    margin-bottom: 0.5rem;
+  }
+
+  .stat-label {
+    font-size: 0.95rem;
+    font-weight: 500;
+    color: $text-muted;
+  }
+}
+
+// Glassmorphism login
+.login-bg {
+  background: linear-gradient(135deg, #f0f4ff, #e0e7ff);
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.login-card {
+  background: rgba(255, 255, 255, 0.85);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.5);
+  border-radius: 20px;
+  box-shadow: 0 15px 35px rgba(0, 0, 0, 0.05);
+  padding: 2.5rem;
+  width: 100%;
+  max-width: 420px;
+
+  .brand-icon {
+    font-size: 3rem;
+    color: $primary;
+    margin-bottom: 1rem;
+    background: linear-gradient(135deg, $primary, $primary-light);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+}
+
+// Animations
+.fade-in {
+  animation: fadeIn 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
