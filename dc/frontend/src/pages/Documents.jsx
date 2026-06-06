@@ -272,7 +272,7 @@ const Documents = () => {
           <Modal.Title>ตัวอย่างเอกสาร</Modal.Title>
         </Modal.Header>
         <Modal.Body className="text-center bg-light p-0 d-flex justify-content-center align-items-center" style={{ height: '80vh' }}>
-          {previewType.includes('pdf') ? (
+          {previewType?.includes('pdf') ? (
             <iframe src={previewUrl} title="PDF Viewer" width="100%" height="100%" style={{ border: 'none' }} />
           ) : (
             <img src={previewUrl} alt="Preview" style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain' }} />
