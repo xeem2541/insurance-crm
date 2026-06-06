@@ -51,9 +51,9 @@ const Layout = () => {
           ))}
         </ul>
         
-        <div className="dropdown px-4 mb-4 mt-auto">
+        <div className="px-4 mb-4 mt-auto">
           <hr className="border-secondary" />
-          <a href="#" className="d-flex align-items-center text-white text-decoration-none dropdown-toggle" id="dropdownUser1" data-bs-toggle="dropdown" aria-expanded="false">
+          <div className="d-flex align-items-center text-white mb-3">
             <div className="bg-primary rounded-circle d-flex align-items-center justify-content-center me-2 shadow-sm" style={{width: '35px', height: '35px'}}>
               <span className="fw-bold">{user?.name ? user.name.charAt(0) : 'U'}</span>
             </div>
@@ -61,10 +61,10 @@ const Layout = () => {
               <strong className="d-block lh-1 mb-1 text-truncate" style={{maxWidth: '120px'}}>{user?.name}</strong>
               <small className="text-white-50">{user?.role}</small>
             </div>
-          </a>
-          <ul className={`dropdown-menu ${darkMode ? 'dropdown-menu-dark' : ''} text-small shadow border-0`} aria-labelledby="dropdownUser1">
-            <li><button className="dropdown-item" onClick={handleLogout}><i className="bi bi-box-arrow-right me-2"></i>ออกจากระบบ</button></li>
-          </ul>
+          </div>
+          <button className="btn btn-outline-danger w-100 d-flex align-items-center justify-content-center" onClick={handleLogout}>
+            <i className="bi bi-box-arrow-right me-2"></i>ออกจากระบบ
+          </button>
         </div>
       </div>
       
