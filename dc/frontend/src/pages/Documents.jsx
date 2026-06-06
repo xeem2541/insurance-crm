@@ -102,7 +102,7 @@ const Documents = () => {
 
   const openPreview = (doc) => {
     // If it's a Cloudinary URL (starts with http), use it directly. Otherwise use local URL.
-    const url = doc.file_path.startsWith('http') 
+    const url = doc.file_path?.startsWith('http') 
       ? doc.file_path 
       : `${import.meta.env.VITE_API_URL ? import.meta.env.VITE_API_URL.replace('/api', '') : 'http://localhost:5000'}${doc.file_path}`;
     setPreviewUrl(url);
@@ -169,7 +169,7 @@ const Documents = () => {
                       <i className="bi bi-eye"></i> ตัวอย่าง
                     </button>
                     <a 
-                      href={d.file_path.startsWith('http') ? d.file_path : `${import.meta.env.VITE_API_URL ? import.meta.env.VITE_API_URL.replace('/api', '') : 'http://localhost:5000'}${d.file_path}`} 
+                      href={d.file_path?.startsWith('http') ? d.file_path : `${import.meta.env.VITE_API_URL ? import.meta.env.VITE_API_URL.replace('/api', '') : 'http://localhost:5000'}${d.file_path}`} 
                       target="_blank" 
                       rel="noopener noreferrer" 
                       className="btn btn-sm btn-outline-secondary me-2"
