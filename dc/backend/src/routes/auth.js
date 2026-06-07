@@ -40,4 +40,24 @@ router.get('/me', authenticateToken, async (req, res) => {
   }
 });
 
+router.put('/change-password', authenticateToken, async (req, res) => {
+  const { currentPassword, newPassword } = req.body;
+  try {
+    const [users] = await req.db.query('SELECT * FROM users WHERE id = ?', [req.user.id]);
+    if (users.length === 0) return res.status(404).json({ error: 'User not found' });
+    
+    const user = users[0];
+    const validPassword = await bcrypt.compare(currentPassword, user.password);
+    if (!validPassword) {
+      return res.status(400).json({ error: 'รหัสผ่านปัจจุบันไม่ถูกต้อง' });
+    }
+    
+    const hash = await bcrypt.hash(newPassword, 10);
+    await req.db.query('UPDATE users SET password = ? WHERE id = ?', [hash, req.user.id]);
+    res.json({ message: 'เปลี่ยนรหัสผ่านสำเร็จ' });
+  } catch (error) {
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
 module.exports = router;
