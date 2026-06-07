@@ -2,6 +2,8 @@ import React, { useContext, useState } from 'react';
 import { Outlet, Link, useNavigate, useLocation } from 'react-router-dom';
 import { AuthContext } from '../contexts/AuthContext';
 import { ThemeContext } from '../contexts/ThemeContext';
+import { Modal, Button, Form } from 'react-bootstrap';
+import api from '../services/api';
 
 const Layout = () => {
   const { user, logout } = useContext(AuthContext);
@@ -9,8 +11,33 @@ const Layout = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const [showPwdModal, setShowPwdModal] = useState(false);
+  const [pwdData, setPwdData] = useState({ currentPassword: '', newPassword: '', confirmPassword: '' });
+  const [pwdMsg, setPwdMsg] = useState({ type: '', text: '' });
 
   const toggleSidebar = () => setIsSidebarOpen(!isSidebarOpen);
+
+  const handlePasswordSubmit = async (e) => {
+    e.preventDefault();
+    setPwdMsg({ type: '', text: '' });
+    if (pwdData.newPassword !== pwdData.confirmPassword) {
+      return setPwdMsg({ type: 'danger', text: 'รหัสผ่านใหม่ไม่ตรงกัน' });
+    }
+    if (pwdData.newPassword.length < 6) {
+      return setPwdMsg({ type: 'danger', text: 'รหัสผ่านใหม่ต้องมีความยาวอย่างน้อย 6 ตัวอักษร' });
+    }
+    try {
+      const res = await api.put('/auth/change-password', {
+        currentPassword: pwdData.currentPassword,
+        newPassword: pwdData.newPassword
+      });
+      setPwdMsg({ type: 'success', text: res.data.message || 'เปลี่ยนรหัสผ่านสำเร็จ!' });
+      setPwdData({ currentPassword: '', newPassword: '', confirmPassword: '' });
+      setTimeout(() => setShowPwdModal(false), 2000);
+    } catch (error) {
+      setPwdMsg({ type: 'danger', text: error.response?.data?.error || 'เกิดข้อผิดพลาด' });
+    }
+  };
 
   const handleLogout = () => {
     logout();
@@ -80,6 +107,9 @@ const Layout = () => {
               <small className="text-white-50">{user?.role}</small>
             </div>
           </div>
+          <button className="btn btn-sm btn-outline-light w-100 mb-2" onClick={() => setShowPwdModal(true)}>
+            <i className="bi bi-key-fill me-2"></i>เปลี่ยนรหัสผ่าน
+          </button>
           <button className="btn btn-outline-danger w-100 d-flex align-items-center justify-content-center" onClick={handleLogout}>
             <i className="bi bi-box-arrow-right me-2"></i>ออกจากระบบ
           </button>
@@ -107,6 +137,50 @@ const Layout = () => {
           <Outlet />
         </div>
       </div>
+
+      {/* Change Password Modal */}
+      <Modal show={showPwdModal} onHide={() => setShowPwdModal(false)} centered>
+        <Modal.Header closeButton className={darkMode ? 'bg-dark text-light border-secondary' : ''}>
+          <Modal.Title><i className="bi bi-key-fill text-warning me-2"></i>เปลี่ยนรหัสผ่าน</Modal.Title>
+        </Modal.Header>
+        <Modal.Body className={darkMode ? 'bg-dark text-light' : ''}>
+          {pwdMsg.text && (
+            <div className={`alert alert-${pwdMsg.type} py-2`}>{pwdMsg.text}</div>
+          )}
+          <Form onSubmit={handlePasswordSubmit}>
+            <Form.Group className="mb-3">
+              <Form.Label>รหัสผ่านปัจจุบัน</Form.Label>
+              <Form.Control 
+                type="password" 
+                required 
+                value={pwdData.currentPassword}
+                onChange={e => setPwdData({...pwdData, currentPassword: e.target.value})}
+              />
+            </Form.Group>
+            <Form.Group className="mb-3">
+              <Form.Label>รหัสผ่านใหม่ (อย่างน้อย 6 ตัวอักษร)</Form.Label>
+              <Form.Control 
+                type="password" 
+                required 
+                value={pwdData.newPassword}
+                onChange={e => setPwdData({...pwdData, newPassword: e.target.value})}
+              />
+            </Form.Group>
+            <Form.Group className="mb-4">
+              <Form.Label>ยืนยันรหัสผ่านใหม่</Form.Label>
+              <Form.Control 
+                type="password" 
+                required 
+                value={pwdData.confirmPassword}
+                onChange={e => setPwdData({...pwdData, confirmPassword: e.target.value})}
+              />
+            </Form.Group>
+            <Button variant="primary" type="submit" className="w-100 fw-bold">
+              บันทึกรหัสผ่านใหม่
+            </Button>
+          </Form>
+        </Modal.Body>
+      </Modal>
     </div>
   );
 };
