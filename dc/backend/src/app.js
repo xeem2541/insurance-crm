@@ -5,11 +5,15 @@ const path = require('path');
 const mysql = require('mysql2/promise');
 const bcrypt = require('bcryptjs');
 require('dotenv').config();
+const helmet = require('helmet');
 const { startCronJobs } = require('./cron');
 
 const app = express();
 const PORT = process.env.PORT || 5000;
 
+app.use(helmet({
+  crossOriginResourcePolicy: false, // allow cross-origin images/resources if needed
+}));
 app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
