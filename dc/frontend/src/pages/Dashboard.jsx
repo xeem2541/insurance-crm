@@ -9,11 +9,15 @@ const Dashboard = () => {
   const [stats, setStats] = useState({
     totalCustomers: 0,
     totalPolicies: 0,
+    totalNonMotorPolicies: 0,
     totalDocuments: 0,
     newCustomersThisMonth: 0,
     salesThisMonth: 0,
     salesThisYear: 0,
     commThisMonth: 0,
+    nmSalesThisMonth: 0,
+    nmSalesThisYear: 0,
+    nmCommThisMonth: 0,
     expiringPolicies: [],
     topCompanies: [],
     topSales: [],
@@ -41,14 +45,23 @@ const Dashboard = () => {
     labels: stats.monthlySales.map(m => `เดือน ${m.month}`),
     datasets: [
       {
-        label: 'ยอดขายรายเดือน (บาท)',
-        data: stats.monthlySales.map(m => m.total_sales),
+        label: 'ยอดขาย Motor (บาท)',
+        data: stats.monthlySales.map(m => m.motor_sales),
         backgroundColor: 'rgba(54, 162, 235, 0.6)',
         borderColor: 'rgba(54, 162, 235, 1)',
         borderWidth: 1,
         maxBarThickness: 35,
         borderRadius: 4,
       },
+      {
+        label: 'ยอดขาย Non-Motor (บาท)',
+        data: stats.monthlySales.map(m => m.non_motor_sales),
+        backgroundColor: 'rgba(255, 99, 132, 0.6)',
+        borderColor: 'rgba(255, 99, 132, 1)',
+        borderWidth: 1,
+        maxBarThickness: 35,
+        borderRadius: 4,
+      }
     ],
   };
 
@@ -73,34 +86,37 @@ const Dashboard = () => {
         <div className="col-md-3">
           <div className="card text-white bg-primary shadow-sm h-100 border-0" style={{background: 'linear-gradient(45deg, #0d6efd, #00d2ff)'}}>
             <div className="card-body">
-              <h5 className="card-title">ลูกค้าทั้งหมด</h5>
-              <h2 className="display-5 fw-bold">{stats.totalCustomers}</h2>
-              <p className="card-text">คน (ใหม่เดือนนี้ {stats.newCustomersThisMonth})</p>
+              <h5 className="card-title">จำนวนกรมธรรม์</h5>
+              <h2 className="display-6 fw-bold">{stats.totalPolicies + stats.totalNonMotorPolicies}</h2>
+              <p className="card-text mb-0">Motor: {stats.totalPolicies} ฉบับ</p>
+              <p className="card-text">Non-Motor: {stats.totalNonMotorPolicies} ฉบับ</p>
             </div>
           </div>
         </div>
         <div className="col-md-3">
           <div className="card text-white bg-success shadow-sm h-100 border-0" style={{background: 'linear-gradient(45deg, #198754, #20c997)'}}>
             <div className="card-body">
-              <h5 className="card-title">ยอดขายเดือนนี้</h5>
-              <h2 className="display-6 fw-bold">{formatMoney(stats.salesThisMonth)}</h2>
-              <p className="card-text">ยอดขายปีนี้: {formatMoney(stats.salesThisYear)}</p>
+              <h5 className="card-title">ยอดขายเดือนนี้ (รวม)</h5>
+              <h2 className="display-6 fw-bold">{formatMoney(stats.salesThisMonth + stats.nmSalesThisMonth)}</h2>
+              <p className="card-text mb-0">Motor: {formatMoney(stats.salesThisMonth)}</p>
+              <p className="card-text">Non-Motor: {formatMoney(stats.nmSalesThisMonth)}</p>
             </div>
           </div>
         </div>
         <div className="col-md-3">
           <div className="card text-white bg-warning shadow-sm h-100 border-0" style={{background: 'linear-gradient(45deg, #ffc107, #ff9800)'}}>
             <div className="card-body">
-              <h5 className="card-title">คอมมิชชันเดือนนี้</h5>
-              <h2 className="display-6 fw-bold text-dark">{formatMoney(stats.commThisMonth)}</h2>
-              <p className="card-text text-dark">คอมมิชชันรวมโดยประมาณ</p>
+              <h5 className="card-title">คอมฯ เดือนนี้ (รวม)</h5>
+              <h2 className="display-6 fw-bold text-dark">{formatMoney(stats.commThisMonth + stats.nmCommThisMonth)}</h2>
+              <p className="card-text text-dark mb-0">Motor: {formatMoney(stats.commThisMonth)}</p>
+              <p className="card-text text-dark">Non-Motor: {formatMoney(stats.nmCommThisMonth)}</p>
             </div>
           </div>
         </div>
         <div className="col-md-3">
           <div className="card text-white bg-danger shadow-sm h-100 border-0" style={{background: 'linear-gradient(45deg, #dc3545, #f8d7da)'}}>
             <div className="card-body">
-              <h5 className="card-title">กรมธรรม์ใกล้หมดอายุ</h5>
+              <h5 className="card-title">ใกล้หมดอายุ</h5>
               <h2 className="display-5 fw-bold">{stats.expiringPolicies.length}</h2>
               <p className="card-text">ฉบับ (ภายใน 90 วัน)</p>
             </div>

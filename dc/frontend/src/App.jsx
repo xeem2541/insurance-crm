@@ -13,6 +13,7 @@ import Reports from './pages/Reports';
 import MasterData from './pages/MasterData';
 import CalendarView from './pages/CalendarView';
 import PrintPolicy from './pages/PrintPolicy';
+import NonMotorPolicies from './pages/NonMotorPolicies';
 
 const PrivateRoute = ({ children }) => {
   const { user, loading } = useContext(AuthContext);
@@ -29,6 +30,7 @@ const AppRoutes = () => {
         <Route path="customers" element={<Customers />} />
         <Route path="vehicles" element={<Vehicles />} />
         <Route path="policies" element={<Policies />} />
+        <Route path="non-motor" element={<NonMotorPolicies />} />
         <Route path="documents" element={<Documents />} />
         <Route path="calendar" element={<CalendarView />} />
         <Route path="reports" element={<Reports />} />

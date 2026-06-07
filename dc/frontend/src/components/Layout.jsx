@@ -19,7 +19,8 @@ const Layout = () => {
     { path: '/calendar', label: 'ปฏิทินงาน', icon: 'bi-calendar3', roles: ['Admin', 'Manager', 'Staff', 'Sales', 'Viewer'] },
     { path: '/customers', label: 'ข้อมูลลูกค้า', icon: 'bi-people-fill', roles: ['Admin', 'Manager', 'Staff', 'Sales', 'Viewer'] },
     { path: '/vehicles', label: 'ข้อมูลรถยนต์', icon: 'bi-car-front-fill', roles: ['Admin', 'Manager', 'Staff', 'Sales', 'Viewer'] },
-    { path: '/policies', label: 'กรมธรรม์', icon: 'bi-shield-fill-check', roles: ['Admin', 'Manager', 'Staff', 'Sales', 'Viewer'] },
+    { path: '/policies', label: 'Motor Insurance (รถยนต์)', icon: 'bi-shield-fill-check', roles: ['Admin', 'Manager', 'Staff', 'Sales', 'Viewer'] },
+    { path: '/non-motor', label: 'Non-Motor (ประกันอื่น)', icon: 'bi-shield-plus', roles: ['Admin', 'Manager', 'Staff', 'Sales', 'Viewer'] },
     { path: '/documents', label: 'ระบบเอกสาร', icon: 'bi-file-earmark-medical-fill', roles: ['Admin', 'Manager', 'Staff', 'Sales', 'Viewer'] },
     { path: '/reports', label: 'รายงาน', icon: 'bi-bar-chart-line-fill', roles: ['Admin', 'Manager', 'Sales'] },
     { path: '/master-data', label: 'ตั้งค่าระบบ', icon: 'bi-gear-fill', roles: ['Admin', 'Manager'] }

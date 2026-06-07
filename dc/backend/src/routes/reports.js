@@ -53,6 +53,44 @@ router.get('/', [authenticateToken, authorizeRole(['Admin', 'Manager', 'Sales'])
           ORDER BY p.start_date DESC
         `;
         break;
+      case 'non_motor_sales_daily':
+        query = `
+          SELECT DATE(start_date) as date, SUM(total_premium) as total_sales, COUNT(id) as policy_count, SUM(commission_baht) as total_commission
+          FROM non_motor_policies 
+          WHERE status = 'สำเร็จ' AND start_date BETWEEN ? AND ?
+          GROUP BY DATE(start_date)
+          ORDER BY date ASC
+        `;
+        break;
+      case 'non_motor_sales_monthly':
+        query = `
+          SELECT DATE_FORMAT(start_date, '%Y-%m') as month, SUM(total_premium) as total_sales, COUNT(id) as policy_count, SUM(commission_baht) as total_commission
+          FROM non_motor_policies 
+          WHERE status = 'สำเร็จ' AND start_date BETWEEN ? AND ?
+          GROUP BY DATE_FORMAT(start_date, '%Y-%m')
+          ORDER BY month ASC
+        `;
+        break;
+      case 'non_motor_renewal':
+        query = `
+          SELECT p.*, c.first_name, c.last_name, c.phone, t.name as type_name, DATEDIFF(p.expiry_date, CURRENT_DATE()) as days_left
+          FROM non_motor_policies p
+          JOIN customers c ON p.customer_id = c.id
+          LEFT JOIN non_motor_types t ON p.non_motor_type_id = t.id
+          WHERE p.status = 'สำเร็จ' AND p.expiry_date BETWEEN ? AND ?
+          ORDER BY p.expiry_date ASC
+        `;
+        break;
+      case 'non_motor_arrears':
+        query = `
+          SELECT p.*, c.first_name, c.last_name, c.phone, t.name as type_name
+          FROM non_motor_policies p
+          JOIN customers c ON p.customer_id = c.id
+          LEFT JOIN non_motor_types t ON p.non_motor_type_id = t.id
+          WHERE p.status = 'รอผ่อนชำระ' AND p.start_date BETWEEN ? AND ?
+          ORDER BY p.start_date DESC
+        `;
+        break;
       default:
         return res.status(400).json({ error: 'Invalid report type' });
     }

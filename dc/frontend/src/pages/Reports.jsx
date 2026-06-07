@@ -88,10 +88,18 @@ const Reports = () => {
             <div className="col-md-3">
               <label className="form-label">ประเภทรายงาน</label>
               <select className="form-select" value={reportType} onChange={e => setReportType(e.target.value)}>
-                <option value="sales_daily">ยอดขายรายวัน</option>
-                <option value="sales_monthly">ยอดขายรายเดือน</option>
-                <option value="renewal">ต่ออายุ (90 วัน)</option>
-                <option value="arrears">ค้างชำระ</option>
+                <optgroup label="Motor Insurance">
+                  <option value="sales_daily">ยอดขายรายวัน</option>
+                  <option value="sales_monthly">ยอดขายรายเดือน</option>
+                  <option value="renewal">ต่ออายุ (90 วัน)</option>
+                  <option value="arrears">ค้างชำระ</option>
+                </optgroup>
+                <optgroup label="Non-Motor Insurance">
+                  <option value="non_motor_sales_daily">ยอดขายรายวัน (Non-Motor)</option>
+                  <option value="non_motor_sales_monthly">ยอดขายรายเดือน (Non-Motor)</option>
+                  <option value="non_motor_renewal">ต่ออายุ (Non-Motor)</option>
+                  <option value="non_motor_arrears">ค้างชำระ (Non-Motor)</option>
+                </optgroup>
               </select>
             </div>
             <div className="col-md-3">

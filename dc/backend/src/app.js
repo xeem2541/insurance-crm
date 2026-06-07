@@ -93,6 +93,82 @@ async function initDb() {
     `);
     console.log('Document tables verified');
 
+    // Auto-migrate non-motor tables
+    await connection.query(`
+      CREATE TABLE IF NOT EXISTS non_motor_types (
+        id INT PRIMARY KEY AUTO_INCREMENT,
+        name VARCHAR(100) NOT NULL,
+        is_active BOOLEAN DEFAULT TRUE
+      )
+    `);
+
+    const [nmTypesCount] = await connection.query('SELECT COUNT(*) as count FROM non_motor_types');
+    if (nmTypesCount[0].count === 0) {
+      await connection.query(`
+        INSERT INTO non_motor_types (id, name) VALUES 
+        (1, 'ประกันภัยอุบัติเหตุส่วนบุคคล (PA)'),
+        (2, 'ประกันภัยขนส่งสินค้า'),
+        (3, 'ประกันภัยอัคคีภัย / ไฟไหม้'),
+        (4, 'ประกันภัยความรับผิดต่อบุคคลภายนอก'),
+        (5, 'ประกันภัยรับเหมาก่อสร้าง'),
+        (6, 'ประกันภัยวิชาชีพ'),
+        (7, 'ประกันภัยสุขภาพ'),
+        (8, 'ประกันภัยเงินออม'),
+        (9, 'ประกันภัย T Life')
+      `);
+    }
+
+    await connection.query(`
+      CREATE TABLE IF NOT EXISTS non_motor_policies (
+        id INT PRIMARY KEY AUTO_INCREMENT,
+        customer_id INT NOT NULL,
+        policy_no VARCHAR(100) NOT NULL,
+        company VARCHAR(255),
+        non_motor_type_id INT,
+        insured_name VARCHAR(255),
+        sum_insured DECIMAL(15,2),
+        net_premium DECIMAL(15,2),
+        stamp_duty DECIMAL(10,2),
+        vat DECIMAL(10,2),
+        total_premium DECIMAL(15,2),
+        commission_percent DECIMAL(5,2),
+        commission_baht DECIMAL(15,2),
+        start_date DATE,
+        expiry_date DATE,
+        status VARCHAR(50) DEFAULT 'รอดำเนินการ',
+        note TEXT,
+        additional_data JSON,
+        created_by INT,
+        sales_person_id INT,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+        FOREIGN KEY (customer_id) REFERENCES customers(id) ON DELETE CASCADE,
+        FOREIGN KEY (non_motor_type_id) REFERENCES non_motor_types(id),
+        FOREIGN KEY (created_by) REFERENCES users(id),
+        FOREIGN KEY (sales_person_id) REFERENCES users(id)
+      )
+    `);
+
+    await connection.query(`
+      CREATE TABLE IF NOT EXISTS non_motor_documents (
+        id INT PRIMARY KEY AUTO_INCREMENT,
+        non_motor_policy_id INT NOT NULL,
+        document_type_id INT NOT NULL,
+        name VARCHAR(255) NOT NULL,
+        file_path VARCHAR(500) NOT NULL,
+        file_type VARCHAR(100),
+        file_size INT,
+        version INT DEFAULT 1,
+        note TEXT,
+        uploaded_by INT,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        deleted_at TIMESTAMP NULL,
+        FOREIGN KEY (non_motor_policy_id) REFERENCES non_motor_policies(id) ON DELETE CASCADE,
+        FOREIGN KEY (document_type_id) REFERENCES document_types(id)
+      )
+    `);
+    console.log('Non-Motor tables verified');
+
     // Auto-seed mock data if database is empty
     const [custCountRes] = await connection.query('SELECT COUNT(*) as count FROM customers');
     if (custCountRes[0].count === 0) {
@@ -222,6 +298,7 @@ app.use('/api/dashboard', require('./routes/dashboard'));
 app.use('/api/reports', require('./routes/reports'));
 app.use('/api/master-data', require('./routes/masterData'));
 app.use('/api/webhook', require('./routes/webhook'));
+app.use('/api/non-motor-policies', require('./routes/nonMotorPolicies'));
 
 // Start server
 app.listen(PORT, () => {
