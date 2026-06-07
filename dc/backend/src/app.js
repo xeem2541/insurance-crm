@@ -162,7 +162,7 @@ async function initDb() {
           ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
         `, [
           customerId, 'รถเก๋ง', brand, 'Sedan', '202' + Math.floor(Math.random() * 5),
-          'ขาว', \`\${Math.floor(Math.random() * 9) + 1}กข \${Math.floor(Math.random() * 9000 + 1000)}\`, prov,
+          'ขาว', `${Math.floor(Math.random() * 9) + 1}กข ${Math.floor(Math.random() * 9000 + 1000)}`, prov,
           Math.floor(Math.random() * 500000 + 300000)
         ]);
         const vehicleId = vehResult[0].insertId;
@@ -179,7 +179,7 @@ async function initDb() {
             payment_method, start_date, expiry_date, status, sales_person_id, created_by, created_at
           ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         `, [
-          customerId, vehicleId, \`POL-2026-\${String(i).padStart(4, '0')}\`,
+          customerId, vehicleId, `POL-2026-${String(i).padStart(4, '0')}`,
           'วิริยะประกันภัย', 'ประกันภัยชั้น 1', Math.floor(Math.random() * 500000 + 300000),
           netPremium, stampDuty, vat, totalPremium, 18, netPremium * 0.18,
           'เงินสด', startDate.toISOString().split('T')[0], expiryDate.toISOString().split('T')[0],
