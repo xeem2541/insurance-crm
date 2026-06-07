@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import api from '../services/api';
-import { Form, Button, Row, Col, Accordion } from 'react-bootstrap';
+import { Form, Button, Row, Col, Accordion, Card } from 'react-bootstrap';
 import Select from 'react-select';
 import AsyncSelect from 'react-select/async';
 import { useDropzone } from 'react-dropzone';
