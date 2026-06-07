@@ -118,7 +118,7 @@ const Layout = () => {
       </div>
       
       <div className="flex-grow-1 d-flex flex-column" style={{ overflowX: 'hidden' }}>
-        <nav className={`navbar navbar-expand-lg border-bottom px-4 py-3 shadow-sm ${darkMode ? 'navbar-dark bg-dark border-secondary' : 'navbar-light bg-white'}`}>
+        <nav className={`navbar navbar-expand-lg border-bottom px-4 py-3 shadow-sm glass-nav fade-in ${darkMode ? 'navbar-dark bg-dark border-secondary' : 'navbar-light bg-white'}`}>
           <div className="container-fluid d-flex justify-content-between align-items-center">
             <div className="d-flex align-items-center">
               <button className={`btn btn-sm d-lg-none me-3 ${darkMode ? 'btn-outline-light' : 'btn-outline-dark'}`} onClick={toggleSidebar}>
