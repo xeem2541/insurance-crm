@@ -2,7 +2,7 @@ import React, { useState, useEffect, useContext } from 'react';
 import { AuthContext } from '../contexts/AuthContext';
 import api from '../services/api';
 import { Modal, Button, Form } from 'react-bootstrap';
-
+import * as XLSX from 'xlsx';
 const categories = [
   { id: 'PolicyType', label: 'ประเภทประกันภัย' },
   { id: 'InsuranceCompany', label: 'บริษัทประกันภัย' },
@@ -143,6 +143,41 @@ const MasterData = () => {
       } catch (error) {
         alert(error.response?.data?.error || 'เกิดข้อผิดพลาดในการล้างข้อมูล');
       }
+    }
+  };
+
+  const handleBackupExcel = async () => {
+    try {
+      const [custRes, vehRes, polRes] = await Promise.all([
+        api.get('/customers'),
+        api.get('/vehicles'),
+        api.get('/policies')
+      ]);
+
+      const wb = XLSX.utils.book_new();
+
+      if (custRes.data && custRes.data.length > 0) {
+        const wsCust = XLSX.utils.json_to_sheet(custRes.data);
+        XLSX.utils.book_append_sheet(wb, wsCust, "Customers");
+      }
+      if (vehRes.data && vehRes.data.length > 0) {
+        const wsVeh = XLSX.utils.json_to_sheet(vehRes.data);
+        XLSX.utils.book_append_sheet(wb, wsVeh, "Vehicles");
+      }
+      if (polRes.data && polRes.data.length > 0) {
+        const wsPol = XLSX.utils.json_to_sheet(polRes.data);
+        XLSX.utils.book_append_sheet(wb, wsPol, "Policies");
+      }
+
+      if (wb.SheetNames.length === 0) {
+        XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet([{ "Message": "No Data" }]), "Empty");
+      }
+
+      const dateStr = new Date().toISOString().split('T')[0];
+      XLSX.writeFile(wb, `Backup_CRM_${dateStr}.xlsx`);
+
+    } catch (error) {
+      alert(error.response?.data?.error || 'เกิดข้อผิดพลาดในการสำรองข้อมูล');
     }
   };
 
@@ -464,9 +499,14 @@ const MasterData = () => {
                 <strong>⚠️ คำเตือน:</strong> ข้อมูลที่ถูกลบไปแล้วจะไม่สามารถกู้คืนได้ โปรดตรวจสอบให้แน่ใจก่อนดำเนินการ
               </div>
               <br/>
-              <button className="btn btn-danger btn-lg fw-bold px-5 shadow-sm" onClick={handleClearData}>
-                <i className="bi bi-trash3-fill me-2"></i> ยืนยันการลบข้อมูลที่เลือก
-              </button>
+              <div className="d-flex justify-content-center gap-3">
+                <button className="btn btn-outline-success btn-lg fw-bold px-4 shadow-sm" onClick={handleBackupExcel}>
+                  <i className="bi bi-file-earmark-excel me-2"></i> สำรองข้อมูล (Backup to Excel)
+                </button>
+                <button className="btn btn-danger btn-lg fw-bold px-4 shadow-sm" onClick={handleClearData}>
+                  <i className="bi bi-trash3-fill me-2"></i> ยืนยันการลบข้อมูลที่เลือก
+                </button>
+              </div>
             </div>
           )}
 
