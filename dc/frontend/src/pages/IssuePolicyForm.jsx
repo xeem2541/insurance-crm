@@ -3,9 +3,7 @@ import api from '../services/api';
 import { Form, Button, Card, Row, Col, InputGroup, Accordion, Badge } from 'react-bootstrap';
 import Select from 'react-select';
 import { useDropzone } from 'react-dropzone';
-import { CreateInput } from 'thai-address-autocomplete-react';
-
-const InputThaiAddress = CreateInput();
+import ThaiAddressSelect from '../components/ThaiAddressSelect';
 
 const IssuePolicyForm = () => {
   const [loading, setLoading] = useState(false);
@@ -290,6 +288,13 @@ const IssuePolicyForm = () => {
 
               <h6 className="text-primary fw-bold border-bottom pb-2 mb-3">ข้อมูลที่อยู่</h6>
               <Row className="g-3 mb-4">
+                <ThaiAddressSelect 
+                  province={customer.province}
+                  district={customer.district}
+                  sub_district={customer.sub_district}
+                  zipcode={customer.zipcode}
+                  onChange={(addr) => setCustomer(prev => ({ ...prev, ...addr }))}
+                />
                 <Col md={2}>
                   <Form.Label>บ้านเลขที่</Form.Label>
                   <Form.Control type="text" value={customer.address} onChange={e => setCustomer({...customer, address: e.target.value})} />
@@ -305,22 +310,6 @@ const IssuePolicyForm = () => {
                 <Col md={4}>
                   <Form.Label>ถนน</Form.Label>
                   <Form.Control type="text" value={customer.road} onChange={e => setCustomer({...customer, road: e.target.value})} />
-                </Col>
-                <Col md={3}>
-                  <Form.Label>ตำบล / แขวง</Form.Label>
-                  <Form.Control type="text" value={customer.sub_district} onChange={e => setCustomer({...customer, sub_district: e.target.value})} />
-                </Col>
-                <Col md={3}>
-                  <Form.Label>อำเภอ / เขต</Form.Label>
-                  <Form.Control type="text" value={customer.district} onChange={e => setCustomer({...customer, district: e.target.value})} />
-                </Col>
-                <Col md={3}>
-                  <Form.Label>จังหวัด</Form.Label>
-                  <Select options={provinces} value={provinces.find(p => p.value === customer.province)} onChange={opt => setCustomer({...customer, province: opt?.value || ''})} isClearable placeholder="เลือก..." />
-                </Col>
-                <Col md={3}>
-                  <Form.Label>รหัสไปรษณีย์</Form.Label>
-                  <Form.Control type="text" value={customer.zipcode} onChange={e => setCustomer({...customer, zipcode: e.target.value})} />
                 </Col>
               </Row>
 
