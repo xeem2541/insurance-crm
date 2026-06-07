@@ -148,10 +148,12 @@ const MasterData = () => {
 
   const handleBackupExcel = async () => {
     try {
-      const [custRes, vehRes, polRes] = await Promise.all([
+      const [custRes, vehRes, polRes, usersRes, mdRes] = await Promise.all([
         api.get('/customers'),
         api.get('/vehicles'),
-        api.get('/policies')
+        api.get('/policies'),
+        api.get('/users'),
+        api.get('/master-data')
       ]);
 
       const wb = XLSX.utils.book_new();
@@ -167,6 +169,19 @@ const MasterData = () => {
       if (polRes.data && polRes.data.length > 0) {
         const wsPol = XLSX.utils.json_to_sheet(polRes.data);
         XLSX.utils.book_append_sheet(wb, wsPol, "Policies");
+      }
+      if (usersRes.data && usersRes.data.length > 0) {
+        // Remove password hashes from export if they exist
+        const safeUsers = usersRes.data.map(u => {
+          const { password, ...safeUser } = u;
+          return safeUser;
+        });
+        const wsUsers = XLSX.utils.json_to_sheet(safeUsers);
+        XLSX.utils.book_append_sheet(wb, wsUsers, "Users");
+      }
+      if (mdRes.data && mdRes.data.length > 0) {
+        const wsMD = XLSX.utils.json_to_sheet(mdRes.data);
+        XLSX.utils.book_append_sheet(wb, wsMD, "MasterData");
       }
 
       if (wb.SheetNames.length === 0) {
