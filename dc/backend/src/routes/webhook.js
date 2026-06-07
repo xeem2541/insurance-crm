@@ -84,10 +84,8 @@ router.post('/', async (req, res) => {
         if (generativeModel) {
           try {
             console.log("Passing message to Gemini API...");
-            const result = await generativeModel.generateContent({
-              contents: [{ role: 'user', parts: [{ text }] }],
-              systemInstruction: { role: 'system', parts: [{ text: SYSTEM_PROMPT }]}
-            });
+            const promptContext = SYSTEM_PROMPT + "\n\nคำถามจากลูกค้า: " + text + "\nตอบลูกค้า:";
+            const result = await generativeModel.generateContent(promptContext);
             replyText = result.response.text();
           } catch (aiError) {
             console.error('Gemini API Error:', aiError);
