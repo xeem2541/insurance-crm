@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import api from '../services/api';
 import { Form, Button, Card, Row, Col, Accordion, Badge } from 'react-bootstrap';
 import Select from 'react-select';
+import AsyncSelect from 'react-select/async';
 import { useDropzone } from 'react-dropzone';
 import ThaiAddressSelect from '../components/ThaiAddressSelect';
 import { carBrands, carModels } from '../data/carData';
@@ -176,6 +177,81 @@ const IssuePolicyForm = () => {
     }
   }, [policy.net_premium, policy.type, policy.category, policy.non_motor_type_id, policy.commission_percent]);
 
+  const loadCustomerOptions = async (inputValue) => {
+    if (!inputValue || inputValue.length < 2) return [];
+    try {
+      const res = await api.get(`/customers?search=${inputValue}`);
+      return res.data.map(c => ({
+        label: `${c.phone} - ${c.first_name} ${c.last_name}`,
+        value: c
+      }));
+    } catch (err) {
+      return [];
+    }
+  };
+
+  const handleCustomerSelect = (selectedOption) => {
+    if (selectedOption && selectedOption.value) {
+      const c = selectedOption.value;
+      setCustomer({
+        ...customer,
+        ...c,
+        dob: c.dob ? c.dob.split('T')[0] : '',
+        id: c.id
+      });
+    }
+  };
+
+  const loadVehicleOptions = async (inputValue) => {
+    if (!inputValue || inputValue.length < 2) return [];
+    try {
+      const res = await api.get(`/vehicles?search=${inputValue}`);
+      return res.data.map(v => ({
+        label: `ทะเบียน: ${v.plate_no} ${v.plate_province ? `(${v.plate_province})` : ''} - ${v.brand} ${v.model}`,
+        value: v
+      }));
+    } catch (err) {
+      return [];
+    }
+  };
+
+  const handleVehicleSelect = (selectedOption) => {
+    if (selectedOption && selectedOption.value) {
+      const v = selectedOption.value;
+      setVehicle({
+        ...vehicle,
+        ...v,
+        tax_expiry: v.tax_expiry ? v.tax_expiry.split('T')[0] : '',
+        id: v.id
+      });
+    }
+  };
+  
+  const setDateToday = (isPrb) => {
+    const today = new Date();
+    const start = today.toISOString().split('T')[0];
+    const endObj = new Date(today.setFullYear(today.getFullYear() + 1));
+    const end = endObj.toISOString().split('T')[0];
+    if (isPrb) {
+      setPolicy({...policy, prb_start_date: start, prb_expiry_date: end});
+    } else {
+      setPolicy({...policy, start_date: start, expiry_date: end});
+    }
+  };
+
+  const setDateTomorrow = (isPrb) => {
+    const tmr = new Date();
+    tmr.setDate(tmr.getDate() + 1);
+    const start = tmr.toISOString().split('T')[0];
+    const endObj = new Date(tmr.setFullYear(tmr.getFullYear() + 1));
+    const end = endObj.toISOString().split('T')[0];
+    if (isPrb) {
+      setPolicy({...policy, prb_start_date: start, prb_expiry_date: end});
+    } else {
+      setPolicy({...policy, start_date: start, expiry_date: end});
+    }
+  };
+
   const onDrop = (acceptedFiles) => {
     const newFiles = acceptedFiles.map(file => ({
       file,
@@ -280,6 +356,19 @@ const IssuePolicyForm = () => {
           <Accordion.Item eventKey="0" className="mb-3 border-0 shadow-sm rounded">
             <Accordion.Header><h5 className="mb-0 fw-bold"><i className="bi bi-person-lines-fill me-2"></i>ส่วนที่ 1 : ข้อมูลลูกค้า</h5></Accordion.Header>
             <Accordion.Body>
+              <div className="mb-4 bg-light p-3 rounded border">
+                <Form.Label className="fw-bold text-primary"><i className="bi bi-search"></i> ค้นหาและดึงข้อมูลลูกค้าเก่าอัตโนมัติ (พิมพ์ชื่อ หรือ เบอร์โทร)</Form.Label>
+                <AsyncSelect 
+                  cacheOptions 
+                  loadOptions={loadCustomerOptions} 
+                  defaultOptions={false}
+                  onChange={handleCustomerSelect}
+                  placeholder="พิมพ์เบอร์โทร, ชื่อ, นามสกุล หรือเลขบัตรประชาชน..."
+                  noOptionsMessage={() => "ไม่พบข้อมูลลูกค้า (หรือพิมพ์อย่างน้อย 2 ตัวอักษร)"}
+                  loadingMessage={() => "กำลังค้นหา..."}
+                  isClearable
+                />
+              </div>
               <h6 className="text-primary fw-bold border-bottom pb-2 mb-3">ข้อมูลส่วนตัว</h6>
               <Row className="g-3 mb-4">
                 <Col md={2}>
@@ -383,6 +472,19 @@ const IssuePolicyForm = () => {
             <Accordion.Item eventKey="1" className="mb-3 border-0 shadow-sm rounded">
               <Accordion.Header><h5 className="mb-0 fw-bold"><i className="bi bi-car-front-fill me-2"></i>ส่วนที่ 2 : ข้อมูลรถยนต์</h5></Accordion.Header>
               <Accordion.Body>
+                <div className="mb-4 bg-light p-3 rounded border">
+                  <Form.Label className="fw-bold text-primary"><i className="bi bi-search"></i> ค้นหาและดึงข้อมูลรถยนต์เก่าอัตโนมัติ (พิมพ์เลขทะเบียน)</Form.Label>
+                  <AsyncSelect 
+                    cacheOptions 
+                    loadOptions={loadVehicleOptions} 
+                    defaultOptions={false}
+                    onChange={handleVehicleSelect}
+                    placeholder="พิมพ์เลขทะเบียนรถ..."
+                    noOptionsMessage={() => "ไม่พบข้อมูลรถ (หรือพิมพ์อย่างน้อย 2 ตัวอักษร)"}
+                    loadingMessage={() => "กำลังค้นหา..."}
+                    isClearable
+                  />
+                </div>
                 <h6 className="text-primary fw-bold border-bottom pb-2 mb-3">ข้อมูลรถ และ ทะเบียน</h6>
                 <Row className="g-3 mb-4">
                   <Col md={3}>
@@ -445,7 +547,13 @@ const IssuePolicyForm = () => {
                     <Form.Control type="date" value={vehicle.tax_expiry} onChange={e => setVehicle({...vehicle, tax_expiry: e.target.value})} />
                   </Col>
                   <Col md={3}>
-                    <Form.Label>วันเริ่มคุ้มครอง พ.ร.บ.</Form.Label>
+                    <div className="d-flex justify-content-between align-items-center mb-1">
+                      <Form.Label className="mb-0">วันเริ่มคุ้มครอง พ.ร.บ.</Form.Label>
+                      <div>
+                        <Button variant="outline-primary" size="sm" className="me-1 py-0" style={{fontSize:'0.75rem'}} onClick={() => setDateToday(true)}>วันนี้</Button>
+                        <Button variant="outline-secondary" size="sm" className="py-0" style={{fontSize:'0.75rem'}} onClick={() => setDateTomorrow(true)}>พรุ่งนี้</Button>
+                      </div>
+                    </div>
                     <Form.Control type="date" value={policy.prb_start_date} onChange={e => {
                       const start = e.target.value;
                       let end = policy.prb_expiry_date;
@@ -514,7 +622,13 @@ const IssuePolicyForm = () => {
                 )}
 
                 <Col md={6}>
-                  <Form.Label>วันเริ่มคุ้มครอง (กรมธรรม์)</Form.Label>
+                  <div className="d-flex justify-content-between align-items-center mb-1">
+                    <Form.Label className="mb-0">วันเริ่มคุ้มครอง (กรมธรรม์)</Form.Label>
+                    <div>
+                      <Button variant="outline-primary" size="sm" className="me-1 py-0" style={{fontSize:'0.75rem'}} onClick={() => setDateToday(false)}>วันนี้</Button>
+                      <Button variant="outline-secondary" size="sm" className="py-0" style={{fontSize:'0.75rem'}} onClick={() => setDateTomorrow(false)}>พรุ่งนี้</Button>
+                    </div>
+                  </div>
                   <Form.Control type="date" value={policy.start_date} onChange={e => {
                       const start = e.target.value;
                       let end = policy.expiry_date;

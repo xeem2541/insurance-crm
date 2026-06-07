@@ -44,6 +44,20 @@ const ThaiAddressSelect = ({ province, district, sub_district, zipcode, onChange
     onChange({ province, district, sub_district: sub, zipcode: zip });
   };
 
+  const handleZipcodeChange = (e) => {
+    const zip = e.target.value;
+    if (zip.length === 5) {
+      const matches = thaiData.filter(item => item.zipcode.toString() === zip);
+      if (matches.length > 0) {
+        const match = matches[0];
+        const sub = matches.length === 1 ? match.district : '';
+        onChange({ province: match.province, district: match.amphoe, sub_district: sub, zipcode: zip });
+        return;
+      }
+    }
+    onChange({ province, district, sub_district, zipcode: zip });
+  };
+
   return (
     <>
       <div className="col-md-3">
@@ -84,8 +98,9 @@ const ThaiAddressSelect = ({ province, district, sub_district, zipcode, onChange
           type="text" 
           className="form-control" 
           value={zipcode || ''} 
-          readOnly 
-          style={{ backgroundColor: '#e9ecef' }}
+          onChange={handleZipcodeChange}
+          placeholder="กรอกรหัสไปรษณีย์..."
+          maxLength={5}
         />
       </div>
     </>
