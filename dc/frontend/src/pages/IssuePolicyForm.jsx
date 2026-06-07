@@ -330,11 +330,6 @@ const IssuePolicyForm = () => {
         vehicle,
         policy,
         payment,
-      const payload = {
-        customer,
-        vehicle,
-        policy,
-        payment,
         followUp,
         installmentSchedule
       };
