@@ -148,10 +148,11 @@ const MasterData = () => {
 
   const handleBackupExcel = async () => {
     try {
-      const [custRes, vehRes, polRes, usersRes, mdRes] = await Promise.all([
+      const [custRes, vehRes, polRes, nmPolRes, usersRes, mdRes] = await Promise.all([
         api.get('/customers'),
         api.get('/vehicles'),
         api.get('/policies'),
+        api.get('/non-motor-policies'),
         api.get('/users'),
         api.get('/master-data')
       ]);
@@ -168,7 +169,20 @@ const MasterData = () => {
       }
       if (polRes.data && polRes.data.length > 0) {
         const wsPol = XLSX.utils.json_to_sheet(polRes.data);
-        XLSX.utils.book_append_sheet(wb, wsPol, "Policies");
+        XLSX.utils.book_append_sheet(wb, wsPol, "MotorPolicies");
+      }
+      if (nmPolRes.data && nmPolRes.data.length > 0) {
+        // Prepare non-motor data for export by extracting JSON additional_data
+        const nmData = nmPolRes.data.map(p => {
+          let extra = {};
+          try {
+            if (p.additional_data) extra = typeof p.additional_data === 'string' ? JSON.parse(p.additional_data) : p.additional_data;
+          } catch(e) {}
+          const { additional_data, ...rest } = p;
+          return { ...rest, ...extra };
+        });
+        const wsNmPol = XLSX.utils.json_to_sheet(nmData);
+        XLSX.utils.book_append_sheet(wb, wsNmPol, "NonMotorPolicies");
       }
       if (usersRes.data && usersRes.data.length > 0) {
         // Remove password hashes from export if they exist
@@ -463,7 +477,21 @@ const MasterData = () => {
                       }));
                     }}
                   />
-                  <label className="form-check-label" htmlFor="clearPolicies">📄 ข้อมูลกรมธรรม์และตารางงาน (Policies)</label>
+                  <label className="form-check-label" htmlFor="clearPolicies">📄 ข้อมูล Motor Insurance (รถยนต์)</label>
+                </div>
+                <div className="form-check mb-2">
+                  <input className="form-check-input" type="checkbox" id="clearNonMotorPolicies" value="non_motor_policies"
+                    onChange={(e) => {
+                      const value = e.target.value;
+                      setFormData(prev => ({
+                        ...prev,
+                        clearTables: e.target.checked 
+                          ? [...(prev.clearTables || []), value]
+                          : (prev.clearTables || []).filter(t => t !== value)
+                      }));
+                    }}
+                  />
+                  <label className="form-check-label" htmlFor="clearNonMotorPolicies">📄 ข้อมูล Non-Motor Insurance (ประกันอื่น)</label>
                 </div>
                 <div className="form-check mb-2">
                   <input className="form-check-input" type="checkbox" id="clearDocuments" value="documents"

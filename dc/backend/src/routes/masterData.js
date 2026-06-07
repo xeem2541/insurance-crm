@@ -76,14 +76,27 @@ router.post('/clear-mock', authenticateToken, async (req, res) => {
   try {
     const { tables } = req.body;
     
-    const allowedTables = ['documents', 'policies', 'vehicles', 'customers', 'master_data', 'users'];
+    const allowedTables = ['documents', 'policies', 'vehicles', 'customers', 'master_data', 'users', 'non_motor_policies', 'non_motor_documents'];
     let tablesToClear = [];
     
     if (Array.isArray(tables) && tables.length > 0) {
-      tablesToClear = tables.filter(t => allowedTables.includes(t));
+      // Expand 'documents' to cover both tables
+      tables.forEach(t => {
+        if (allowedTables.includes(t)) {
+          tablesToClear.push(t);
+        }
+        if (t === 'documents') {
+          tablesToClear.push('non_motor_documents');
+        }
+        if (t === 'policies') {
+          // just policies
+        }
+      });
+      // Remove duplicates just in case
+      tablesToClear = [...new Set(tablesToClear)];
     } else {
       // Default to old behavior if no payload
-      tablesToClear = ['documents', 'policies', 'vehicles', 'customers'];
+      tablesToClear = ['documents', 'non_motor_documents', 'policies', 'non_motor_policies', 'vehicles', 'customers'];
     }
 
     if (tablesToClear.length === 0) {
