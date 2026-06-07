@@ -4,6 +4,7 @@ import { AuthContext } from '../contexts/AuthContext';
 import * as XLSX from 'xlsx';
 import jsPDF from 'jspdf';
 import 'jspdf-autotable';
+import { BarChart, Bar, LineChart, Line, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 
 const Reports = () => {
   const { user } = useContext(AuthContext);
@@ -100,6 +101,11 @@ const Reports = () => {
                   <option value="non_motor_renewal">ต่ออายุ (Non-Motor)</option>
                   <option value="non_motor_arrears">ค้างชำระ (Non-Motor)</option>
                 </optgroup>
+                <optgroup label="Advanced (Unified Data)">
+                  <option value="sales_by_person">ยอดขายแยกตามพนักงาน</option>
+                  <option value="sales_by_company">ยอดขายแยกตามบริษัท</option>
+                  <option value="sales_by_type">ยอดขายแยกตามประเภทประกัน</option>
+                </optgroup>
               </select>
             </div>
             <div className="col-md-3">
@@ -120,18 +126,83 @@ const Reports = () => {
       </div>
 
       {reportData.length > 0 && (
-        <div className="card shadow-sm border-0">
-          <div className="card-header bg-white border-bottom py-3 d-flex justify-content-between align-items-center">
-            <h5 className="mb-0 fw-bold">ผลลัพธ์การค้นหา ({reportData.length} รายการ)</h5>
-            <div>
-              <button className="btn btn-outline-success me-2 fw-bold" onClick={exportExcel}>
-                <i className="bi bi-file-earmark-excel"></i> Export Excel
-              </button>
-              <button className="btn btn-outline-danger fw-bold" onClick={exportPDF}>
-                <i className="bi bi-file-earmark-pdf"></i> Export PDF
-              </button>
+        <>
+          {/* Charts Section */}
+          {['sales_daily', 'sales_monthly', 'non_motor_sales_daily', 'non_motor_sales_monthly'].includes(reportType) && (
+            <div className="card shadow-sm border-0 mb-4 p-4">
+              <h5 className="fw-bold mb-4 text-primary">แนวโน้มยอดขายรวม</h5>
+              <div style={{ width: '100%', height: 350 }}>
+                <ResponsiveContainer>
+                  <LineChart data={reportData} margin={{ top: 5, right: 30, left: 20, bottom: 5 }}>
+                    <CartesianGrid strokeDasharray="3 3" />
+                    <XAxis dataKey={reportType.includes('daily') ? 'date' : 'month'} />
+                    <YAxis />
+                    <Tooltip formatter={(value) => new Intl.NumberFormat('th-TH').format(value)} />
+                    <Legend />
+                    <Line type="monotone" dataKey="total_sales" name="ยอดขายรวม (บาท)" stroke="#0d6efd" strokeWidth={3} />
+                  </LineChart>
+                </ResponsiveContainer>
+              </div>
             </div>
-          </div>
+          )}
+
+          {['sales_by_person', 'sales_by_company'].includes(reportType) && (
+            <div className="card shadow-sm border-0 mb-4 p-4">
+              <h5 className="fw-bold mb-4 text-success">เปรียบเทียบยอดขายรวม</h5>
+              <div style={{ width: '100%', height: 350 }}>
+                <ResponsiveContainer>
+                  <BarChart data={reportData} margin={{ top: 5, right: 30, left: 20, bottom: 5 }}>
+                    <CartesianGrid strokeDasharray="3 3" />
+                    <XAxis dataKey={reportType === 'sales_by_person' ? 'พนักงานขาย' : 'บริษัทประกันภัย'} />
+                    <YAxis />
+                    <Tooltip formatter={(value) => new Intl.NumberFormat('th-TH').format(value)} />
+                    <Legend />
+                    <Bar dataKey="ยอดขายรวม" name="ยอดขายรวม (บาท)" fill="#198754" radius={[5, 5, 0, 0]} />
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+            </div>
+          )}
+
+          {reportType === 'sales_by_type' && (
+            <div className="card shadow-sm border-0 mb-4 p-4">
+              <h5 className="fw-bold mb-4 text-warning">สัดส่วนยอดขายตามประเภทประกันภัย</h5>
+              <div style={{ width: '100%', height: 350 }}>
+                <ResponsiveContainer>
+                  <PieChart>
+                    <Pie
+                      data={reportData}
+                      dataKey="ยอดขายรวม"
+                      nameKey="ประเภทประกันภัย"
+                      cx="50%"
+                      cy="50%"
+                      outerRadius={120}
+                      label={({name, percent}) => `${name} ${(percent * 100).toFixed(0)}%`}
+                    >
+                      {reportData.map((entry, index) => (
+                        <Cell key={`cell-${index}`} fill={['#0d6efd', '#198754', '#ffc107', '#dc3545', '#6f42c1', '#fd7e14'][index % 6]} />
+                      ))}
+                    </Pie>
+                    <Tooltip formatter={(value) => new Intl.NumberFormat('th-TH').format(value)} />
+                    <Legend />
+                  </PieChart>
+                </ResponsiveContainer>
+              </div>
+            </div>
+          )}
+
+          <div className="card shadow-sm border-0">
+            <div className="card-header bg-white border-bottom py-3 d-flex justify-content-between align-items-center">
+              <h5 className="mb-0 fw-bold">ตารางข้อมูล ({reportData.length} รายการ)</h5>
+              <div>
+                <button className="btn btn-outline-success me-2 fw-bold" onClick={exportExcel}>
+                  <i className="bi bi-file-earmark-excel"></i> Export Excel
+                </button>
+                <button className="btn btn-outline-danger fw-bold" onClick={exportPDF}>
+                  <i className="bi bi-file-earmark-pdf"></i> Export PDF
+                </button>
+              </div>
+            </div>
           <div className="table-responsive">
             <table className="table table-hover mb-0 align-middle">
               <thead className="table-light">
@@ -143,6 +214,7 @@ const Reports = () => {
             </table>
           </div>
         </div>
+        </>
       )}
     </div>
   );
