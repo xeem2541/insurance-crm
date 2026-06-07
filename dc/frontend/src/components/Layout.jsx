@@ -41,10 +41,15 @@ const Layout = () => {
       ></div>
 
       <div className={`sidebar d-flex flex-column ${isSidebarOpen ? 'open' : ''} ${darkMode ? 'border-end border-secondary' : ''}`} style={{ width: '280px', backgroundColor: darkMode ? '#1e1e1e' : '' }}>
-        <a href="/" className="d-flex align-items-center mb-4 px-4 text-white text-decoration-none mt-2 pt-3">
-          <i className="bi bi-shield-fill-check text-primary fs-3 me-2"></i>
-          <span className="brand-text" style={{ fontFamily: 'Kanit, sans-serif' }}>สำนักงานเปิ้ลประกัน</span>
-        </a>
+        <div className="d-flex align-items-center justify-content-between mb-4 px-4 mt-2 pt-3">
+          <Link to="/" className="d-flex align-items-center text-white text-decoration-none">
+            <i className="bi bi-shield-fill-check text-primary fs-3 me-2"></i>
+            <span className="brand-text" style={{ fontFamily: 'Kanit, sans-serif' }}>สำนักงานเปิ้ลประกัน</span>
+          </Link>
+          <button className="btn btn-link text-white d-lg-none p-0" onClick={() => setIsSidebarOpen(false)}>
+            <i className="bi bi-x-lg fs-4"></i>
+          </button>
+        </div>
         
         <ul className="nav flex-column mb-auto px-2 mt-2">
           <li className="nav-item mb-3 px-3">
@@ -98,7 +103,7 @@ const Layout = () => {
             </div>
           </div>
         </nav>
-        <div className="p-4 fade-in flex-grow-1 overflow-auto">
+        <div className="p-3 p-lg-4 fade-in flex-grow-1 overflow-auto">
           <Outlet />
         </div>
       </div>
