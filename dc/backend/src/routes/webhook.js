@@ -11,7 +11,7 @@ let genAI = null;
 let generativeModel = null;
 if (process.env.GEMINI_API_KEY) {
   genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
-  generativeModel = genAI.getGenerativeModel({ model: "gemini-pro" });
+  generativeModel = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
 }
 
 // System prompt for Gemini
