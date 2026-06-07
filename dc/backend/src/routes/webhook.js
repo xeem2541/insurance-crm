@@ -10,8 +10,14 @@ const { GoogleGenerativeAI } = require("@google/generative-ai");
 let genAI = null;
 let generativeModel = null;
 if (process.env.GEMINI_API_KEY) {
-  genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
+  const apiKey = process.env.GEMINI_API_KEY.trim();
+  genAI = new GoogleGenerativeAI(apiKey);
   generativeModel = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+
+  // Debug: Print available models to console
+  axios.get(`https://generativelanguage.googleapis.com/v1beta/models?key=${apiKey}`)
+    .then(res => console.log("✅ Gemini Models Available:", res.data.models.map(m => m.name.replace('models/', '')).filter(n => n.includes('gemini')).join(", ")))
+    .catch(err => console.error("❌ Error fetching models:", err.message));
 }
 
 // System prompt for Gemini
