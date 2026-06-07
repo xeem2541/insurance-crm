@@ -12,6 +12,33 @@ const Customers = () => {
   
   // Master Data
   const [leadSources, setLeadSources] = useState([]);
+  
+  const prefixes = ['นาย', 'นาง', 'นางสาว', 'บริษัท', 'หจก.', 'คุณ'];
+  const provincesList = [
+    'กรุงเทพมหานคร', 'กระบี่', 'กาญจนบุรี', 'กาฬสินธุ์', 'กำแพงเพชร', 'ขอนแก่น', 'จันทบุรี', 'ฉะเชิงเทรา', 'ชลบุรี', 'ชัยนาท', 
+    'ชัยภูมิ', 'ชุมพร', 'เชียงราย', 'เชียงใหม่', 'ตรัง', 'ตราด', 'ตาก', 'นครนายก', 'นครปฐม', 'นครพนม', 'นครราชสีมา', 
+    'นครศรีธรรมราช', 'นครสวรรค์', 'นนทบุรี', 'นราธิวาส', 'น่าน', 'บึงกาฬ', 'บุรีรัมย์', 'ปทุมธานี', 'ประจวบคีรีขันธ์', 
+    'ปราจีนบุรี', 'ปัตตานี', 'พระนครศรีอยุธยา', 'พะเยา', 'พังงา', 'พัทลุง', 'พิจิตร', 'พิษณุโลก', 'เพชรบุรี', 'เพชรบูรณ์', 
+    'แพร่', 'ภูเก็ต', 'มหาสารคาม', 'มุกดาหาร', 'แม่ฮ่องสอน', 'ยโสธร', 'ยะลา', 'ร้อยเอ็ด', 'ระนอง', 'ระยอง', 'ราชบุรี', 
+    'ลพบุรี', 'ลำปาง', 'ลำพูน', 'เลย', 'ศรีสะเกษ', 'สกลนคร', 'สงขลา', 'สตูล', 'สมุทรปราการ', 'สมุทรสงคราม', 'สมุทรสาคร', 
+    'สระแก้ว', 'สระบุรี', 'สิงห์บุรี', 'สุโขทัย', 'สุพรรณบุรี', 'สุราษฎร์ธานี', 'สุรินทร์', 'หนองคาย', 'หนองบัวลำภู', 
+    'อ่างทอง', 'อำนาจเจริญ', 'อุดรธานี', 'อุตรดิตถ์', 'อุทัยธานี', 'อุบลราชธานี'
+  ].map(p => ({ value: p, label: p }));
+
+  const handleDobChange = (e) => {
+    const dob = e.target.value;
+    let age = '';
+    if (dob) {
+      const birthDate = new Date(dob);
+      const today = new Date();
+      age = today.getFullYear() - birthDate.getFullYear();
+      const m = today.getMonth() - birthDate.getMonth();
+      if (m < 0 || (m === 0 && today.getDate() < birthDate.getDate())) {
+        age--;
+      }
+    }
+    setFormData({ ...formData, dob, age });
+  };
 
   const exportToExcel = () => {
     const dataToExport = customers.map(c => ({
@@ -200,7 +227,10 @@ const Customers = () => {
               </div>
               <div className="col-md-2">
                 <Form.Label>คำนำหน้า</Form.Label>
-                <Form.Control type="text" value={formData.prefix || ''} onChange={e => setFormData({...formData, prefix: e.target.value})} />
+                <Form.Select value={formData.prefix || ''} onChange={e => setFormData({...formData, prefix: e.target.value})}>
+                  <option value="">เลือก...</option>
+                  {prefixes.map(p => <option key={p} value={p}>{p}</option>)}
+                </Form.Select>
               </div>
               <div className="col-md-4">
                 <Form.Label>ชื่อ <span className="text-danger">*</span></Form.Label>
@@ -212,11 +242,11 @@ const Customers = () => {
               </div>
               <div className="col-md-4">
                 <Form.Label>วันเกิด</Form.Label>
-                <Form.Control type="date" value={formData.dob || ''} onChange={e => setFormData({...formData, dob: e.target.value})} />
+                <Form.Control type="date" value={formData.dob || ''} onChange={handleDobChange} />
               </div>
               <div className="col-md-2">
                 <Form.Label>อายุ (ปี)</Form.Label>
-                <Form.Control type="number" value={formData.age || ''} onChange={e => setFormData({...formData, age: e.target.value})} />
+                <Form.Control type="number" value={formData.age || ''} readOnly className="bg-light" />
               </div>
               <div className="col-md-2">
                 <Form.Label>อาชีพ</Form.Label>
@@ -252,7 +282,13 @@ const Customers = () => {
               </div>
               <div className="col-md-3">
                 <Form.Label>จังหวัด</Form.Label>
-                <Form.Control type="text" value={formData.province || ''} onChange={e => setFormData({...formData, province: e.target.value})} />
+                <Select
+                  options={provincesList}
+                  value={provincesList.find(p => p.value === formData.province)}
+                  onChange={option => setFormData({...formData, province: option?.value || ''})}
+                  isClearable
+                  placeholder="ค้นหา..."
+                />
               </div>
               <div className="col-md-3">
                 <Form.Label>รหัสไปรษณีย์</Form.Label>
