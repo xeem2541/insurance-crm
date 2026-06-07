@@ -169,6 +169,33 @@ async function initDb() {
     `);
     console.log('Non-Motor tables verified');
 
+    // Auto-migrate new columns for Single Page Form
+    try {
+      await connection.query('ALTER TABLE customers ADD COLUMN moo VARCHAR(50), ADD COLUMN soi VARCHAR(100), ADD COLUMN road VARCHAR(100), ADD COLUMN sub_district VARCHAR(100), ADD COLUMN district VARCHAR(100)');
+    } catch(e) {}
+
+    try {
+      await connection.query('ALTER TABLE policies ADD COLUMN prb_start_date DATE, ADD COLUMN prb_expiry_date DATE');
+    } catch(e) {}
+
+    // Create Payments table
+    await connection.query(`
+      CREATE TABLE IF NOT EXISTS payments (
+        id INT PRIMARY KEY AUTO_INCREMENT,
+        policy_id INT NULL,
+        non_motor_policy_id INT NULL,
+        payment_method VARCHAR(100) NOT NULL,
+        installments INT DEFAULT 1,
+        pay_date DATE,
+        status VARCHAR(50) DEFAULT 'รอดำเนินการ',
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+        FOREIGN KEY (policy_id) REFERENCES policies(id) ON DELETE CASCADE,
+        FOREIGN KEY (non_motor_policy_id) REFERENCES non_motor_policies(id) ON DELETE CASCADE
+      )
+    `);
+    console.log('Payments table verified');
+
     // Auto-seed mock data if database is empty
     const [custCountRes] = await connection.query('SELECT COUNT(*) as count FROM customers');
     if (custCountRes[0].count === 0) {
@@ -299,6 +326,7 @@ app.use('/api/reports', require('./routes/reports'));
 app.use('/api/master-data', require('./routes/masterData'));
 app.use('/api/webhook', require('./routes/webhook'));
 app.use('/api/non-motor-policies', require('./routes/nonMotorPolicies'));
+app.use('/api/issue-policy', require('./routes/issuePolicy'));
 
 // Start server
 app.listen(PORT, () => {

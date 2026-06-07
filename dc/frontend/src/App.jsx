@@ -14,6 +14,7 @@ import MasterData from './pages/MasterData';
 import CalendarView from './pages/CalendarView';
 import PrintPolicy from './pages/PrintPolicy';
 import NonMotorPolicies from './pages/NonMotorPolicies';
+import IssuePolicyForm from './pages/IssuePolicyForm';
 
 const PrivateRoute = ({ children }) => {
   const { user, loading } = useContext(AuthContext);
@@ -27,6 +28,7 @@ const AppRoutes = () => {
       <Route path="/login" element={<Login />} />
       <Route path="/" element={<PrivateRoute><Layout /></PrivateRoute>}>
         <Route index element={<Dashboard />} />
+        <Route path="issue-policy" element={<IssuePolicyForm />} />
         <Route path="customers" element={<Customers />} />
         <Route path="vehicles" element={<Vehicles />} />
         <Route path="policies" element={<Policies />} />

@@ -16,6 +16,7 @@ const Layout = () => {
 
   const menuItems = [
     { path: '/', label: 'ภาพรวมระบบ', icon: 'bi-grid-1x2-fill', roles: ['Admin', 'Manager', 'Staff', 'Sales', 'Viewer'] },
+    { path: '/issue-policy', label: 'ออกกรมธรรม์ใหม่', icon: 'bi-file-earmark-plus-fill', roles: ['Admin', 'Manager', 'Staff', 'Sales'] },
     { path: '/calendar', label: 'ปฏิทินงาน', icon: 'bi-calendar3', roles: ['Admin', 'Manager', 'Staff', 'Sales', 'Viewer'] },
     { path: '/customers', label: 'ข้อมูลลูกค้า', icon: 'bi-people-fill', roles: ['Admin', 'Manager', 'Staff', 'Sales', 'Viewer'] },
     { path: '/vehicles', label: 'ข้อมูลรถยนต์', icon: 'bi-car-front-fill', roles: ['Admin', 'Manager', 'Staff', 'Sales', 'Viewer'] },
