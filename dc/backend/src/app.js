@@ -350,6 +350,7 @@ app.use('/api/master-data', require('./routes/masterData'));
 app.use('/api/webhook', require('./routes/webhook'));
 app.use('/api/non-motor-policies', require('./routes/nonMotorPolicies'));
 app.use('/api/issue-policy', require('./routes/issuePolicy'));
+app.use('/api/payments', require('./routes/payments'));
 
 // Start server
 app.listen(PORT, () => {
