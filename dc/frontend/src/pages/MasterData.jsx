@@ -127,10 +127,19 @@ const MasterData = () => {
   };
 
   const handleClearData = async () => {
-    if (window.confirm('⚠️ คำเตือน: การกระทำนี้จะลบข้อมูลลูกค้า, รถยนต์, และกรมธรรม์ทั้งหมดออกจากระบบอย่างถาวร (ยอดขายจะกลับเป็น 0)\n\nคุณแน่ใจหรือไม่ว่าต้องการล้างข้อมูล?')) {
+    const selectedTables = formData.clearTables || [];
+    if (selectedTables.length === 0) {
+      return alert('กรุณาเลือกข้อมูลที่ต้องการลบอย่างน้อย 1 รายการ');
+    }
+
+    if (window.confirm('⚠️ คำเตือน: ข้อมูลที่เลือกจะถูกลบออกจากระบบอย่างถาวรและไม่สามารถกู้คืนได้\n\nคุณแน่ใจหรือไม่ว่าต้องการดำเนินการต่อ?')) {
       try {
-        const res = await api.post('/master-data/clear-mock');
+        const res = await api.post('/master-data/clear-mock', { tables: selectedTables });
         alert(res.data.message || 'ล้างข้อมูลสำเร็จ');
+        // Reset selection after clear
+        setFormData(prev => ({ ...prev, clearTables: [] }));
+        // Uncheck all checkboxes visually
+        document.querySelectorAll('input[type="checkbox"]').forEach(cb => cb.checked = false);
       } catch (error) {
         alert(error.response?.data?.error || 'เกิดข้อผิดพลาดในการล้างข้อมูล');
       }
@@ -356,17 +365,107 @@ const MasterData = () => {
           {activeTab === 'system_clear' && (
             <div className="text-center py-5">
               <i className="bi bi-exclamation-octagon-fill text-danger" style={{ fontSize: '4rem' }}></i>
-              <h3 className="fw-bold text-danger mt-3 mb-3">ล้างข้อมูลทั้งหมดในระบบ (Clear Data)</h3>
+              <h3 className="fw-bold text-danger mt-3 mb-3">ล้างข้อมูลระบบ (Clear Data)</h3>
               <p className="text-muted mb-4 mx-auto" style={{ maxWidth: '600px' }}>
-                ฟังก์ชันนี้จะทำการ <strong className="text-dark">ลบรายชื่อลูกค้า, รถยนต์, กรมธรรม์ และตารางงานทั้งหมด</strong> ออกจากฐานข้อมูลอย่างถาวร 
-                เหมาะสำหรับใช้ล้าง "ข้อมูลจำลอง" เพื่อเตรียมเริ่มต้นกรอกข้อมูลลูกค้าจริง
+                เลือกประเภทข้อมูลที่คุณต้องการลบออกจากฐานข้อมูลอย่างถาวร 
+                (เหมาะสำหรับใช้ล้าง "ข้อมูลจำลอง" เพื่อเตรียมเริ่มต้นกรอกข้อมูลลูกค้าจริง)
               </p>
+              
+              <div className="bg-light p-4 rounded-3 text-start mx-auto shadow-sm mb-4" style={{ maxWidth: '400px' }}>
+                <h5 className="fw-bold mb-3"><i className="bi bi-list-check me-2"></i>เลือกข้อมูลที่ต้องการลบ</h5>
+                <div className="form-check mb-2">
+                  <input className="form-check-input" type="checkbox" id="clearCustomers" value="customers" 
+                    onChange={(e) => {
+                      const value = e.target.value;
+                      setFormData(prev => ({
+                        ...prev,
+                        clearTables: e.target.checked 
+                          ? [...(prev.clearTables || []), value]
+                          : (prev.clearTables || []).filter(t => t !== value)
+                      }));
+                    }}
+                  />
+                  <label className="form-check-label" htmlFor="clearCustomers">👤 ข้อมูลลูกค้า (Customers)</label>
+                </div>
+                <div className="form-check mb-2">
+                  <input className="form-check-input" type="checkbox" id="clearVehicles" value="vehicles"
+                    onChange={(e) => {
+                      const value = e.target.value;
+                      setFormData(prev => ({
+                        ...prev,
+                        clearTables: e.target.checked 
+                          ? [...(prev.clearTables || []), value]
+                          : (prev.clearTables || []).filter(t => t !== value)
+                      }));
+                    }}
+                  />
+                  <label className="form-check-label" htmlFor="clearVehicles">🚗 ข้อมูลรถยนต์ (Vehicles)</label>
+                </div>
+                <div className="form-check mb-2">
+                  <input className="form-check-input" type="checkbox" id="clearPolicies" value="policies"
+                    onChange={(e) => {
+                      const value = e.target.value;
+                      setFormData(prev => ({
+                        ...prev,
+                        clearTables: e.target.checked 
+                          ? [...(prev.clearTables || []), value]
+                          : (prev.clearTables || []).filter(t => t !== value)
+                      }));
+                    }}
+                  />
+                  <label className="form-check-label" htmlFor="clearPolicies">📄 ข้อมูลกรมธรรม์และตารางงาน (Policies)</label>
+                </div>
+                <div className="form-check mb-2">
+                  <input className="form-check-input" type="checkbox" id="clearDocuments" value="documents"
+                    onChange={(e) => {
+                      const value = e.target.value;
+                      setFormData(prev => ({
+                        ...prev,
+                        clearTables: e.target.checked 
+                          ? [...(prev.clearTables || []), value]
+                          : (prev.clearTables || []).filter(t => t !== value)
+                      }));
+                    }}
+                  />
+                  <label className="form-check-label" htmlFor="clearDocuments">📎 ไฟล์เอกสารที่อัปโหลด (Documents)</label>
+                </div>
+                <hr />
+                <div className="form-check mb-2">
+                  <input className="form-check-input" type="checkbox" id="clearMasterData" value="master_data"
+                    onChange={(e) => {
+                      const value = e.target.value;
+                      setFormData(prev => ({
+                        ...prev,
+                        clearTables: e.target.checked 
+                          ? [...(prev.clearTables || []), value]
+                          : (prev.clearTables || []).filter(t => t !== value)
+                      }));
+                    }}
+                  />
+                  <label className="form-check-label text-danger" htmlFor="clearMasterData">⚙️ ข้อมูลตั้งค่าระบบพื้นฐาน (Master Data)</label>
+                </div>
+                <div className="form-check">
+                  <input className="form-check-input" type="checkbox" id="clearUsers" value="users"
+                    onChange={(e) => {
+                      const value = e.target.value;
+                      setFormData(prev => ({
+                        ...prev,
+                        clearTables: e.target.checked 
+                          ? [...(prev.clearTables || []), value]
+                          : (prev.clearTables || []).filter(t => t !== value)
+                      }));
+                    }}
+                  />
+                  <label className="form-check-label text-danger" htmlFor="clearUsers">👥 ผู้ใช้งานระบบ (ยกเว้น Admin)</label>
+                </div>
+              </div>
+
               <div className="alert alert-warning d-inline-block text-start mb-4 shadow-sm border-0">
-                <strong>⚠️ คำเตือน:</strong> ข้อมูลที่ถูกลบไปแล้วจะไม่สามารถกู้คืนได้ โปรดใช้งานด้วยความระมัดระวัง
+                <strong>⚠️ คำเตือน:</strong> ข้อมูลที่ถูกลบไปแล้วจะไม่สามารถกู้คืนได้ โปรดตรวจสอบให้แน่ใจก่อนดำเนินการ
               </div>
               <br/>
               <button className="btn btn-danger btn-lg fw-bold px-5 shadow-sm" onClick={handleClearData}>
-                <i className="bi bi-trash3-fill me-2"></i> ยืนยันการล้างข้อมูลทั้งหมด
+                <i className="bi bi-trash3-fill me-2"></i> ยืนยันการลบข้อมูลที่เลือก
               </button>
             </div>
           )}

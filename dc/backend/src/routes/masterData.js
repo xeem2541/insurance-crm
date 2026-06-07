@@ -74,18 +74,38 @@ router.delete('/:id', authenticateToken, async (req, res) => {
 router.post('/clear-mock', authenticateToken, async (req, res) => {
   if (req.user.role !== 'Admin') return res.status(403).json({ error: 'Forbidden' });
   try {
+    const { tables } = req.body;
+    
+    const allowedTables = ['documents', 'policies', 'vehicles', 'customers', 'master_data', 'users'];
+    let tablesToClear = [];
+    
+    if (Array.isArray(tables) && tables.length > 0) {
+      tablesToClear = tables.filter(t => allowedTables.includes(t));
+    } else {
+      // Default to old behavior if no payload
+      tablesToClear = ['documents', 'policies', 'vehicles', 'customers'];
+    }
+
+    if (tablesToClear.length === 0) {
+      return res.status(400).json({ error: 'กรุณาเลือกข้อมูลที่ต้องการลบ' });
+    }
+
     // Disable foreign key checks temporarily to allow truncating
     await req.db.query('SET FOREIGN_KEY_CHECKS = 0');
     
-    await req.db.query('TRUNCATE TABLE documents');
-    await req.db.query('TRUNCATE TABLE policies');
-    await req.db.query('TRUNCATE TABLE vehicles');
-    await req.db.query('TRUNCATE TABLE customers');
+    for (const table of tablesToClear) {
+      if (table === 'users') {
+        // Protect Admin users from being deleted
+        await req.db.query('DELETE FROM users WHERE role != "Admin"');
+      } else {
+        await req.db.query(`TRUNCATE TABLE ${table}`);
+      }
+    }
     
     // Re-enable foreign key checks
     await req.db.query('SET FOREIGN_KEY_CHECKS = 1');
     
-    res.json({ message: 'ล้างข้อมูลลูกค้าทั้งหมดเรียบร้อยแล้ว' });
+    res.json({ message: 'ล้างข้อมูลที่เลือกเรียบร้อยแล้ว' });
   } catch (error) {
     console.error('Clear mock data error:', error);
     await req.db.query('SET FOREIGN_KEY_CHECKS = 1'); // Ensure it gets re-enabled on error
