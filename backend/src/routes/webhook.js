@@ -44,7 +44,7 @@ router.post('/', async (req, res) => {
             FROM policies p
             JOIN customers c ON p.customer_id = c.id
             LEFT JOIN vehicles v ON p.vehicle_id = v.id
-            WHERE c.id_card = ? OR v.plate_no LIKE ? OR p.policy_no = ?
+            WHERE c.id_card_no = ? OR v.plate_no LIKE ? OR p.policy_no = ?
             ORDER BY p.expiry_date DESC LIMIT 1
           `, [text, `%${text}%`, text]);
 
