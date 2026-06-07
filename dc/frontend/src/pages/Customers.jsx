@@ -6,6 +6,36 @@ import ThaiAddressSelect from '../components/ThaiAddressSelect';
 
 import * as XLSX from 'xlsx';
 
+const formatPhone = (val) => {
+  if (!val) return '';
+  const cleaned = ('' + val).replace(/\D/g, '');
+  const match = cleaned.match(/^(\d{0,3})(\d{0,3})(\d{0,4})$/);
+  if (match) {
+    let parts = [];
+    if (match[1]) parts.push(match[1]);
+    if (match[2]) parts.push(match[2]);
+    if (match[3]) parts.push(match[3]);
+    return parts.join('-');
+  }
+  return val;
+};
+
+const formatIdCard = (val) => {
+  if (!val) return '';
+  const cleaned = ('' + val).replace(/\D/g, '');
+  const match = cleaned.match(/^(\d{0,1})(\d{0,4})(\d{0,5})(\d{0,2})(\d{0,1})$/);
+  if (match) {
+    let parts = [];
+    if (match[1]) parts.push(match[1]);
+    if (match[2]) parts.push(match[2]);
+    if (match[3]) parts.push(match[3]);
+    if (match[4]) parts.push(match[4]);
+    if (match[5]) parts.push(match[5]);
+    return parts.join('-');
+  }
+  return val;
+};
+
 const Customers = () => {
   const [customers, setCustomers] = useState([]);
   const [search, setSearch] = useState('');
@@ -212,9 +242,9 @@ const Customers = () => {
                 <Form.Label>รหัสลูกค้า</Form.Label>
                 <Form.Control type="text" value={formData.customer_code} onChange={e => setFormData({...formData, customer_code: e.target.value})} required disabled={!!formData.id} placeholder="CUS-YYYY-XXXX" />
               </div>
-              <div className="col-md-3">
-                <Form.Label>เลขบัตรประชาชน</Form.Label>
-                <Form.Control type="text" value={formData.id_card_no || ''} onChange={e => setFormData({...formData, id_card_no: e.target.value})} />
+              <div className="col-md-4">
+                <Form.Label>เลขบัตรประชาชน / เลขนิติบุคคล</Form.Label>
+                <Form.Control type="text" value={formData.id_card_no || ''} onChange={e => setFormData({...formData, id_card_no: formatIdCard(e.target.value)})} maxLength={17} />
               </div>
               <div className="col-md-2">
                 <Form.Label>คำนำหน้า</Form.Label>
@@ -247,7 +277,7 @@ const Customers = () => {
               <h5 className="text-primary border-bottom pb-2 mt-4">ข้อมูลติดต่อ</h5>
               <div className="col-md-3">
                 <Form.Label>เบอร์โทรศัพท์ <span className="text-danger">*</span></Form.Label>
-                <Form.Control type="text" value={formData.phone || ''} onChange={e => setFormData({...formData, phone: e.target.value})} required />
+                <Form.Control required type="text" value={formData.phone || ''} onChange={e => setFormData({...formData, phone: formatPhone(e.target.value)})} maxLength={12} />
               </div>
               <div className="col-md-3">
                 <Form.Label>อีเมล</Form.Label>

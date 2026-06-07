@@ -4,6 +4,37 @@ import { Form, Button, Card, Row, Col, Accordion, Badge } from 'react-bootstrap'
 import Select from 'react-select';
 import { useDropzone } from 'react-dropzone';
 import ThaiAddressSelect from '../components/ThaiAddressSelect';
+import { carBrands, carModels } from '../data/carData';
+
+const formatPhone = (val) => {
+  if (!val) return '';
+  const cleaned = ('' + val).replace(/\D/g, '');
+  const match = cleaned.match(/^(\d{0,3})(\d{0,3})(\d{0,4})$/);
+  if (match) {
+    let parts = [];
+    if (match[1]) parts.push(match[1]);
+    if (match[2]) parts.push(match[2]);
+    if (match[3]) parts.push(match[3]);
+    return parts.join('-');
+  }
+  return val;
+};
+
+const formatIdCard = (val) => {
+  if (!val) return '';
+  const cleaned = ('' + val).replace(/\D/g, '');
+  const match = cleaned.match(/^(\d{0,1})(\d{0,4})(\d{0,5})(\d{0,2})(\d{0,1})$/);
+  if (match) {
+    let parts = [];
+    if (match[1]) parts.push(match[1]);
+    if (match[2]) parts.push(match[2]);
+    if (match[3]) parts.push(match[3]);
+    if (match[4]) parts.push(match[4]);
+    if (match[5]) parts.push(match[5]);
+    return parts.join('-');
+  }
+  return val;
+};
 
 const IssuePolicyForm = () => {
   const [loading, setLoading] = useState(false);
@@ -102,35 +133,48 @@ const IssuePolicyForm = () => {
     setCustomer({ ...customer, dob, age });
   };
 
-  const calculatePremiumsAndComm = () => {
-    const net = parseFloat(policy.net_premium) || 0;
-    const stamp = Math.ceil(net * 0.004);
-    const v = parseFloat(((net + stamp) * 0.07).toFixed(2));
-    const total = net + stamp + v;
+  useEffect(() => {
+    if (policy.net_premium || policy.type || policy.category || policy.non_motor_type_id) {
+      const net = parseFloat(policy.net_premium) || 0;
+      const stamp = Math.ceil(net * 0.004);
+      const v = parseFloat(((net + stamp) * 0.07).toFixed(2));
+      const total = net + stamp + v;
 
-    let commPercent = 0;
-    
-    if (policy.category === 'motor') {
-      if (policy.type === 'ประกันภัยชั้น 1') commPercent = 18;
-      else if (policy.type === 'ประกันภัยชั้น 2+') commPercent = 25;
-      else if (policy.type === 'ประกันภัยชั้น 3+') commPercent = 25;
-      else if (policy.type === 'ประกันภัยชั้น 3') commPercent = 18;
-    } else {
-      const typeLabel = nonMotorTypes.find(t => t.value === parseInt(policy.non_motor_type_id))?.label || '';
-      if (typeLabel.includes('ขนส่ง')) commPercent = 10;
-      else if (typeLabel.includes('อัคคีภัย') || typeLabel.includes('ไฟไหม้')) commPercent = 23;
-      else if (typeLabel.includes('PA') || typeLabel.includes('อุบัติเหตุ')) commPercent = 18;
+      let commPercent = policy.commission_percent;
+      
+      if (policy.category === 'motor') {
+        if (policy.type === 'ประกันภัยชั้น 1') commPercent = 18;
+        else if (policy.type === 'ประกันภัยชั้น 2+') commPercent = 25;
+        else if (policy.type === 'ประกันภัยชั้น 3+') commPercent = 25;
+        else if (policy.type === 'ประกันภัยชั้น 3') commPercent = 18;
+      } else {
+        const typeLabel = nonMotorTypes.find(t => t.value === parseInt(policy.non_motor_type_id))?.label || '';
+        if (typeLabel.includes('ขนส่ง')) commPercent = 10;
+        else if (typeLabel.includes('อัคคีภัย') || typeLabel.includes('ไฟไหม้')) commPercent = 23;
+        else if (typeLabel.includes('PA') || typeLabel.includes('อุบัติเหตุ')) commPercent = 18;
+      }
+
+      const commBaht = parseFloat((net * ((commPercent || 0) / 100)).toFixed(2));
+
+      // Only update if values actually changed to prevent infinite loops
+      if (
+        policy.stamp_duty !== stamp ||
+        policy.vat !== v ||
+        policy.total_premium !== total ||
+        policy.commission_percent !== commPercent ||
+        policy.commission_baht !== commBaht
+      ) {
+        setPolicy(prev => ({
+          ...prev,
+          stamp_duty: stamp,
+          vat: v,
+          total_premium: total,
+          commission_percent: commPercent,
+          commission_baht: commBaht
+        }));
+      }
     }
-
-    setPolicy({
-      ...policy,
-      stamp_duty: stamp,
-      vat: v,
-      total_premium: total,
-      commission_percent: commPercent,
-      commission_baht: parseFloat((net * (commPercent / 100)).toFixed(2))
-    });
-  };
+  }, [policy.net_premium, policy.type, policy.category, policy.non_motor_type_id, policy.commission_percent]);
 
   const onDrop = (acceptedFiles) => {
     const newFiles = acceptedFiles.map(file => ({
@@ -254,7 +298,7 @@ const IssuePolicyForm = () => {
                 </Col>
                 <Col md={4}>
                   <Form.Label>เลขบัตรประชาชน / เลขนิติบุคคล</Form.Label>
-                  <Form.Control type="text" value={customer.id_card_no} onChange={e => setCustomer({...customer, id_card_no: e.target.value})} maxLength={13} />
+                  <Form.Control type="text" value={customer.id_card_no} onChange={e => setCustomer({...customer, id_card_no: formatIdCard(e.target.value)})} maxLength={17} />
                 </Col>
                 <Col md={3}>
                   <Form.Label>วันเดือนปีเกิด</Form.Label>
@@ -266,7 +310,7 @@ const IssuePolicyForm = () => {
                 </Col>
                 <Col md={3}>
                   <Form.Label>เบอร์โทรศัพท์ <span className="text-danger">*</span></Form.Label>
-                  <Form.Control required type="text" value={customer.phone} onChange={e => setCustomer({...customer, phone: e.target.value})} />
+                  <Form.Control required type="text" value={customer.phone} onChange={e => setCustomer({...customer, phone: formatPhone(e.target.value)})} maxLength={12} />
                 </Col>
                 <Col md={5}>
                   <Form.Label>Email</Form.Label>
@@ -347,11 +391,17 @@ const IssuePolicyForm = () => {
                   </Col>
                   <Col md={3}>
                     <Form.Label>ยี่ห้อรถ (Brand)</Form.Label>
-                    <Form.Control type="text" value={vehicle.brand} onChange={e => setVehicle({...vehicle, brand: e.target.value})} />
+                    <Form.Control list="car-brands" type="text" value={vehicle.brand} onChange={e => setVehicle({...vehicle, brand: e.target.value, model: ''})} />
+                    <datalist id="car-brands">
+                      {carBrands.map(b => <option key={b} value={b} />)}
+                    </datalist>
                   </Col>
                   <Col md={3}>
                     <Form.Label>รุ่นรถ (Model)</Form.Label>
-                    <Form.Control type="text" value={vehicle.model} onChange={e => setVehicle({...vehicle, model: e.target.value})} />
+                    <Form.Control list="car-models" type="text" value={vehicle.model} onChange={e => setVehicle({...vehicle, model: e.target.value})} />
+                    <datalist id="car-models">
+                      {(carModels[vehicle.brand] || []).map(m => <option key={m} value={m} />)}
+                    </datalist>
                   </Col>
                   <Col md={1}>
                     <Form.Label>ปีรถ</Form.Label>
@@ -396,7 +446,16 @@ const IssuePolicyForm = () => {
                   </Col>
                   <Col md={3}>
                     <Form.Label>วันเริ่มคุ้มครอง พ.ร.บ.</Form.Label>
-                    <Form.Control type="date" value={policy.prb_start_date} onChange={e => setPolicy({...policy, prb_start_date: e.target.value})} />
+                    <Form.Control type="date" value={policy.prb_start_date} onChange={e => {
+                      const start = e.target.value;
+                      let end = policy.prb_expiry_date;
+                      if (start) {
+                        const d = new Date(start);
+                        d.setFullYear(d.getFullYear() + 1);
+                        end = d.toISOString().split('T')[0];
+                      }
+                      setPolicy({...policy, prb_start_date: start, prb_expiry_date: end});
+                    }} />
                   </Col>
                   <Col md={3}>
                     <Form.Label>วันสิ้นสุดคุ้มครอง พ.ร.บ.</Form.Label>
@@ -456,7 +515,16 @@ const IssuePolicyForm = () => {
 
                 <Col md={6}>
                   <Form.Label>วันเริ่มคุ้มครอง (กรมธรรม์)</Form.Label>
-                  <Form.Control type="date" value={policy.start_date} onChange={e => setPolicy({...policy, start_date: e.target.value})} />
+                  <Form.Control type="date" value={policy.start_date} onChange={e => {
+                      const start = e.target.value;
+                      let end = policy.expiry_date;
+                      if (start) {
+                        const d = new Date(start);
+                        d.setFullYear(d.getFullYear() + 1);
+                        end = d.toISOString().split('T')[0];
+                      }
+                      setPolicy({...policy, start_date: start, expiry_date: end});
+                    }} />
                 </Col>
                 <Col md={6}>
                   <Form.Label>วันสิ้นสุดคุ้มครอง (กรมธรรม์)</Form.Label>
@@ -466,13 +534,12 @@ const IssuePolicyForm = () => {
 
               <div className="d-flex justify-content-between align-items-center border-bottom pb-2 mb-3">
                 <h6 className="text-primary fw-bold mb-0">ข้อมูลเบี้ยประกันและการคำนวณ</h6>
-                <Button variant="outline-success" size="sm" onClick={calculatePremiumsAndComm}><i className="bi bi-calculator"></i> คำนวณเบี้ย + คอมฯ อัตโนมัติ</Button>
               </div>
               
               <Row className="g-3">
                 <Col md={3}>
                   <Form.Label>เบี้ยสุทธิ <span className="text-danger">*</span></Form.Label>
-                  <Form.Control required type="number" step="0.01" value={policy.net_premium} onChange={e => setPolicy({...policy, net_premium: e.target.value})} onBlur={calculatePremiumsAndComm} />
+                  <Form.Control required type="number" step="0.01" value={policy.net_premium} onChange={e => setPolicy({...policy, net_premium: e.target.value})} />
                 </Col>
                 <Col md={2}>
                   <Form.Label>อากร</Form.Label>
@@ -491,7 +558,7 @@ const IssuePolicyForm = () => {
 
                 <Col md={4}>
                   <Form.Label>เปอร์เซ็นต์คอมมิชชัน (%)</Form.Label>
-                  <Form.Control type="number" step="0.01" value={policy.commission_percent || ''} onChange={e => setPolicy({...policy, commission_percent: e.target.value})} onBlur={calculatePremiumsAndComm}/>
+                  <Form.Control type="number" step="0.01" value={policy.commission_percent || ''} onChange={e => setPolicy({...policy, commission_percent: e.target.value})} />
                 </Col>
                 <Col md={4}>
                   <Form.Label className="fw-bold text-danger">ค่าคอมมิชชัน (บาท)</Form.Label>
