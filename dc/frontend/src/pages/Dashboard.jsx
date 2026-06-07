@@ -21,7 +21,13 @@ const Dashboard = () => {
     expiringPolicies: [],
     topCompanies: [],
     topSales: [],
-    monthlySales: []
+    monthlySales: [],
+    cashSalesTotal: 0,
+    installmentSalesTotal: 0,
+    unpaidInstallmentTotal: 0,
+    collectedThisMonth: 0,
+    overdueCustomersCount: 0,
+    upcomingInstallments: []
   });
 
   useEffect(() => {
@@ -125,6 +131,46 @@ const Dashboard = () => {
       </div>
 
       <div className="row g-4 mb-4">
+        {/* Cash Sales */}
+        <div className="col-md-3">
+          <div className="card text-white shadow-sm h-100 border-0" style={{background: 'linear-gradient(45deg, #17a2b8, #1FC8DB)'}}>
+            <div className="card-body">
+              <h5 className="card-title">ยอดเงินสด</h5>
+              <h2 className="display-6 fw-bold">{formatMoney(stats.cashSalesTotal || 0)}</h2>
+            </div>
+          </div>
+        </div>
+        {/* Installment Sales */}
+        <div className="col-md-3">
+          <div className="card text-white shadow-sm h-100 border-0" style={{background: 'linear-gradient(45deg, #0d6efd, #0dcaf0)'}}>
+            <div className="card-body">
+              <h5 className="card-title">ยอดเงินผ่อนรวม</h5>
+              <h2 className="display-6 fw-bold">{formatMoney(stats.installmentSalesTotal || 0)}</h2>
+            </div>
+          </div>
+        </div>
+        {/* Unpaid / Overdue */}
+        <div className="col-md-3">
+          <div className="card text-white shadow-sm h-100 border-0" style={{background: 'linear-gradient(45deg, #dc3545, #f87171)'}}>
+            <div className="card-body">
+              <h5 className="card-title">ยอดค้างชำระ</h5>
+              <h2 className="display-6 fw-bold">{formatMoney(stats.unpaidInstallmentTotal || 0)}</h2>
+              <p className="card-text mb-0">ลูกค้าค้างชำระ: {stats.overdueCustomersCount || 0} ราย</p>
+            </div>
+          </div>
+        </div>
+        {/* Collected this month */}
+        <div className="col-md-3">
+          <div className="card text-white shadow-sm h-100 border-0" style={{background: 'linear-gradient(45deg, #20c997, #4ade80)'}}>
+            <div className="card-body">
+              <h5 className="card-title">ยอดชำระผ่อน (ด.นี้)</h5>
+              <h2 className="display-6 fw-bold">{formatMoney(stats.collectedThisMonth || 0)}</h2>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div className="row g-4 mb-4">
         <div className="col-md-8">
           <div className="card shadow-sm border-0 h-100">
             <div className="card-body">
@@ -189,6 +235,48 @@ const Dashboard = () => {
                   <li className="list-group-item text-center text-muted py-4">ไม่มีข้อมูลพนักงานขาย</li>
                 )}
               </ul>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div className="row g-4 mb-4">
+        <div className="col-md-12">
+          <div className="card shadow-sm border-0 h-100">
+            <div className="card-header bg-white border-bottom py-3">
+              <h5 className="mb-0 fw-bold text-warning"><i className="bi bi-clock-history"></i> ค่างวดผ่อนใกล้ครบกำหนด (ภายใน 7 วัน)</h5>
+            </div>
+            <div className="card-body p-0">
+              <div className="table-responsive">
+                <table className="table table-hover align-middle mb-0">
+                  <thead className="table-light">
+                    <tr>
+                      <th>ลูกค้า</th>
+                      <th>เบอร์โทรศัพท์</th>
+                      <th>กรมธรรม์</th>
+                      <th>งวดที่</th>
+                      <th>วันที่กำหนด</th>
+                      <th className="text-end">ยอดชำระ</th>
+                      <th>สถานะ</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {stats.upcomingInstallments && stats.upcomingInstallments.length > 0 ? stats.upcomingInstallments.map((inst, idx) => (
+                      <tr key={idx}>
+                        <td>{inst.first_name} {inst.last_name}</td>
+                        <td>{inst.phone}</td>
+                        <td>{inst.policy_no || '-'}</td>
+                        <td><span className="badge bg-secondary">งวด {inst.installment_no}</span></td>
+                        <td className="text-danger fw-bold">{new Date(inst.due_date).toLocaleDateString('th-TH')}</td>
+                        <td className="text-end fw-bold">{formatMoney(inst.amount)}</td>
+                        <td><span className="badge bg-warning text-dark">{inst.status}</span></td>
+                      </tr>
+                    )) : (
+                      <tr><td colSpan="7" className="text-center text-muted py-4">ไม่มีค่างวดที่ใกล้ครบกำหนด</td></tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
             </div>
           </div>
         </div>

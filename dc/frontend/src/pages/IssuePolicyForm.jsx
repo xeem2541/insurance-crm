@@ -71,8 +71,13 @@ const IssuePolicyForm = () => {
   });
 
   const [payment, setPayment] = useState({
-    payment_method: 'เงินสด', installments: 1, pay_date: '', status: 'รอดำเนินการ'
+    payment_method: 'เงินสด',
+    installments: 1,
+    pay_date: '',
+    status: 'รอชำระ'
   });
+
+  const [installmentSchedule, setInstallmentSchedule] = useState([]);
 
   const [followUp, setFollowUp] = useState({
     status: 'รอดำเนินการ', next_date: '', note: ''
@@ -176,6 +181,44 @@ const IssuePolicyForm = () => {
       }
     }
   }, [policy.net_premium, policy.type, policy.category, policy.non_motor_type_id, policy.commission_percent]);
+
+  useEffect(() => {
+    if (payment.payment_method === 'เงินผ่อน' && payment.installments > 1 && policy.total_premium > 0) {
+      const schedule = [];
+      const total = parseFloat(policy.total_premium) || 0;
+      const firstAmount = Math.round((total * 0.37) * 100) / 100;
+      const balance = total - firstAmount;
+      const remainingCount = payment.installments - 1;
+      const remainingAmount = Math.round((balance / remainingCount) * 100) / 100;
+
+      let currentDate = payment.pay_date ? new Date(payment.pay_date) : new Date();
+
+      for (let i = 1; i <= payment.installments; i++) {
+        let amt = i === 1 ? firstAmount : remainingAmount;
+        
+        // Adjust last installment for rounding errors
+        if (i === parseInt(payment.installments)) {
+          const sumSoFar = firstAmount + (remainingAmount * (remainingCount - 1));
+          amt = Math.round((total - sumSoFar) * 100) / 100;
+        }
+
+        const dueDate = new Date(currentDate);
+        if (i > 1) {
+          dueDate.setMonth(dueDate.getMonth() + (i - 1));
+        }
+
+        schedule.push({
+          installment_no: i,
+          due_date: dueDate.toISOString().split('T')[0],
+          amount: amt,
+          status: 'รอชำระ'
+        });
+      }
+      setInstallmentSchedule(schedule);
+    } else {
+      setInstallmentSchedule([]);
+    }
+  }, [payment.payment_method, payment.installments, payment.pay_date, policy.total_premium]);
 
   const loadCustomerOptions = async (inputValue) => {
     if (!inputValue || inputValue.length < 2) return [];
@@ -289,7 +332,13 @@ const IssuePolicyForm = () => {
         vehicle,
         policy,
         payment,
-        followUp
+      const payload = {
+        customer,
+        vehicle,
+        policy,
+        payment,
+        followUp,
+        installmentSchedule
       };
       
       formData.append('data', JSON.stringify(payload));
@@ -325,7 +374,7 @@ const IssuePolicyForm = () => {
   };
 
   return (
-    <div className="container-fluid pb-5">
+    <div className="container-fluid pb-5 mobile-pb">
       <div className="d-flex justify-content-between align-items-center mb-4">
         <h2 className="fw-bold"><i className="bi bi-file-earmark-plus-fill text-primary"></i> เพิ่มลูกค้าใหม่ / ออกกรมธรรม์ใหม่ (Single Page Form)</h2>
       </div>
@@ -387,7 +436,7 @@ const IssuePolicyForm = () => {
                 </Col>
                 <Col md={4}>
                   <Form.Label>เลขบัตรประชาชน / เลขนิติบุคคล</Form.Label>
-                  <Form.Control type="text" value={customer.id_card_no} onChange={e => setCustomer({...customer, id_card_no: formatIdCard(e.target.value)})} maxLength={17} />
+                  <Form.Control type="text" inputMode="numeric" pattern="[0-9]*" value={customer.id_card_no} onChange={e => setCustomer({...customer, id_card_no: formatIdCard(e.target.value)})} maxLength={17} />
                 </Col>
                 <Col md={3}>
                   <Form.Label>วันเดือนปีเกิด</Form.Label>
@@ -399,7 +448,7 @@ const IssuePolicyForm = () => {
                 </Col>
                 <Col md={3}>
                   <Form.Label>เบอร์โทรศัพท์ <span className="text-danger">*</span></Form.Label>
-                  <Form.Control required type="text" value={customer.phone} onChange={e => setCustomer({...customer, phone: formatPhone(e.target.value)})} maxLength={12} />
+                  <Form.Control required type="text" inputMode="numeric" pattern="[0-9]*" value={customer.phone} onChange={e => setCustomer({...customer, phone: formatPhone(e.target.value)})} maxLength={12} />
                 </Col>
                 <Col md={5}>
                   <Form.Label>Email</Form.Label>
@@ -653,7 +702,7 @@ const IssuePolicyForm = () => {
               <Row className="g-3">
                 <Col md={3}>
                   <Form.Label>เบี้ยสุทธิ <span className="text-danger">*</span></Form.Label>
-                  <Form.Control required type="number" step="0.01" value={policy.net_premium} onChange={e => setPolicy({...policy, net_premium: e.target.value})} />
+                  <Form.Control required type="number" inputMode="decimal" step="0.01" value={policy.net_premium} onChange={e => setPolicy({...policy, net_premium: e.target.value})} />
                 </Col>
                 <Col md={2}>
                   <Form.Label>อากร</Form.Label>
@@ -686,28 +735,99 @@ const IssuePolicyForm = () => {
           <Accordion.Item eventKey="3" className="mb-3 border-0 shadow-sm rounded">
             <Accordion.Header><h5 className="mb-0 fw-bold"><i className="bi bi-wallet2 me-2"></i>ส่วนที่ 4 : การชำระเงิน</h5></Accordion.Header>
             <Accordion.Body>
-              <Row className="g-3">
-                <Col md={3}>
-                  <Form.Label>วิธีชำระเงิน <span className="text-danger">*</span></Form.Label>
-                  <Select options={paymentMethods} value={paymentMethods.find(p => p.value === payment.payment_method)} onChange={opt => setPayment({...payment, payment_method: opt?.value || 'เงินสด'})} />
-                </Col>
-                <Col md={3}>
-                  <Form.Label>จำนวนงวด</Form.Label>
-                  <Form.Control type="number" min="1" value={payment.installments} onChange={e => setPayment({...payment, installments: e.target.value})} />
-                </Col>
-                <Col md={3}>
-                  <Form.Label>วันที่ชำระเงิน</Form.Label>
-                  <Form.Control type="date" value={payment.pay_date} onChange={e => setPayment({...payment, pay_date: e.target.value})} />
-                </Col>
-                <Col md={3}>
-                  <Form.Label>สถานะการชำระเงิน</Form.Label>
-                  <Form.Select value={payment.status} onChange={e => setPayment({...payment, status: e.target.value})}>
-                    <option value="รอดำเนินการ">รอดำเนินการ</option>
-                    <option value="ชำระแล้ว (บางส่วน)">ชำระแล้ว (บางส่วน)</option>
-                    <option value="ชำระครบแล้ว">ชำระครบแล้ว</option>
-                  </Form.Select>
-                </Col>
-              </Row>
+              <div className="mb-4 d-flex gap-4 p-3 bg-light rounded border">
+                <Form.Check 
+                  type="radio" 
+                  id="pay-cash" 
+                  label={<span className="fw-bold fs-5 text-success"><i className="bi bi-cash-coin me-2"></i>เงินสด</span>}
+                  name="paymentMethod" 
+                  checked={payment.payment_method === 'เงินสด'} 
+                  onChange={() => setPayment({...payment, payment_method: 'เงินสด', installments: 1})} 
+                />
+                <Form.Check 
+                  type="radio" 
+                  id="pay-installment" 
+                  label={<span className="fw-bold fs-5 text-primary"><i className="bi bi-credit-card me-2"></i>เงินผ่อน</span>}
+                  name="paymentMethod" 
+                  checked={payment.payment_method === 'เงินผ่อน'} 
+                  onChange={() => setPayment({...payment, payment_method: 'เงินผ่อน', installments: 3})} 
+                />
+              </div>
+
+              {payment.payment_method === 'เงินสด' && (
+                <div className="p-4 border rounded bg-white shadow-sm mb-3">
+                  <h6 className="text-success fw-bold mb-3 border-bottom pb-2">รายละเอียดชำระเงินสด</h6>
+                  <Row className="g-3">
+                    <Col md={4}>
+                      <Form.Label>ยอดชำระทั้งหมด</Form.Label>
+                      <Form.Control type="text" readOnly className="bg-light fw-bold text-success fs-5" value={`฿${(policy.total_premium || 0).toLocaleString()}`} />
+                    </Col>
+                    <Col md={4}>
+                      <Form.Label>วันที่ชำระเงิน</Form.Label>
+                      <Form.Control type="date" value={payment.pay_date} onChange={e => setPayment({...payment, pay_date: e.target.value})} />
+                    </Col>
+                    <Col md={4}>
+                      <Form.Label>สถานะการชำระเงิน</Form.Label>
+                      <Form.Select value={payment.status} onChange={e => setPayment({...payment, status: e.target.value})}>
+                        <option value="รอชำระ">รอชำระ</option>
+                        <option value="ชำระครบแล้ว">ชำระครบแล้ว</option>
+                      </Form.Select>
+                    </Col>
+                  </Row>
+                </div>
+              )}
+
+              {payment.payment_method === 'เงินผ่อน' && (
+                <div className="p-4 border border-primary rounded bg-white shadow-sm mb-3">
+                  <h6 className="text-primary fw-bold mb-3 border-bottom pb-2">รายละเอียดเงินผ่อน</h6>
+                  <Row className="g-3 mb-4">
+                    <Col md={4}>
+                      <Form.Label>จำนวนงวดผ่อน <span className="text-danger">*</span></Form.Label>
+                      <Form.Select value={payment.installments} onChange={e => setPayment({...payment, installments: parseInt(e.target.value)})}>
+                        {[2,3,4,5,6,7,8,9,10].map(n => (
+                          <option key={n} value={n}>{n} งวด</option>
+                        ))}
+                      </Form.Select>
+                    </Col>
+                    <Col md={4}>
+                      <Form.Label>ยอดชำระทั้งหมด (เบี้ยรวม)</Form.Label>
+                      <Form.Control type="text" readOnly className="bg-light fw-bold text-primary" value={`฿${(policy.total_premium || 0).toLocaleString()}`} />
+                    </Col>
+                    <Col md={4}>
+                      <Form.Label>วันที่เริ่มผ่อนงวดแรก</Form.Label>
+                      <Form.Control type="date" value={payment.pay_date} onChange={e => setPayment({...payment, pay_date: e.target.value})} />
+                    </Col>
+                  </Row>
+
+                  {installmentSchedule.length > 0 && (
+                    <div className="mt-4">
+                      <h6 className="fw-bold text-secondary mb-3"><i className="bi bi-table me-2"></i>ตารางงวดชำระอัตโนมัติ (งวดแรก 37%)</h6>
+                      <div className="table-responsive">
+                        <table className="table table-bordered table-hover align-middle text-center mb-0">
+                          <thead className="table-light">
+                            <tr>
+                              <th>งวดที่</th>
+                              <th>วันที่ครบกำหนด</th>
+                              <th className="text-end">จำนวนเงิน</th>
+                              <th>สถานะ</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {installmentSchedule.map((inst) => (
+                              <tr key={inst.installment_no}>
+                                <td><span className="badge bg-primary rounded-circle p-2">{inst.installment_no}</span></td>
+                                <td><span className="fw-bold text-danger">{inst.due_date}</span></td>
+                                <td className="text-end fw-bold">฿{inst.amount.toLocaleString()}</td>
+                                <td><span className="badge bg-warning text-dark">{inst.status}</span></td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
             </Accordion.Body>
           </Accordion.Item>
 
@@ -740,11 +860,20 @@ const IssuePolicyForm = () => {
           <Accordion.Item eventKey="5" className="mb-4 border-0 shadow-sm rounded">
             <Accordion.Header><h5 className="mb-0 fw-bold"><i className="bi bi-paperclip me-2"></i>ส่วนที่ 6 : เอกสารแนบ</h5></Accordion.Header>
             <Accordion.Body>
-              <div {...getRootProps()} className={`p-5 mb-4 text-center border rounded-3 ${isDragActive ? 'bg-primary text-white border-primary' : 'bg-light border-dashed'}`} style={{ borderStyle: 'dashed', borderWidth: '2px', cursor: 'pointer' }}>
+              <div {...getRootProps()} className={`p-4 mb-3 text-center border rounded-3 ${isDragActive ? 'bg-primary text-white border-primary' : 'bg-light border-dashed'}`} style={{ borderStyle: 'dashed', borderWidth: '2px', cursor: 'pointer' }}>
                 <input {...getInputProps()} />
                 <i className="bi bi-cloud-arrow-up-fill" style={{ fontSize: '3rem' }}></i>
-                <h5 className="mt-3">ลากไฟล์มาวางที่นี่ หรือคลิกเพื่อเลือกไฟล์</h5>
-                <p className="mb-0 opacity-75">รองรับไฟล์: PDF, JPG, PNG (สูงสุด 10MB/ไฟล์)</p>
+                <h5 className="mt-2">แตะเพื่อเลือกไฟล์ หรือ ลากไฟล์มาวาง</h5>
+                <p className="mb-0 opacity-75 small">รองรับไฟล์: PDF, JPG, PNG</p>
+              </div>
+              <div className="text-center mb-4">
+                <label className="btn btn-outline-primary fw-bold px-4 rounded-pill">
+                  <i className="bi bi-camera-fill me-2"></i> เปิดกล้องถ่ายรูป
+                  <input type="file" accept="image/*" capture="environment" className="d-none" multiple onChange={(e) => {
+                    const selected = Array.from(e.target.files);
+                    if(selected.length > 0) onDrop(selected);
+                  }} />
+                </label>
               </div>
 
               {files.length > 0 && (
@@ -793,18 +922,18 @@ const IssuePolicyForm = () => {
         </Accordion>
 
         {/* Action Buttons */}
-        <div className="card shadow-sm border-0 sticky-bottom mb-4" style={{ bottom: '1rem', zIndex: 1000 }}>
-          <div className="card-body bg-white rounded-3 d-flex justify-content-between align-items-center p-3">
-            <div>
+        <div className="card shadow-sm border-0 sticky-bottom mb-2" style={{ bottom: '0', zIndex: 1030 }}>
+          <div className="card-body bg-white rounded-3 d-flex flex-column flex-lg-row justify-content-between align-items-center p-2 p-lg-3 gap-2">
+            <div className="d-none d-lg-block">
               <Button variant="outline-secondary" className="me-2 fw-bold" onClick={() => alert('ฟังก์ชันอยู่ระหว่างพัฒนา')}><i className="bi bi-file-earmark-text"></i> พิมพ์ใบเสนอราคา</Button>
               <Button variant="outline-secondary" className="me-2 fw-bold" onClick={() => alert('ฟังก์ชันอยู่ระหว่างพัฒนา')}><i className="bi bi-receipt"></i> พิมพ์ใบแจ้งชำระ</Button>
             </div>
-            <div>
-              <Button variant="outline-primary" className="me-3 fw-bold" onClick={() => setFollowUp({...followUp, status: 'แบบร่าง'})}>
-                <i className="bi bi-save"></i> บันทึกแบบร่าง
+            <div className="d-flex w-100 w-lg-auto gap-2">
+              <Button variant="outline-primary" className="fw-bold w-100 w-lg-auto" onClick={() => setFollowUp({...followUp, status: 'แบบร่าง'})}>
+                <i className="bi bi-save"></i><span className="d-none d-sm-inline"> บันทึกร่าง</span>
               </Button>
-              <Button variant="success" size="lg" type="submit" disabled={loading} className="fw-bold px-4 shadow-sm">
-                {loading ? <><span className="spinner-border spinner-border-sm me-2" /> กำลังบันทึก...</> : <><i className="bi bi-check-circle-fill me-2"></i> บันทึกลูกค้าและกรมธรรม์</>}
+              <Button variant="success" size="lg" type="submit" disabled={loading} className="fw-bold w-100 w-lg-auto shadow-sm" style={{flex: 2}}>
+                {loading ? <><span className="spinner-border spinner-border-sm me-1" /> กำลังบันทึก...</> : <><i className="bi bi-check-circle-fill me-1"></i> บันทึกข้อมูล</>}
               </Button>
             </div>
           </div>

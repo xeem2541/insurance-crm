@@ -196,6 +196,25 @@ async function initDb() {
     `);
     console.log('Payments table verified');
 
+    // Create Installments table
+    await connection.query(`
+      CREATE TABLE IF NOT EXISTS installments (
+        id INT PRIMARY KEY AUTO_INCREMENT,
+        payment_id INT NOT NULL,
+        installment_no INT NOT NULL,
+        due_date DATE,
+        amount DECIMAL(15,2),
+        paid_amount DECIMAL(15,2) DEFAULT 0,
+        balance_amount DECIMAL(15,2),
+        status VARCHAR(50) DEFAULT 'รอชำระ',
+        payment_date DATE,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+        FOREIGN KEY (payment_id) REFERENCES payments(id) ON DELETE CASCADE
+      )
+    `);
+    console.log('Installments table verified');
+
     // Auto-seed mock data if database is empty
     const [custCountRes] = await connection.query('SELECT COUNT(*) as count FROM customers');
     if (custCountRes[0].count === 0) {

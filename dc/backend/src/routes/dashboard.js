@@ -42,6 +42,39 @@ router.get('/stats', authenticateToken, async (req, res) => {
     const [documents] = await req.db.query('SELECT COUNT(*) as count FROM documents WHERE deleted_at IS NULL');
     const [newCustomers] = await req.db.query(`SELECT COUNT(*) as count FROM customers WHERE MONTH(created_at) = MONTH(CURRENT_DATE()) AND YEAR(created_at) = YEAR(CURRENT_DATE())`);
 
+    // Installment / Payment queries
+    let cashSalesTotal = 0, installmentSalesTotal = 0, unpaidInstallmentTotal = 0, collectedThisMonth = 0;
+    let overdueCustomersCount = 0, upcomingInstallments = [];
+    try {
+      const [cashRes] = await req.db.query("SELECT SUM(p.total_premium) as total FROM policies p JOIN payments pm ON p.id = pm.policy_id WHERE pm.payment_method = 'เงินสด' AND p.status = 'สำเร็จ'");
+      cashSalesTotal = cashRes[0].total || 0;
+      
+      const [instRes] = await req.db.query("SELECT SUM(p.total_premium) as total FROM policies p JOIN payments pm ON p.id = pm.policy_id WHERE pm.payment_method = 'เงินผ่อน' AND p.status = 'สำเร็จ'");
+      installmentSalesTotal = instRes[0].total || 0;
+
+      const [unpaidRes] = await req.db.query("SELECT SUM(balance_amount) as total FROM installments WHERE status IN ('รอชำระ', 'ค้างชำระ')");
+      unpaidInstallmentTotal = unpaidRes[0].total || 0;
+
+      const [collectedRes] = await req.db.query("SELECT SUM(paid_amount) as total FROM installments WHERE status IN ('ชำระแล้ว', 'ชำระบางส่วน') AND MONTH(payment_date) = MONTH(CURRENT_DATE()) AND YEAR(payment_date) = YEAR(CURRENT_DATE())");
+      collectedThisMonth = collectedRes[0].total || 0;
+
+      const [overdueCustRes] = await req.db.query("SELECT COUNT(DISTINCT pm.policy_id) as count FROM installments i JOIN payments pm ON i.payment_id = pm.id WHERE i.status = 'ค้างชำระ' OR (i.status = 'รอชำระ' AND i.due_date < CURRENT_DATE())");
+      overdueCustomersCount = overdueCustRes[0].count || 0;
+
+      const [upcomingRes] = await req.db.query(`
+        SELECT i.*, p.policy_no, c.first_name, c.last_name, c.phone
+        FROM installments i 
+        JOIN payments pm ON i.payment_id = pm.id 
+        JOIN policies p ON pm.policy_id = p.id
+        JOIN customers c ON p.customer_id = c.id
+        WHERE i.status = 'รอชำระ' AND i.due_date BETWEEN CURRENT_DATE() AND DATE_ADD(CURRENT_DATE(), INTERVAL 7 DAY)
+        ORDER BY i.due_date ASC
+      `);
+      upcomingInstallments = upcomingRes;
+    } catch (e) {
+      console.log('Installment tables might not exist yet', e.message);
+    }
+
     // Merge and sort expiring policies
     const allExpiring = [...mExpiringPolicies, ...nmExpiringPolicies].sort((a, b) => a.days_left - b.days_left);
 
@@ -90,7 +123,13 @@ router.get('/stats', authenticateToken, async (req, res) => {
       expiringPolicies: allExpiring,
       monthlySales: mergedMonthlySales,
       topCompanies: topCompanies,
-      topSales: topSales
+      topSales: topSales,
+      cashSalesTotal,
+      installmentSalesTotal,
+      unpaidInstallmentTotal,
+      collectedThisMonth,
+      overdueCustomersCount,
+      upcomingInstallments
     });
   } catch (error) {
     console.error(error);

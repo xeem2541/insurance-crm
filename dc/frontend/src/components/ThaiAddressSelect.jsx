@@ -96,6 +96,8 @@ const ThaiAddressSelect = ({ province, district, sub_district, zipcode, onChange
         <label className="form-label">รหัสไปรษณีย์</label>
         <input 
           type="text" 
+          inputMode="numeric"
+          pattern="[0-9]*"
           className="form-control" 
           value={zipcode || ''} 
           onChange={handleZipcodeChange}

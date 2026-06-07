@@ -29,7 +29,7 @@ router.post('/', authenticateToken, upload.array('files'), async (req, res) => {
 
   try {
     const data = JSON.parse(req.body.data);
-    const { customer, vehicle, policy, payment, followUp } = data;
+    const { customer, vehicle, policy, payment, followUp, installmentSchedule } = data;
     let customerId = customer.id;
 
     // 1. Handle Customer
@@ -156,7 +156,7 @@ router.post('/', authenticateToken, upload.array('files'), async (req, res) => {
 
     // 3. Handle Payment
     if (payment && payment.payment_method) {
-      await connection.query(
+      const [payResult] = await connection.query(
         `INSERT INTO payments (
           policy_id, non_motor_policy_id, payment_method, installments, pay_date, status
         ) VALUES (?, ?, ?, ?, ?, ?)`,
@@ -165,6 +165,20 @@ router.post('/', authenticateToken, upload.array('files'), async (req, res) => {
           payment.pay_date || null, payment.status || 'รอดำเนินการ'
         ]
       );
+      const paymentId = payResult.insertId;
+
+      if (payment.payment_method === 'เงินผ่อน' && installmentSchedule && installmentSchedule.length > 0) {
+        for (const inst of installmentSchedule) {
+          await connection.query(
+            `INSERT INTO installments (
+              payment_id, installment_no, due_date, amount, balance_amount, status
+            ) VALUES (?, ?, ?, ?, ?, ?)`,
+            [
+              paymentId, inst.installment_no, inst.due_date, inst.amount, inst.amount, inst.status
+            ]
+          );
+        }
+      }
     }
 
     // 4. Handle Follow Up (Activity Log / Future Task)
