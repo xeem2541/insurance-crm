@@ -1,4 +1,4 @@
-import React, { useContext } from 'react';
+import React, { useContext, useState } from 'react';
 import { Outlet, Link, useNavigate, useLocation } from 'react-router-dom';
 import { AuthContext } from '../contexts/AuthContext';
 import { ThemeContext } from '../contexts/ThemeContext';
@@ -8,6 +8,9 @@ const Layout = () => {
   const { darkMode, toggleTheme } = useContext(ThemeContext);
   const navigate = useNavigate();
   const location = useLocation();
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+
+  const toggleSidebar = () => setIsSidebarOpen(!isSidebarOpen);
 
   const handleLogout = () => {
     logout();
@@ -31,7 +34,13 @@ const Layout = () => {
 
   return (
     <div className={`d-flex ${darkMode ? 'bg-dark text-light' : 'bg-light text-dark'}`} style={{ minHeight: '100vh' }}>
-      <div className={`sidebar d-flex flex-column ${darkMode ? 'border-end border-secondary' : ''}`} style={{ width: '280px', backgroundColor: darkMode ? '#1e1e1e' : '' }}>
+      {/* Mobile Backdrop */}
+      <div 
+        className={`sidebar-backdrop d-lg-none ${isSidebarOpen ? 'show' : ''}`} 
+        onClick={() => setIsSidebarOpen(false)}
+      ></div>
+
+      <div className={`sidebar d-flex flex-column ${isSidebarOpen ? 'open' : ''} ${darkMode ? 'border-end border-secondary' : ''}`} style={{ width: '280px', backgroundColor: darkMode ? '#1e1e1e' : '' }}>
         <a href="/" className="d-flex align-items-center mb-4 px-4 text-white text-decoration-none mt-2 pt-3">
           <i className="bi bi-shield-fill-check text-primary fs-3 me-2"></i>
           <span className="brand-text" style={{ fontFamily: 'Kanit, sans-serif' }}>สำนักงานเปิ้ลประกัน</span>
@@ -46,6 +55,7 @@ const Layout = () => {
               <Link 
                 to={item.path} 
                 className={`nav-link ${location.pathname === item.path ? 'active' : ''}`}
+                onClick={() => setIsSidebarOpen(false)}
               >
                 <i className={`bi ${item.icon}`}></i>
                 {item.label}
@@ -73,8 +83,14 @@ const Layout = () => {
       
       <div className="flex-grow-1 d-flex flex-column" style={{ overflowX: 'hidden' }}>
         <nav className={`navbar navbar-expand-lg border-bottom px-4 py-3 shadow-sm ${darkMode ? 'navbar-dark bg-dark border-secondary' : 'navbar-light bg-white'}`}>
-          <div className="container-fluid d-flex justify-content-between">
-            <span className={`navbar-brand mb-0 h5 fw-bold ${darkMode ? 'text-light' : 'text-dark'}`}>ระบบบริหารจัดการนายหน้าประกันภัย (CRM v2.0)</span>
+          <div className="container-fluid d-flex justify-content-between align-items-center">
+            <div className="d-flex align-items-center">
+              <button className={`btn btn-sm d-lg-none me-3 ${darkMode ? 'btn-outline-light' : 'btn-outline-dark'}`} onClick={toggleSidebar}>
+                <i className="bi bi-list fs-4"></i>
+              </button>
+              <span className={`navbar-brand mb-0 h5 fw-bold ${darkMode ? 'text-light' : 'text-dark'} d-none d-sm-block`}>ระบบบริหารจัดการนายหน้าประกันภัย (CRM v2.0)</span>
+              <span className={`navbar-brand mb-0 h6 fw-bold ${darkMode ? 'text-light' : 'text-dark'} d-sm-none`}>CRM v2.0</span>
+            </div>
             <div>
               <button className={`btn btn-outline-${darkMode ? 'light' : 'dark'} rounded-pill`} onClick={toggleTheme}>
                 {darkMode ? <><i className="bi bi-sun-fill text-warning"></i> โหมดสว่าง</> : <><i className="bi bi-moon-fill"></i> โหมดมืด</>}
