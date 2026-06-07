@@ -3,8 +3,15 @@ const router = express.Router();
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const { authenticateToken } = require('../middlewares/auth');
+const rateLimit = require('express-rate-limit');
 
-router.post('/login', async (req, res) => {
+const loginLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 5, // Limit each IP to 5 login requests per windowMs
+  message: { error: 'เข้าสู่ระบบผิดพลาดหลายครั้งเกินไป กรุณารอสักครู่แล้วลองใหม่' }
+});
+
+router.post('/login', loginLimiter, async (req, res) => {
   const { username, password } = req.body;
   try {
     const [users] = await req.db.query('SELECT * FROM users WHERE username = ?', [username]);
