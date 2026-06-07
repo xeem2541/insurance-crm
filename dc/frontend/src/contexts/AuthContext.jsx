@@ -15,6 +15,7 @@ export const AuthProvider = ({ children }) => {
           const res = await api.get('/auth/me');
           setUser(res.data);
         } catch (error) {
+          console.error(error);
           localStorage.removeItem('token');
         }
       }
@@ -22,6 +23,34 @@ export const AuthProvider = ({ children }) => {
     };
     checkUser();
   }, []);
+
+  // Idle Timeout Mechanism
+  useEffect(() => {
+    let timeoutId;
+    
+    const resetTimeout = () => {
+      clearTimeout(timeoutId);
+      if (user) {
+        // 30 minutes (1800000 ms)
+        timeoutId = setTimeout(() => {
+          logout();
+          alert('ระบบได้ออกจากระบบอัตโนมัติเนื่องจากไม่มีการใช้งานเป็นเวลานาน');
+          window.location.href = '/login';
+        }, 30 * 60 * 1000);
+      }
+    };
+
+    const events = ['mousedown', 'mousemove', 'keypress', 'scroll', 'touchstart'];
+    if (user) {
+      resetTimeout();
+      events.forEach(e => window.addEventListener(e, resetTimeout));
+    }
+
+    return () => {
+      clearTimeout(timeoutId);
+      events.forEach(e => window.removeEventListener(e, resetTimeout));
+    };
+  }, [user]);
 
   const login = async (username, password) => {
     const res = await api.post('/auth/login', { username, password });
