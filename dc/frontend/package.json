@@ -26,6 +26,7 @@
     "react-router-dom": "^6.24.0",
     "react-select": "^5.10.2",
     "react-dropzone": "^14.2.3",
+    "thai-address-autocomplete-react": "^1.2.2",
     "xlsx": "^0.18.5"
   },
   "devDependencies": {

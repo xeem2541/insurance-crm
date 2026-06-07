@@ -2,6 +2,9 @@ import React, { useState, useEffect } from 'react';
 import api from '../services/api';
 import { Modal, Button, Form } from 'react-bootstrap';
 import Select from 'react-select';
+import { CreateInput } from 'thai-address-autocomplete-react';
+
+const InputThaiAddress = CreateInput();
 
 import * as XLSX from 'xlsx';
 
@@ -63,7 +66,7 @@ const Customers = () => {
 
   const [formData, setFormData] = useState({
     customer_code: '', prefix: '', first_name: '', last_name: '', phone: '', email: '', 
-    line_id: '', facebook: '', dob: '', age: '', id_card_no: '', address: '', province: '', zipcode: '',
+    line_id: '', facebook: '', dob: '', age: '', id_card_no: '', address: '', sub_district: '', district: '', province: '', zipcode: '',
     occupation: '', secondary_contact: '', customer_status: 'ลูกค้าใหม่', lead_status: 'สนใจ', source: '', note: ''
   });
 
@@ -146,7 +149,7 @@ const Customers = () => {
           <button className="btn btn-primary fw-bold" onClick={() => { 
             setFormData({
               customer_code: '', prefix: '', first_name: '', last_name: '', phone: '', email: '', 
-              line_id: '', facebook: '', dob: '', age: '', id_card_no: '', address: '', province: '', zipcode: '',
+              line_id: '', facebook: '', dob: '', age: '', id_card_no: '', address: '', sub_district: '', district: '', province: '', zipcode: '',
               occupation: '', secondary_contact: '', customer_status: 'ลูกค้าใหม่', lead_status: 'สนใจ', source: '', note: ''
             }); 
             setShowModal(true); 
@@ -276,23 +279,45 @@ const Customers = () => {
               </div>
 
               <h5 className="text-primary border-bottom pb-2 mt-4">ที่อยู่จัดส่งเอกสาร</h5>
-              <div className="col-md-6">
-                <Form.Label>รายละเอียดที่อยู่</Form.Label>
+              <div className="col-md-12">
+                <Form.Label>รายละเอียดที่อยู่ (บ้านเลขที่, หมู่, ซอย, ถนน)</Form.Label>
                 <Form.Control as="textarea" rows={2} value={formData.address || ''} onChange={e => setFormData({...formData, address: e.target.value})} />
               </div>
               <div className="col-md-3">
+                <Form.Label>ตำบล / แขวง</Form.Label>
+                <InputThaiAddress.District 
+                  className="form-control" 
+                  value={formData.sub_district || ''} 
+                  onChange={val => setFormData({...formData, sub_district: val})} 
+                  onSelect={val => setFormData({...formData, sub_district: val.district, district: val.amphoe, province: val.province, zipcode: val.zipcode})}
+                />
+              </div>
+              <div className="col-md-3">
+                <Form.Label>อำเภอ / เขต</Form.Label>
+                <InputThaiAddress.Amphoe 
+                  className="form-control" 
+                  value={formData.district || ''} 
+                  onChange={val => setFormData({...formData, district: val})} 
+                  onSelect={val => setFormData({...formData, sub_district: val.district, district: val.amphoe, province: val.province, zipcode: val.zipcode})}
+                />
+              </div>
+              <div className="col-md-3">
                 <Form.Label>จังหวัด</Form.Label>
-                <Select
-                  options={provincesList}
-                  value={provincesList.find(p => p.value === formData.province)}
-                  onChange={option => setFormData({...formData, province: option?.value || ''})}
-                  isClearable
-                  placeholder="ค้นหา..."
+                <InputThaiAddress.Province 
+                  className="form-control" 
+                  value={formData.province || ''} 
+                  onChange={val => setFormData({...formData, province: val})} 
+                  onSelect={val => setFormData({...formData, sub_district: val.district, district: val.amphoe, province: val.province, zipcode: val.zipcode})}
                 />
               </div>
               <div className="col-md-3">
                 <Form.Label>รหัสไปรษณีย์</Form.Label>
-                <Form.Control type="text" value={formData.zipcode || ''} onChange={e => setFormData({...formData, zipcode: e.target.value})} />
+                <InputThaiAddress.Zipcode 
+                  className="form-control" 
+                  value={formData.zipcode || ''} 
+                  onChange={val => setFormData({...formData, zipcode: val})} 
+                  onSelect={val => setFormData({...formData, sub_district: val.district, district: val.amphoe, province: val.province, zipcode: val.zipcode})}
+                />
               </div>
 
               <h5 className="text-primary border-bottom pb-2 mt-4">การจัดการงานขาย (CRM)</h5>

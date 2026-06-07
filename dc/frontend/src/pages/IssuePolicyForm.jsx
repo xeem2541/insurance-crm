@@ -3,6 +3,9 @@ import api from '../services/api';
 import { Form, Button, Card, Row, Col, InputGroup, Accordion, Badge } from 'react-bootstrap';
 import Select from 'react-select';
 import { useDropzone } from 'react-dropzone';
+import { CreateInput } from 'thai-address-autocomplete-react';
+
+const InputThaiAddress = CreateInput();
 
 const IssuePolicyForm = () => {
   const [loading, setLoading] = useState(false);
