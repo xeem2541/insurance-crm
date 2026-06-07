@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import api from '../services/api';
-import { Form, Button, Card, Row, Col, InputGroup, Accordion, Badge } from 'react-bootstrap';
+import { Form, Button, Card, Row, Col, Accordion, Badge } from 'react-bootstrap';
 import Select from 'react-select';
 import { useDropzone } from 'react-dropzone';
 import ThaiAddressSelect from '../components/ThaiAddressSelect';
