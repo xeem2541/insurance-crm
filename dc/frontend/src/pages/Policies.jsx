@@ -272,7 +272,35 @@ const Policies = () => {
                 <Select
                   options={policyTypes}
                   value={policyTypes.find(p => p.value === formData.type)}
-                  onChange={option => setFormData({...formData, type: option?.value || ''})}
+                  onChange={option => {
+                    const selectedType = option?.value || '';
+                    let newPercent = formData.commission_percent;
+
+                    // กำหนดค่า % ตามประเภทกรมธรรม์
+                    if (selectedType.includes('2+')) {
+                      newPercent = 25;
+                    } else if (selectedType.includes('3+')) {
+                      newPercent = 25;
+                    } else if (selectedType.includes('3')) {
+                      newPercent = 18;
+                    } else if (selectedType.includes('1')) {
+                      newPercent = 18;
+                    }
+
+                    // คำนวณคอมมิชชันเป็นบาทใหม่
+                    const net = parseFloat(formData.net_premium) || 0;
+                    let newCommBaht = formData.commission_baht;
+                    if (newPercent !== formData.commission_percent && net > 0) {
+                      newCommBaht = parseFloat((net * (newPercent / 100)).toFixed(2));
+                    }
+
+                    setFormData({
+                      ...formData, 
+                      type: selectedType,
+                      commission_percent: newPercent,
+                      commission_baht: newCommBaht !== formData.commission_baht ? newCommBaht : formData.commission_baht
+                    });
+                  }}
                   isClearable
                   placeholder="เลือก..."
                   noOptionsMessage={() => "ไม่พบข้อมูล"}
