@@ -46,7 +46,6 @@ const IssuePolicyForm = () => {
   const [provinces, setProvinces] = useState([]);
   const [vehicleTypes, setVehicleTypes] = useState([]);
   const [jobStatuses, setJobStatuses] = useState([]);
-  const [paymentMethods, setPaymentMethods] = useState([]);
   const [nonMotorTypes, setNonMotorTypes] = useState([]);
   const [docTypes, setDocTypes] = useState([]);
 
@@ -96,7 +95,6 @@ const IssuePolicyForm = () => {
       setCompanies(md.filter(m => m.category === 'InsuranceCompany').map(m => ({ value: m.value, label: m.value })));
       setVehicleTypes(md.filter(m => m.category === 'VehicleType').map(m => ({ value: m.value, label: m.value })));
       setJobStatuses(md.filter(m => m.category === 'JobStatus').map(m => ({ value: m.value, label: m.value })));
-      setPaymentMethods(md.filter(m => m.category === 'PaymentMethod').map(m => ({ value: m.value, label: m.value })));
       
       const nmRes = await api.get('/non-motor-policies/types');
       setNonMotorTypes(nmRes.data.map(t => ({ value: t.id, label: t.name })));
