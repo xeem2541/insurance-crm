@@ -16,6 +16,8 @@ router.post('/', async (req, res) => {
   if (!events || events.length === 0) return;
 
   for (const event of events) {
+    console.log('Received LINE event:', JSON.stringify(event));
+    
     // If the bot is invited to a group, or someone types in a group, save the Group ID!
     if (event.source.type === 'group' || event.source.type === 'room') {
       const groupId = event.source.groupId || event.source.roomId;
@@ -44,7 +46,7 @@ router.post('/', async (req, res) => {
             FROM policies p
             JOIN customers c ON p.customer_id = c.id
             LEFT JOIN vehicles v ON p.vehicle_id = v.id
-            WHERE c.id_card = ? OR v.plate_no LIKE ? OR p.policy_no = ?
+            WHERE c.id_card_no = ? OR v.plate_no LIKE ? OR p.policy_no = ?
             ORDER BY p.expiry_date DESC LIMIT 1
           `, [text, `%${text}%`, text]);
 

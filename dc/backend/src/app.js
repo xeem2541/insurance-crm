@@ -3,7 +3,7 @@ const cors = require('cors');
 const multer = require('multer');
 const path = require('path');
 const mysql = require('mysql2/promise');
-const bcrypt = require('bcrypt');
+const bcrypt = require('bcryptjs');
 require('dotenv').config();
 const { startCronJobs } = require('./cron');
 
@@ -221,6 +221,7 @@ app.use('/api/documents', require('./routes/documents'));
 app.use('/api/dashboard', require('./routes/dashboard'));
 app.use('/api/reports', require('./routes/reports'));
 app.use('/api/master-data', require('./routes/masterData'));
+app.use('/api/webhook', require('./routes/webhook'));
 
 // Start server
 app.listen(PORT, () => {
