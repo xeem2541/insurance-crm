@@ -13,6 +13,7 @@ import Reports from './pages/Reports';
 import MasterData from './pages/MasterData';
 import CalendarView from './pages/CalendarView';
 import PrintPolicy from './pages/PrintPolicy';
+import Payments from './pages/Payments';
 import NonMotorPolicies from './pages/NonMotorPolicies';
 import IssuePolicyForm from './pages/IssuePolicyForm';
 
@@ -37,6 +38,7 @@ const AppRoutes = () => {
         <Route path="calendar" element={<CalendarView />} />
         <Route path="reports" element={<Reports />} />
         <Route path="master-data" element={<MasterData />} />
+        <Route path="payments" element={<Payments />} />
       </Route>
       {/* Route for printing without Layout (sidebar/header) */}
       <Route path="/print-policy/:id" element={
