@@ -22,8 +22,16 @@ const MasterData = () => {
   const [pwdData, setPwdData] = useState({ currentPassword: '', newPassword: '', confirmPassword: '' });
   const [pwdMsg, setPwdMsg] = useState({ type: '', text: '' });
 
+  // For User Management
+  const [usersList, setUsersList] = useState([]);
+  const [showUserModal, setShowUserModal] = useState(false);
+  const [userFormData, setUserFormData] = useState({ id: null, username: '', password: '', name: '', role: 'Sales' });
+
   const fetchData = async () => {
-    if (activeTab === 'system_clear' || activeTab === 'system_password') return;
+    if (activeTab === 'system_clear' || activeTab === 'system_password' || activeTab === 'system_users') {
+      if (activeTab === 'system_users') fetchUsers();
+      return;
+    }
     try {
       const res = await api.get(`/master-data?category=${activeTab}`);
       setDataList(res.data);
@@ -65,6 +73,53 @@ const MasterData = () => {
       try {
         await api.delete(`/master-data/${id}`);
         fetchData();
+      } catch (error) {
+        alert(error.response?.data?.error || 'เกิดข้อผิดพลาด');
+      }
+    }
+  };
+
+  const fetchUsers = async () => {
+    try {
+      const res = await api.get('/users');
+      setUsersList(res.data);
+    } catch (error) {
+      console.error(error);
+    }
+  };
+
+  const handleOpenUserModal = (item = null) => {
+    if (item) {
+      setUserFormData({ id: item.id, username: item.username, password: '', name: item.name, role: item.role });
+    } else {
+      setUserFormData({ id: null, username: '', password: '', name: '', role: 'Sales' });
+    }
+    setShowUserModal(true);
+  };
+
+  const handleUserSubmit = async (e) => {
+    e.preventDefault();
+    try {
+      if (userFormData.id) {
+        const payload = { name: userFormData.name, role: userFormData.role };
+        if (userFormData.password) payload.password = userFormData.password;
+        await api.put(`/users/${userFormData.id}`, payload);
+      } else {
+        if (!userFormData.password) return alert('กรุณากรอกรหัสผ่าน');
+        await api.post('/users', userFormData);
+      }
+      setShowUserModal(false);
+      fetchUsers();
+    } catch (error) {
+      alert(error.response?.data?.error || 'เกิดข้อผิดพลาดในการจัดการผู้ใช้งาน');
+    }
+  };
+
+  const handleDeleteUser = async (id) => {
+    if (window.confirm('คุณต้องการลบผู้ใช้งานท่านนี้ออกจากระบบหรือไม่?')) {
+      try {
+        await api.delete(`/users/${id}`);
+        fetchUsers();
       } catch (error) {
         alert(error.response?.data?.error || 'เกิดข้อผิดพลาด');
       }
@@ -131,6 +186,15 @@ const MasterData = () => {
             ))}
             <li className="nav-item ms-auto">
               <button
+                className={`nav-link fw-bold ${activeTab === 'system_users' ? 'active text-primary border-bottom-0' : 'text-muted'}`}
+                onClick={() => setActiveTab('system_users')}
+                style={{ borderRadius: '10px 10px 0 0' }}
+              >
+                <i className="bi bi-people-fill me-1"></i> ผู้ใช้งานระบบ
+              </button>
+            </li>
+            <li className="nav-item">
+              <button
                 className={`nav-link fw-bold ${activeTab === 'system_password' ? 'active text-primary border-bottom-0' : 'text-muted'}`}
                 onClick={() => setActiveTab('system_password')}
                 style={{ borderRadius: '10px 10px 0 0' }}
@@ -153,7 +217,7 @@ const MasterData = () => {
         <div className="card-body p-4">
           
           {/* Master Data Tab Content */}
-          {!['system_clear', 'system_password'].includes(activeTab) && (
+          {!['system_clear', 'system_password', 'system_users'].includes(activeTab) && (
             <>
               <div className="d-flex justify-content-end mb-3">
                 <button className="btn btn-primary fw-bold" onClick={() => handleOpenModal()}>
@@ -184,6 +248,56 @@ const MasterData = () => {
                       </tr>
                     )) : (
                       <tr><td colSpan="2" className="text-center py-4 text-muted">ไม่พบข้อมูล</td></tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </>
+          )}
+
+          {/* Users Tab Content */}
+          {activeTab === 'system_users' && (
+            <>
+              <div className="d-flex justify-content-between align-items-center mb-3">
+                <h5 className="fw-bold mb-0">รายชื่อผู้ใช้งาน (Users)</h5>
+                <button className="btn btn-primary fw-bold" onClick={() => handleOpenUserModal()}>
+                  <i className="bi bi-person-plus-fill me-1"></i> เพิ่มผู้ใช้งาน
+                </button>
+              </div>
+
+              <div className="table-responsive">
+                <table className="table table-hover align-middle border">
+                  <thead className="table-light">
+                    <tr>
+                      <th>ชื่อบัญชี (Username)</th>
+                      <th>ชื่อ-นามสกุล</th>
+                      <th>สิทธิ์ (Role)</th>
+                      <th className="text-end">จัดการ</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {usersList.length > 0 ? usersList.map(u => (
+                      <tr key={u.id}>
+                        <td><strong>{u.username}</strong></td>
+                        <td>{u.name}</td>
+                        <td>
+                          <span className={`badge ${u.role === 'Admin' ? 'bg-primary' : u.role === 'Sales' ? 'bg-success' : 'bg-secondary'}`}>
+                            {u.role}
+                          </span>
+                        </td>
+                        <td className="text-end">
+                          <button className="btn btn-sm btn-outline-primary me-2" onClick={() => handleOpenUserModal(u)}>
+                            <i className="bi bi-pencil"></i> แก้ไข
+                          </button>
+                          {u.id !== user?.id && (
+                            <button className="btn btn-sm btn-outline-danger" onClick={() => handleDeleteUser(u.id)}>
+                              <i className="bi bi-trash"></i> ลบ
+                            </button>
+                          )}
+                        </td>
+                      </tr>
+                    )) : (
+                      <tr><td colSpan="4" className="text-center py-4 text-muted">ไม่พบข้อมูลผู้ใช้งาน</td></tr>
                     )}
                   </tbody>
                 </table>
@@ -283,6 +397,64 @@ const MasterData = () => {
             </Form.Group>
             <div className="text-end">
               <Button variant="light" className="me-2 fw-bold" onClick={() => setShowModal(false)}>ยกเลิก</Button>
+              <Button variant="primary" type="submit" className="fw-bold px-4 shadow-sm">บันทึกข้อมูล</Button>
+            </div>
+          </Form>
+        </Modal.Body>
+      </Modal>
+
+      {/* Modal for User Management */}
+      <Modal show={showUserModal} onHide={() => setShowUserModal(false)} centered>
+        <Modal.Header closeButton className="border-0 pb-0">
+          <Modal.Title className="fw-bold">{userFormData.id ? 'แก้ไขผู้ใช้งาน' : 'เพิ่มผู้ใช้งานใหม่'}</Modal.Title>
+        </Modal.Header>
+        <Modal.Body>
+          <Form onSubmit={handleUserSubmit}>
+            <Form.Group className="mb-3">
+              <Form.Label className="fw-bold">ชื่อบัญชี (Username)</Form.Label>
+              <Form.Control 
+                type="text" 
+                value={userFormData.username} 
+                onChange={(e) => setUserFormData({...userFormData, username: e.target.value})} 
+                required 
+                disabled={!!userFormData.id} // Cannot edit username after creation
+              />
+              {!userFormData.id && <Form.Text className="text-muted">ใช้สำหรับเข้าสู่ระบบ (ห้ามซ้ำ)</Form.Text>}
+            </Form.Group>
+            <Form.Group className="mb-3">
+              <Form.Label className="fw-bold">ชื่อ-นามสกุล (Name)</Form.Label>
+              <Form.Control 
+                type="text" 
+                value={userFormData.name} 
+                onChange={(e) => setUserFormData({...userFormData, name: e.target.value})} 
+                required 
+              />
+            </Form.Group>
+            <Form.Group className="mb-3">
+              <Form.Label className="fw-bold">รหัสผ่าน (Password)</Form.Label>
+              <Form.Control 
+                type="password" 
+                value={userFormData.password} 
+                onChange={(e) => setUserFormData({...userFormData, password: e.target.value})} 
+                required={!userFormData.id} 
+              />
+              {userFormData.id && <Form.Text className="text-muted">เว้นว่างไว้หากไม่ต้องการเปลี่ยนรหัสผ่าน</Form.Text>}
+            </Form.Group>
+            <Form.Group className="mb-4">
+              <Form.Label className="fw-bold">สิทธิ์การใช้งาน (Role)</Form.Label>
+              <Form.Select 
+                value={userFormData.role} 
+                onChange={(e) => setUserFormData({...userFormData, role: e.target.value})}
+              >
+                <option value="Admin">Admin (ดูแลระบบ)</option>
+                <option value="Manager">Manager (ผู้จัดการ)</option>
+                <option value="Sales">Sales (เซลส์)</option>
+                <option value="Staff">Staff (พนักงานทั่วไป)</option>
+                <option value="Viewer">Viewer (ดูได้อย่างเดียว)</option>
+              </Form.Select>
+            </Form.Group>
+            <div className="text-end">
+              <Button variant="light" className="me-2 fw-bold" onClick={() => setShowUserModal(false)}>ยกเลิก</Button>
               <Button variant="primary" type="submit" className="fw-bold px-4 shadow-sm">บันทึกข้อมูล</Button>
             </div>
           </Form>

@@ -213,6 +213,7 @@ app.get('/api', (req, res) => {
 
 // Placeholder for routes
 app.use('/api/auth', require('./routes/auth'));
+app.use('/api/users', require('./routes/users'));
 app.use('/api/customers', require('./routes/customers'));
 app.use('/api/vehicles', require('./routes/vehicles'));
 app.use('/api/policies', require('./routes/policies'));

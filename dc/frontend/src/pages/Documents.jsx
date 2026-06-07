@@ -196,7 +196,7 @@ const Documents = () => {
           <Modal.Title>อัปโหลดเอกสารใหม่</Modal.Title>
         </Modal.Header>
         <Modal.Body>
-          <Form onSubmit={handleUpload}>
+          <Form onSubmit={handleSaveDocument}>
             <div className="row g-3">
               <div className="col-md-12">
                 <Form.Label>เลือกลูกค้า <span className="text-danger">*</span></Form.Label>
