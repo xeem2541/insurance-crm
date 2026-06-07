@@ -92,6 +92,102 @@ async function initDb() {
       )
     `);
     console.log('Document tables verified');
+
+    // Auto-seed mock data if database is empty
+    const [custCountRes] = await connection.query('SELECT COUNT(*) as count FROM customers');
+    if (custCountRes[0].count === 0) {
+      console.log('Database is empty. Seeding mock customers and policies...');
+      const firstNames = ['สมชาย', 'สมหญิง', 'มานะ', 'มานี', 'ปิติ', 'ชูใจ', 'วีระ', 'สมศักดิ์', 'พรทิพย์', 'ณรงค์'];
+      const lastNames = ['ใจดี', 'รักไทย', 'มีทรัพย์', 'พาณิชย์', 'รุ่งเรือง', 'สุขใจ', 'มั่งคั่ง', 'มั่นคง', 'ร่ำรวย', 'ยอดเยี่ยม'];
+      const provinces = ['กรุงเทพมหานคร', 'นนทบุรี', 'เชียงใหม่', 'ชลบุรี', 'ภูเก็ต'];
+      
+      const [adminRow] = await connection.query('SELECT id FROM users WHERE username="admin"');
+      const adminId = adminRow[0] ? adminRow[0].id : 1;
+      
+      // Ensure sales user exists
+      let salesId = 1;
+      const [salesRow] = await connection.query('SELECT id FROM users WHERE username="sales1"');
+      if (salesRow.length > 0) {
+        salesId = salesRow[0].id;
+      } else {
+        const hash = await bcrypt.hash('123456', 10);
+        const [salesInsert] = await connection.query(
+          'INSERT INTO users (username, password, name, role) VALUES (?, ?, ?, ?)',
+          ['sales1', hash, 'Sales Person 1', 'Sales']
+        );
+        salesId = salesInsert.insertId;
+      }
+
+      for (let i = 1; i <= 10; i++) {
+        const fn = firstNames[Math.floor(Math.random() * firstNames.length)];
+        const ln = lastNames[Math.floor(Math.random() * lastNames.length)];
+        const prov = provinces[Math.floor(Math.random() * provinces.length)];
+        
+        // Ensure policies have upcoming expiry dates for the calendar
+        const isExpiringSoon = i <= 5; // First 5 customers have expiring policies
+        const startDate = new Date();
+        startDate.setFullYear(startDate.getFullYear() - 1);
+        if (isExpiringSoon) {
+          startDate.setDate(startDate.getDate() + Math.floor(Math.random() * 20)); // Expires in 0-20 days
+        } else {
+          startDate.setMonth(startDate.getMonth() - Math.floor(Math.random() * 6));
+        }
+        const expiryDate = new Date(startDate);
+        expiryDate.setFullYear(expiryDate.getFullYear() + 1);
+        
+        const daysLeft = Math.floor((expiryDate - new Date()) / (1000 * 60 * 60 * 24));
+        let pStatus = 'สำเร็จ';
+        if (daysLeft > 0 && daysLeft <= 30) pStatus = 'รอต่ออายุ';
+        if (daysLeft < 0) pStatus = 'หมดอายุแล้ว';
+
+        const custResult = await connection.query(`
+          INSERT INTO customers (
+            customer_code, prefix, first_name, last_name, phone, email, line_id, 
+            age, id_card_no, address, province, zipcode, customer_status, lead_status, source, created_by
+          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        `, [
+          `CUS-2026-${String(i).padStart(4, '0')}`, 'คุณ', fn, ln,
+          `08${Math.floor(Math.random() * 90000000 + 10000000)}`,
+          `customer${i}@example.com`, `line_id_${i}`, Math.floor(Math.random() * 40 + 20),
+          `1${Math.floor(Math.random() * 900000000000 + 100000000000)}`,
+          `123/45 ถนนทดสอบ`, prov, '10000', 'ลูกค้าปัจจุบัน', 'ปิดการขาย', 'Website', salesId
+        ]);
+        const customerId = custResult[0].insertId;
+
+        const brands = ['Toyota', 'Honda', 'Isuzu', 'Nissan', 'Ford', 'Mazda'];
+        const brand = brands[Math.floor(Math.random() * brands.length)];
+        const vehResult = await connection.query(`
+          INSERT INTO vehicles (
+            customer_id, vehicle_type, brand, model, year, color, plate_no, plate_province, sum_insured
+          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+        `, [
+          customerId, 'รถเก๋ง', brand, 'Sedan', '202' + Math.floor(Math.random() * 5),
+          'ขาว', \`\${Math.floor(Math.random() * 9) + 1}กข \${Math.floor(Math.random() * 9000 + 1000)}\`, prov,
+          Math.floor(Math.random() * 500000 + 300000)
+        ]);
+        const vehicleId = vehResult[0].insertId;
+
+        const netPremium = Math.floor(Math.random() * 15000 + 5000);
+        const stampDuty = netPremium * 0.004;
+        const vat = (netPremium + stampDuty) * 0.07;
+        const totalPremium = netPremium + stampDuty + vat;
+
+        await connection.query(`
+          INSERT INTO policies (
+            customer_id, vehicle_id, policy_no, company, type, sum_insured,
+            net_premium, stamp_duty, vat, total_premium, commission_percent, commission_baht,
+            payment_method, start_date, expiry_date, status, sales_person_id, created_by, created_at
+          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        `, [
+          customerId, vehicleId, \`POL-2026-\${String(i).padStart(4, '0')}\`,
+          'วิริยะประกันภัย', 'ประกันภัยชั้น 1', Math.floor(Math.random() * 500000 + 300000),
+          netPremium, stampDuty, vat, totalPremium, 18, netPremium * 0.18,
+          'เงินสด', startDate.toISOString().split('T')[0], expiryDate.toISOString().split('T')[0],
+          pStatus, salesId, adminId, startDate.toISOString().split('T')[0] + ' 10:00:00'
+        ]);
+      }
+      console.log('Successfully auto-seeded mock data!');
+    }
     
     connection.release();
     
