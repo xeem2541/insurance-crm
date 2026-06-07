@@ -16,6 +16,8 @@ router.post('/', async (req, res) => {
   if (!events || events.length === 0) return;
 
   for (const event of events) {
+    console.log('Received LINE event:', JSON.stringify(event));
+    
     // If the bot is invited to a group, or someone types in a group, save the Group ID!
     if (event.source.type === 'group' || event.source.type === 'room') {
       const groupId = event.source.groupId || event.source.roomId;
