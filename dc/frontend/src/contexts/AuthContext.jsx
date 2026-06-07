@@ -36,7 +36,17 @@ export const AuthProvider = ({ children }) => {
 
   return (
     <AuthContext.Provider value={{ user, login, logout, loading }}>
-      {!loading && children}
+      {loading ? (
+        <div style={{ height: '100vh', display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', backgroundColor: '#f8f9fa' }}>
+          <div className="spinner-border text-primary" role="status" style={{ width: '3rem', height: '3rem' }}>
+            <span className="visually-hidden">Loading...</span>
+          </div>
+          <h4 className="mt-3 text-secondary fw-bold">กำลังเชื่อมต่อฐานข้อมูล...</h4>
+          <p className="text-muted">อาจใช้เวลาสักครู่ (10-30 วินาที) หากระบบพักหน้าจอ</p>
+        </div>
+      ) : (
+        children
+      )}
     </AuthContext.Provider>
   );
 };
