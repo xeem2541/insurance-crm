@@ -56,13 +56,28 @@ router.put('/installments/:id', authenticateToken, async (req, res) => {
     }
     
     const installment = insts[0];
-    const newPaidAmount = parseFloat(paid_amount) || parseFloat(installment.amount);
-    const newStatus = 'ชำระแล้ว';
+    const incomingPaidAmount = parseFloat(paid_amount) || 0;
+    
+    // Accumulate total paid
+    const currentPaidAmount = parseFloat(installment.paid_amount) || 0;
+    const newTotalPaidAmount = currentPaidAmount + incomingPaidAmount;
+    
+    // Calculate new balance
+    const totalAmount = parseFloat(installment.amount) || 0;
+    let newBalanceAmount = totalAmount - newTotalPaidAmount;
+    if (newBalanceAmount < 0) newBalanceAmount = 0;
+    
+    // Determine status
+    let newStatus = 'ชำระบางส่วน';
+    if (newBalanceAmount <= 0) {
+      newStatus = 'ชำระแล้ว';
+    }
+
     const payDate = payment_date || new Date().toISOString().split('T')[0];
     
     await connection.query(
-      'UPDATE installments SET paid_amount = ?, balance_amount = 0, status = ?, payment_date = ? WHERE id = ?',
-      [newPaidAmount, newStatus, payDate, installmentId]
+      'UPDATE installments SET paid_amount = ?, balance_amount = ?, status = ?, payment_date = ? WHERE id = ?',
+      [newTotalPaidAmount, newBalanceAmount, newStatus, payDate, installmentId]
     );
     
     // Check if all installments for this payment are now paid
