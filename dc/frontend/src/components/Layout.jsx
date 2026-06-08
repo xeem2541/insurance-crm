@@ -2,7 +2,7 @@ import React, { useContext, useState } from 'react';
 import { Outlet, Link, useNavigate, useLocation } from 'react-router-dom';
 import { AuthContext } from '../contexts/AuthContext';
 import { ThemeContext } from '../contexts/ThemeContext';
-import { Modal, Button, Form } from 'react-bootstrap';
+import { Modal, Button, Form, Dropdown, Badge } from 'react-bootstrap';
 import api from '../services/api';
 
 const Layout = () => {
@@ -14,8 +14,24 @@ const Layout = () => {
   const [showPwdModal, setShowPwdModal] = useState(false);
   const [pwdData, setPwdData] = useState({ currentPassword: '', newPassword: '', confirmPassword: '' });
   const [pwdMsg, setPwdMsg] = useState({ type: '', text: '' });
+  const [notifications, setNotifications] = useState({ total: 0, overdue: [], upcoming: [], expiring: [] });
 
   const toggleSidebar = () => setIsSidebarOpen(!isSidebarOpen);
+
+  React.useEffect(() => {
+    fetchNotifications();
+    const interval = setInterval(fetchNotifications, 5 * 60 * 1000); // refresh every 5 mins
+    return () => clearInterval(interval);
+  }, []);
+
+  const fetchNotifications = async () => {
+    try {
+      const res = await api.get('/notifications');
+      setNotifications(res.data);
+    } catch (e) {
+      console.log('Failed to fetch notifications');
+    }
+  };
 
   const handlePasswordSubmit = async (e) => {
     e.preventDefault();
@@ -127,7 +143,78 @@ const Layout = () => {
               <span className={`navbar-brand mb-0 h5 fw-bold ${darkMode ? 'text-light' : 'text-dark'} d-none d-sm-block`}>ระบบบริหารจัดการนายหน้าประกันภัย (CRM v2.0)</span>
               <span className={`navbar-brand mb-0 h6 fw-bold ${darkMode ? 'text-light' : 'text-dark'} d-sm-none`}>CRM v2.0</span>
             </div>
-            <div>
+            <div className="d-flex align-items-center">
+              <Dropdown align="end" className="me-3">
+                <Dropdown.Toggle variant={darkMode ? 'outline-light' : 'outline-dark'} className="rounded-circle p-2 position-relative d-flex align-items-center justify-content-center" style={{ width: '40px', height: '40px' }} id="dropdown-notifications">
+                  <i className="bi bi-bell-fill"></i>
+                  {notifications.total > 0 && (
+                    <span className="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger border border-light">
+                      {notifications.total}
+                    </span>
+                  )}
+                </Dropdown.Toggle>
+
+                <Dropdown.Menu className={`shadow-lg border-0 ${darkMode ? 'bg-dark' : 'bg-white'}`} style={{ width: '350px', maxHeight: '500px', overflowY: 'auto', borderRadius: '16px' }}>
+                  <div className={`px-3 py-2 border-bottom fw-bold ${darkMode ? 'text-light' : 'text-dark'}`}>
+                    การแจ้งเตือนทั้งหมด ({notifications.total})
+                  </div>
+                  
+                  {notifications.total === 0 ? (
+                    <Dropdown.Item className="text-center text-muted py-4">ไม่มีรายการแจ้งเตือน</Dropdown.Item>
+                  ) : (
+                    <>
+                      {/* Overdue */}
+                      {notifications.overdue.length > 0 && (
+                        <>
+                          <Dropdown.Header className="text-danger fw-bold"><i className="bi bi-exclamation-circle-fill me-1"></i> เลยกำหนดชำระ ({notifications.overdue.length})</Dropdown.Header>
+                          {notifications.overdue.map(n => (
+                            <Dropdown.Item key={`o-${n.id}`} as={Link} to="/payments" className="border-bottom pb-2">
+                              <div className="d-flex justify-content-between">
+                                <small className="fw-bold">{n.first_name}</small>
+                                <Badge bg="danger">งวดที่ {n.installment_no}</Badge>
+                              </div>
+                              <small className="text-muted d-block mt-1">ค้าง ฿{(Number(n.amount)||0).toLocaleString()}</small>
+                            </Dropdown.Item>
+                          ))}
+                        </>
+                      )}
+
+                      {/* Upcoming */}
+                      {notifications.upcoming.length > 0 && (
+                        <>
+                          <Dropdown.Header className="text-warning fw-bold"><i className="bi bi-clock-fill me-1"></i> ใกล้ถึงดิวชำระ ({notifications.upcoming.length})</Dropdown.Header>
+                          {notifications.upcoming.map(n => (
+                            <Dropdown.Item key={`u-${n.id}`} as={Link} to="/payments" className="border-bottom pb-2">
+                              <div className="d-flex justify-content-between">
+                                <small className="fw-bold">{n.first_name}</small>
+                                <Badge bg="warning" text="dark">งวดที่ {n.installment_no}</Badge>
+                              </div>
+                              <small className="text-muted d-block mt-1">ดิว: {new Date(n.due_date).toLocaleDateString('th-TH')}</small>
+                            </Dropdown.Item>
+                          ))}
+                        </>
+                      )}
+
+                      {/* Expiring */}
+                      {notifications.expiring.length > 0 && (
+                        <>
+                          <Dropdown.Header className="text-info fw-bold"><i className="bi bi-shield-exclamation me-1"></i> ใกล้หมดอายุ ({notifications.expiring.length})</Dropdown.Header>
+                          {notifications.expiring.map(n => (
+                            <Dropdown.Item key={`e-${n.id}`} as={Link} to={n.category === 'Motor' ? '/policies' : '/non-motor'} className="border-bottom pb-2">
+                              <div className="d-flex justify-content-between">
+                                <small className="fw-bold">{n.first_name}</small>
+                                <Badge bg="info">{n.days_left} วัน</Badge>
+                              </div>
+                              <small className="text-muted d-block mt-1">{n.policy_no}</small>
+                            </Dropdown.Item>
+                          ))}
+                        </>
+                      )}
+                    </>
+                  )}
+                </Dropdown.Menu>
+              </Dropdown>
+
               <button className={`btn btn-outline-${darkMode ? 'light' : 'dark'} rounded-pill`} onClick={toggleTheme}>
                 {darkMode ? <><i className="bi bi-sun-fill text-warning"></i> โหมดสว่าง</> : <><i className="bi bi-moon-fill"></i> โหมดมืด</>}
               </button>
