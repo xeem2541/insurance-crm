@@ -45,8 +45,8 @@ const PrintReceipt = () => {
             <p className="text-muted mb-0">Receipt / Tax Invoice (Abbreviated)</p>
           </div>
           <div className="text-end">
-            <h1 className="fw-bold text-dark mb-0">บริษัท ประกันภัย 2026 จำกัด</h1>
-            <p className="text-muted mb-0">เลขประจำตัวผู้เสียภาษี: 0105555555555</p>
+            <h1 className="fw-bold text-dark mb-0">Apple Insurance & Services</h1>
+            <p className="text-muted mb-0">สำนักงานเปิ้ลประกันภัย (บริการครบ... จบที่เดียว)</p>
             <p className="text-muted mb-0">123 ถนนสุขุมวิท กรุงเทพมหานคร 10110</p>
           </div>
         </div>
