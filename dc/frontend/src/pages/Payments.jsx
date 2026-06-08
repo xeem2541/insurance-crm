@@ -54,7 +54,8 @@ const Payments = () => {
 
   const handleOpenPayModal = (inst) => {
     setSelectedInst(inst);
-    setPayData({ paid_amount: inst.amount, payment_date: new Date().toISOString().split('T')[0] });
+    const suggestAmount = inst.balance_amount !== undefined && inst.balance_amount !== null ? inst.balance_amount : inst.amount;
+    setPayData({ paid_amount: suggestAmount, payment_date: new Date().toISOString().split('T')[0] });
     setShowPayModal(true);
   };
 
