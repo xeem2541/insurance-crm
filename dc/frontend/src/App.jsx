@@ -13,6 +13,7 @@ import Reports from './pages/Reports';
 import MasterData from './pages/MasterData';
 import CalendarView from './pages/CalendarView';
 import PrintPolicy from './pages/PrintPolicy';
+import PrintReceipt from './pages/PrintReceipt';
 import Payments from './pages/Payments';
 import NonMotorPolicies from './pages/NonMotorPolicies';
 import IssuePolicyForm from './pages/IssuePolicyForm';
@@ -44,6 +45,11 @@ const AppRoutes = () => {
       <Route path="/print-policy/:id" element={
         <PrivateRoute>
           <PrintPolicy />
+        </PrivateRoute>
+      } />
+      <Route path="/print-receipt/:id" element={
+        <PrivateRoute>
+          <PrintReceipt />
         </PrivateRoute>
       } />
     </Routes>
