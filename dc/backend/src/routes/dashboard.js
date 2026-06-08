@@ -46,10 +46,22 @@ router.get('/stats', authenticateToken, async (req, res) => {
     let cashSalesTotal = 0, installmentSalesTotal = 0, unpaidInstallmentTotal = 0, collectedThisMonth = 0;
     let overdueCustomersCount = 0, upcomingInstallments = [];
     try {
-      const [cashRes] = await req.db.query("SELECT SUM(p.total_premium) as total FROM policies p JOIN payments pm ON p.id = pm.policy_id WHERE pm.payment_method = 'เงินสด' AND p.status = 'สำเร็จ'");
+      const [cashRes] = await req.db.query(`
+        SELECT SUM(IFNULL(p.total_premium, np.total_premium)) as total 
+        FROM payments pm 
+        LEFT JOIN policies p ON pm.policy_id = p.id AND p.status = 'สำเร็จ'
+        LEFT JOIN non_motor_policies np ON pm.non_motor_policy_id = np.id AND np.status = 'สำเร็จ'
+        WHERE pm.payment_method = 'เงินสด' AND (p.id IS NOT NULL OR np.id IS NOT NULL)
+      `);
       cashSalesTotal = cashRes[0].total || 0;
       
-      const [instRes] = await req.db.query("SELECT SUM(p.total_premium) as total FROM policies p JOIN payments pm ON p.id = pm.policy_id WHERE pm.payment_method = 'เงินผ่อน' AND p.status = 'สำเร็จ'");
+      const [instRes] = await req.db.query(`
+        SELECT SUM(IFNULL(p.total_premium, np.total_premium)) as total 
+        FROM payments pm 
+        LEFT JOIN policies p ON pm.policy_id = p.id AND p.status = 'สำเร็จ'
+        LEFT JOIN non_motor_policies np ON pm.non_motor_policy_id = np.id AND np.status = 'สำเร็จ'
+        WHERE pm.payment_method = 'เงินผ่อน' AND (p.id IS NOT NULL OR np.id IS NOT NULL)
+      `);
       installmentSalesTotal = instRes[0].total || 0;
 
       const [unpaidRes] = await req.db.query("SELECT SUM(balance_amount) as total FROM installments WHERE status IN ('รอชำระ', 'ค้างชำระ')");
@@ -58,15 +70,16 @@ router.get('/stats', authenticateToken, async (req, res) => {
       const [collectedRes] = await req.db.query("SELECT SUM(paid_amount) as total FROM installments WHERE status IN ('ชำระแล้ว', 'ชำระบางส่วน') AND MONTH(payment_date) = MONTH(CURRENT_DATE()) AND YEAR(payment_date) = YEAR(CURRENT_DATE())");
       collectedThisMonth = collectedRes[0].total || 0;
 
-      const [overdueCustRes] = await req.db.query("SELECT COUNT(DISTINCT pm.policy_id) as count FROM installments i JOIN payments pm ON i.payment_id = pm.id WHERE i.status = 'ค้างชำระ' OR (i.status = 'รอชำระ' AND i.due_date < CURRENT_DATE())");
+      const [overdueCustRes] = await req.db.query("SELECT COUNT(DISTINCT IFNULL(pm.policy_id, pm.non_motor_policy_id)) as count FROM installments i JOIN payments pm ON i.payment_id = pm.id WHERE i.status = 'ค้างชำระ' OR (i.status = 'รอชำระ' AND i.due_date < CURRENT_DATE())");
       overdueCustomersCount = overdueCustRes[0].count || 0;
 
       const [upcomingRes] = await req.db.query(`
-        SELECT i.*, p.policy_no, c.first_name, c.last_name, c.phone
+        SELECT i.*, IFNULL(p.policy_no, np.policy_no) as policy_no, c.first_name, c.last_name, c.phone
         FROM installments i 
         JOIN payments pm ON i.payment_id = pm.id 
-        JOIN policies p ON pm.policy_id = p.id
-        JOIN customers c ON p.customer_id = c.id
+        LEFT JOIN policies p ON pm.policy_id = p.id
+        LEFT JOIN non_motor_policies np ON pm.non_motor_policy_id = np.id
+        JOIN customers c ON (p.customer_id = c.id OR np.customer_id = c.id)
         WHERE i.status = 'รอชำระ' AND i.due_date BETWEEN CURRENT_DATE() AND DATE_ADD(CURRENT_DATE(), INTERVAL 7 DAY)
         ORDER BY i.due_date ASC
       `);
