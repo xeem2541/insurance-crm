@@ -89,43 +89,52 @@ const Dashboard = () => {
       <h2 className="mb-4 fw-bold">Dashboard (ภาพรวมระบบ)</h2>
       
       <div className="row g-4 mb-4">
+        {/* Total Policies */}
         <div className="col-md-3">
-          <div className="card text-white bg-primary shadow-sm h-100 border-0" style={{background: 'linear-gradient(45deg, #0d6efd, #00d2ff)'}}>
-            <div className="card-body">
-              <h5 className="card-title">จำนวนกรมธรรม์</h5>
-              <h2 className="display-6 fw-bold">{stats.totalPolicies + stats.totalNonMotorPolicies}</h2>
-              <p className="card-text mb-0">Motor: {stats.totalPolicies} ฉบับ</p>
-              <p className="card-text">Non-Motor: {stats.totalNonMotorPolicies} ฉบับ</p>
+          <div className="card stat-card shadow-sm h-100 border-0">
+            <i className="bi bi-file-earmark-text-fill stat-icon"></i>
+            <div className="stat-value">{stats.totalPolicies + stats.totalNonMotorPolicies}</div>
+            <div className="stat-label mb-2">จำนวนกรมธรรม์รวม</div>
+            <div className="d-flex justify-content-between small text-muted">
+              <span>Motor: {stats.totalPolicies}</span>
+              <span>Non-Motor: {stats.totalNonMotorPolicies}</span>
             </div>
           </div>
         </div>
+        
+        {/* Sales This Month */}
         <div className="col-md-3">
-          <div className="card text-white bg-success shadow-sm h-100 border-0" style={{background: 'linear-gradient(45deg, #198754, #20c997)'}}>
-            <div className="card-body">
-              <h5 className="card-title">ยอดขายเดือนนี้ (รวม)</h5>
-              <h2 className="display-6 fw-bold">{formatMoney(stats.salesThisMonth + stats.nmSalesThisMonth)}</h2>
-              <p className="card-text mb-0">Motor: {formatMoney(stats.salesThisMonth)}</p>
-              <p className="card-text">Non-Motor: {formatMoney(stats.nmSalesThisMonth)}</p>
+          <div className="card stat-card shadow-sm h-100 border-0">
+            <i className="bi bi-cash-stack stat-icon text-success"></i>
+            <div className="stat-value text-success">{formatMoney(stats.salesThisMonth + stats.nmSalesThisMonth)}</div>
+            <div className="stat-label mb-2">ยอดขายเดือนนี้ (รวม)</div>
+            <div className="d-flex justify-content-between small text-muted">
+              <span>M: {formatMoney(stats.salesThisMonth)}</span>
+              <span>NM: {formatMoney(stats.nmSalesThisMonth)}</span>
             </div>
           </div>
         </div>
+
+        {/* Commission This Month */}
         <div className="col-md-3">
-          <div className="card text-white bg-warning shadow-sm h-100 border-0" style={{background: 'linear-gradient(45deg, #ffc107, #ff9800)'}}>
-            <div className="card-body">
-              <h5 className="card-title">คอมฯ เดือนนี้ (รวม)</h5>
-              <h2 className="display-6 fw-bold text-dark">{formatMoney(stats.commThisMonth + stats.nmCommThisMonth)}</h2>
-              <p className="card-text text-dark mb-0">Motor: {formatMoney(stats.commThisMonth)}</p>
-              <p className="card-text text-dark">Non-Motor: {formatMoney(stats.nmCommThisMonth)}</p>
+          <div className="card stat-card shadow-sm h-100 border-0">
+            <i className="bi bi-graph-up-arrow stat-icon text-warning"></i>
+            <div className="stat-value text-warning">{formatMoney(stats.commThisMonth + stats.nmCommThisMonth)}</div>
+            <div className="stat-label mb-2">คอมฯ เดือนนี้ (รวม)</div>
+            <div className="d-flex justify-content-between small text-muted">
+              <span>M: {formatMoney(stats.commThisMonth)}</span>
+              <span>NM: {formatMoney(stats.nmCommThisMonth)}</span>
             </div>
           </div>
         </div>
+
+        {/* Expiring */}
         <div className="col-md-3">
-          <div className="card text-white bg-danger shadow-sm h-100 border-0" style={{background: 'linear-gradient(45deg, #dc3545, #f8d7da)'}}>
-            <div className="card-body">
-              <h5 className="card-title">ใกล้หมดอายุ</h5>
-              <h2 className="display-5 fw-bold">{stats.expiringPolicies.length}</h2>
-              <p className="card-text">ฉบับ (ภายใน 90 วัน)</p>
-            </div>
+          <div className="card stat-card shadow-sm h-100 border-0">
+            <i className="bi bi-exclamation-triangle-fill stat-icon text-danger"></i>
+            <div className="stat-value text-danger">{stats.expiringPolicies.length}</div>
+            <div className="stat-label mb-2">ใกล้หมดอายุ</div>
+            <div className="small text-muted">ฉบับ (ภายใน 90 วัน)</div>
           </div>
         </div>
       </div>
@@ -133,39 +142,38 @@ const Dashboard = () => {
       <div className="row g-4 mb-4">
         {/* Cash Sales */}
         <div className="col-md-3">
-          <div className="card text-white shadow-sm h-100 border-0" style={{background: 'linear-gradient(45deg, #17a2b8, #1FC8DB)'}}>
-            <div className="card-body">
-              <h5 className="card-title">ยอดเงินสด</h5>
-              <h2 className="display-6 fw-bold">{formatMoney(stats.cashSalesTotal || 0)}</h2>
-            </div>
+          <div className="card stat-card shadow-sm h-100 border-0">
+            <i className="bi bi-wallet2 stat-icon text-info"></i>
+            <div className="stat-value text-info">{formatMoney(stats.cashSalesTotal || 0)}</div>
+            <div className="stat-label mb-2">ยอดเงินสด</div>
           </div>
         </div>
+        
         {/* Installment Sales */}
         <div className="col-md-3">
-          <div className="card text-white shadow-sm h-100 border-0" style={{background: 'linear-gradient(45deg, #0d6efd, #0dcaf0)'}}>
-            <div className="card-body">
-              <h5 className="card-title">ยอดเงินผ่อนรวม</h5>
-              <h2 className="display-6 fw-bold">{formatMoney(stats.installmentSalesTotal || 0)}</h2>
-            </div>
+          <div className="card stat-card shadow-sm h-100 border-0">
+            <i className="bi bi-credit-card-fill stat-icon text-primary"></i>
+            <div className="stat-value text-primary">{formatMoney(stats.installmentSalesTotal || 0)}</div>
+            <div className="stat-label mb-2">ยอดเงินผ่อนรวม</div>
           </div>
         </div>
+        
         {/* Unpaid / Overdue */}
         <div className="col-md-3">
-          <div className="card text-white shadow-sm h-100 border-0" style={{background: 'linear-gradient(45deg, #dc3545, #f87171)'}}>
-            <div className="card-body">
-              <h5 className="card-title">ยอดค้างชำระ</h5>
-              <h2 className="display-6 fw-bold">{formatMoney(stats.unpaidInstallmentTotal || 0)}</h2>
-              <p className="card-text mb-0">ลูกค้าค้างชำระ: {stats.overdueCustomersCount || 0} ราย</p>
-            </div>
+          <div className="card stat-card shadow-sm h-100 border-0">
+            <i className="bi bi-x-octagon-fill stat-icon text-danger"></i>
+            <div className="stat-value text-danger">{formatMoney(stats.unpaidInstallmentTotal || 0)}</div>
+            <div className="stat-label mb-2">ยอดค้างชำระ</div>
+            <div className="small text-muted">ลูกค้าค้างชำระ: {stats.overdueCustomersCount || 0} ราย</div>
           </div>
         </div>
+        
         {/* Collected this month */}
         <div className="col-md-3">
-          <div className="card text-white shadow-sm h-100 border-0" style={{background: 'linear-gradient(45deg, #20c997, #4ade80)'}}>
-            <div className="card-body">
-              <h5 className="card-title">ยอดชำระผ่อน (ด.นี้)</h5>
-              <h2 className="display-6 fw-bold">{formatMoney(stats.collectedThisMonth || 0)}</h2>
-            </div>
+          <div className="card stat-card shadow-sm h-100 border-0">
+            <i className="bi bi-check-circle-fill stat-icon text-success"></i>
+            <div className="stat-value text-success">{formatMoney(stats.collectedThisMonth || 0)}</div>
+            <div className="stat-label mb-2">ยอดชำระผ่อน (ด.นี้)</div>
           </div>
         </div>
       </div>
