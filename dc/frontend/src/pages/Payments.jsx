@@ -255,7 +255,7 @@ const Payments = () => {
                             <i className="bi bi-cash-stack me-1"></i> รับชำระ
                           </Button>
                         ) : (
-                          <Button variant="outline-secondary" size="sm" onClick={() => window.print()}>
+                          <Button variant="outline-secondary" size="sm" onClick={() => window.open(`/print-receipt/${inst.id}`, '_blank')}>
                             <i className="bi bi-printer"></i> พิมพ์ใบเสร็จ
                           </Button>
                         )}
