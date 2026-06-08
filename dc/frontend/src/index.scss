@@ -1,12 +1,12 @@
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Prompt:wght@300;400;500;600;700&display=swap');
 
 // 💎 Luxury / Expensive UI Design Tokens
-$primary: #1e293b; // Deep Slate / Navy
-$primary-light: #334155; 
-$primary-dark: #0f172a; // Midnight
+$primary: #991b1b; // Deep Red
+$primary-light: #dc2626; // Crimson
+$primary-dark: #7f1d1d; // Dark Red
 $accent-gold: #cba153; // Champagne Gold
 $accent-gold-light: #dfb66c;
-$secondary: #065f46; // Deep Emerald (For success/money)
+$secondary: #ea580c; // Vibrant Orange
 $dark: #09090b; // Pure Premium Dark
 $dark-glass: rgba(9, 9, 11, 0.9);
 $light: #fdfdfd; // Pristine White
@@ -98,8 +98,8 @@ h1, h2, h3, h4, h5, h6 {
   box-shadow: 0 6px 15px rgba(15, 23, 42, 0.25);
 
   &:hover {
-    background: linear-gradient(135deg, lighten($primary-light, 8%), $primary);
-    box-shadow: 0 10px 25px rgba(15, 23, 42, 0.35);
+    background: linear-gradient(135deg, #ef4444, $primary);
+    box-shadow: 0 10px 25px rgba(127, 29, 29, 0.35);
     transform: translateY(-2px);
     color: white;
   }
@@ -125,7 +125,7 @@ h1, h2, h3, h4, h5, h6 {
   text-shadow: 0 1px 2px rgba(0,0,0,0.1);
 
   &:hover {
-    background: linear-gradient(135deg, lighten($accent-gold-light, 5%), $accent-gold);
+    background: linear-gradient(135deg, #e4c383, $accent-gold);
     box-shadow: 0 10px 25px rgba(203, 161, 83, 0.4);
     transform: translateY(-2px);
     color: white;
@@ -139,7 +139,7 @@ h1, h2, h3, h4, h5, h6 {
   
   &:hover {
     background: rgba(203, 161, 83, 0.08);
-    color: darken($accent-gold, 10%);
+    color: #a68037;
   }
 }
 
@@ -256,8 +256,8 @@ h1, h2, h3, h4, h5, h6 {
   font-weight: 500;
   letter-spacing: 0.5px;
 
-  &.bg-primary { background-color: rgba(15, 23, 42, 0.1) !important; color: $primary-dark !important; border: 1px solid rgba(15, 23, 42, 0.1); }
-  &.bg-success { background-color: rgba(203, 161, 83, 0.15) !important; color: darken($accent-gold, 15%) !important; border: 1px solid rgba(203, 161, 83, 0.2); }
+  &.bg-primary { background-color: rgba(153, 27, 27, 0.1) !important; color: $primary-dark !important; border: 1px solid rgba(153, 27, 27, 0.1); }
+  &.bg-success { background-color: rgba(203, 161, 83, 0.15) !important; color: #8c6a2b !important; border: 1px solid rgba(203, 161, 83, 0.2); }
   &.bg-danger { background-color: rgba(220, 38, 38, 0.1) !important; color: #dc2626 !important; }
   &.bg-warning { background-color: rgba(217, 119, 6, 0.1) !important; color: #d97706 !important; }
 }
