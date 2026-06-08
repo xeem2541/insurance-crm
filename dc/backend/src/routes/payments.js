@@ -39,6 +39,31 @@ router.get('/:id/installments', authenticateToken, async (req, res) => {
   }
 });
 
+// Get specific installment for receipt
+router.get('/installments/:id', authenticateToken, async (req, res) => {
+  try {
+    const query = `
+      SELECT i.*, 
+             IFNULL(pol.policy_no, npol.policy_no) as policy_no,
+             IFNULL(pol.company, npol.company) as company,
+             c.first_name, c.last_name, c.address, c.subdistrict, c.district, c.province, c.zipcode, c.phone,
+             u.name as sales_person
+      FROM installments i
+      JOIN payments p ON i.payment_id = p.id
+      LEFT JOIN policies pol ON p.policy_id = pol.id
+      LEFT JOIN non_motor_policies npol ON p.non_motor_policy_id = npol.id
+      JOIN customers c ON (c.id = pol.customer_id OR c.id = npol.customer_id)
+      LEFT JOIN users u ON (u.id = pol.sales_person_id OR u.id = npol.sales_person_id)
+      WHERE i.id = ?
+    `;
+    const [rows] = await req.db.query(query, [req.params.id]);
+    if (rows.length === 0) return res.status(404).json({ error: 'Not found' });
+    res.json(rows[0]);
+  } catch (error) {
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
 // Mark an installment as paid
 router.put('/installments/:id', authenticateToken, async (req, res) => {
   const connection = await req.db.getConnection();
