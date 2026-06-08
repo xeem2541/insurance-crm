@@ -140,8 +140,8 @@ const Layout = () => {
               <button className={`btn btn-sm d-lg-none me-3 ${darkMode ? 'btn-outline-light' : 'btn-outline-dark'}`} onClick={toggleSidebar}>
                 <i className="bi bi-list fs-4"></i>
               </button>
-              <span className={`navbar-brand mb-0 h5 fw-bold ${darkMode ? 'text-light' : 'text-dark'} d-none d-sm-block`}>ระบบบริหารจัดการนายหน้าประกันภัย (CRM v2.0)</span>
-              <span className={`navbar-brand mb-0 h6 fw-bold ${darkMode ? 'text-light' : 'text-dark'} d-sm-none`}>CRM v2.0</span>
+              <span className={`navbar-brand mb-0 h5 fw-bold ${darkMode ? 'text-light' : 'text-dark'} d-none d-sm-block`}>Apple Insurance & Services</span>
+              <span className={`navbar-brand mb-0 h6 fw-bold ${darkMode ? 'text-light' : 'text-dark'} d-sm-none`}>Apple Insurance</span>
             </div>
             <div className="d-flex align-items-center">
               <Dropdown align="end" className="me-3">
