@@ -198,6 +198,8 @@ const Customers = () => {
                 <th>รหัสลูกค้า</th>
                 <th>ชื่อ - นามสกุล</th>
                 <th>ข้อมูลติดต่อ</th>
+                <th>ทะเบียนรถ</th>
+                <th>ผลิตภัณฑ์</th>
                 <th>สถานะลูกค้า</th>
                 <th>สถานะการขาย</th>
                 <th>ที่มา (Source)</th>
@@ -213,6 +215,8 @@ const Customers = () => {
                     <div className="small"><i className="bi bi-telephone-fill text-muted"></i> {c.phone}</div>
                     {c.line_id && <div className="small text-success"><i className="bi bi-line"></i> {c.line_id}</div>}
                   </td>
+                  <td><span className="fw-bold text-dark">{c.plate_no || '-'}</span></td>
+                  <td>{c.motor_type || c.non_motor_type ? <span className={`badge ${c.motor_type ? 'bg-primary' : 'bg-info'}`}>{c.motor_type || c.non_motor_type}</span> : '-'}</td>
                   <td>{getStatusBadge(c.customer_status)}</td>
                   <td>{getStatusBadge(c.lead_status)}</td>
                   <td>{c.source || '-'}</td>
@@ -223,7 +227,7 @@ const Customers = () => {
                   </td>
                 </tr>
               )) : (
-                <tr><td colSpan="7" className="text-center py-4">ไม่พบข้อมูล</td></tr>
+                <tr><td colSpan="9" className="text-center py-4">ไม่พบข้อมูล</td></tr>
               )}
             </tbody>
           </table>
