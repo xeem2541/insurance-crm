@@ -87,7 +87,9 @@ const Layout = () => {
       <div className={`sidebar d-flex flex-column ${isSidebarOpen ? 'open' : ''} ${darkMode ? 'border-end border-secondary' : ''}`} style={{ width: '280px', backgroundColor: darkMode ? '#1e1e1e' : '' }}>
         <div className="d-flex align-items-center justify-content-between mb-4 px-4 mt-2 pt-3">
           <Link to="/" className="d-flex align-items-center text-white text-decoration-none">
-            <i className="bi bi-shield-fill-check text-primary fs-3 me-2"></i>
+            <div className="bg-white rounded p-1 me-2 d-flex align-items-center justify-content-center" style={{ width: '36px', height: '36px' }}>
+              <img src="/logo.png" alt="Logo" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
+            </div>
             <span className="brand-text" style={{ fontFamily: 'Kanit, sans-serif' }}>สำนักงานเปิ้ลประกัน</span>
           </Link>
           <button className="btn btn-link text-white d-lg-none p-0" onClick={() => setIsSidebarOpen(false)}>
