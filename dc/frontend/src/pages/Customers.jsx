@@ -39,6 +39,7 @@ const formatIdCard = (val) => {
 const Customers = () => {
   const [customers, setCustomers] = useState([]);
   const [search, setSearch] = useState('');
+  const [selectedMonth, setSelectedMonth] = useState(''); // Month filter
   const [showModal, setShowModal] = useState(false);
   
   // Master Data
@@ -91,7 +92,7 @@ const Customers = () => {
   const fetchData = async () => {
     try {
       const [custRes, mdRes] = await Promise.all([
-        api.get(`/customers?search=${search}`),
+        api.get(`/customers?search=${search}&month=${selectedMonth}`),
         api.get('/master-data')
       ]);
       setCustomers(custRes.data);
@@ -104,7 +105,7 @@ const Customers = () => {
 
   useEffect(() => {
     fetchData();
-  }, [search]);
+  }, [search, selectedMonth]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -178,15 +179,30 @@ const Customers = () => {
       </div>
 
       <div className="card shadow-sm border-0 mb-4">
-        <div className="card-body d-flex gap-2">
+        <div className="card-body d-flex gap-2 flex-wrap">
           <input 
             type="text" 
             className="form-control form-control-lg flex-grow-1" 
             placeholder="ค้นหาชื่อ, เบอร์โทร, เลขบัตรประชาชน..." 
             value={search} 
             onChange={(e) => setSearch(e.target.value)} 
+            style={{ minWidth: '200px' }}
           />
-          <button className="btn btn-success fw-bold px-4"><i className="bi bi-funnel-fill"></i> กรองข้อมูล</button>
+          <input 
+            type="month" 
+            className="form-control form-control-lg" 
+            style={{ maxWidth: '200px' }}
+            value={selectedMonth} 
+            onChange={(e) => setSelectedMonth(e.target.value)} 
+          />
+          <button className="btn btn-success fw-bold px-4" onClick={fetchData}>
+            <i className="bi bi-funnel-fill"></i> กรองข้อมูล
+          </button>
+          {selectedMonth && (
+            <button className="btn btn-outline-secondary fw-bold" onClick={() => setSelectedMonth('')}>
+              ล้างค่า
+            </button>
+          )}
         </div>
       </div>
 
@@ -199,7 +215,7 @@ const Customers = () => {
                 <th>ชื่อ - นามสกุล</th>
                 <th>ข้อมูลติดต่อ</th>
                 <th>ทะเบียนรถ</th>
-                <th>ผลิตภัณฑ์</th>
+                <th>ประเภทประกันภัย</th>
                 <th>สถานะลูกค้า</th>
                 <th>สถานะการขาย</th>
                 <th>ที่มา (Source)</th>
