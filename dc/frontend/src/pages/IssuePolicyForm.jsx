@@ -146,13 +146,15 @@ const IssuePolicyForm = () => {
 
       let commPercent = policy.commission_percent;
       
+      const typeLabel = policy.type || nonMotorTypes.find(t => t.value === parseInt(policy.non_motor_type_id))?.label || '';
+      
       if (policy.category === 'motor') {
-        if (policy.type === 'ประกันภัยชั้น 1') commPercent = 18;
-        else if (policy.type === 'ประกันภัยชั้น 2+') commPercent = 25;
-        else if (policy.type === 'ประกันภัยชั้น 3+') commPercent = 25;
-        else if (policy.type === 'ประกันภัยชั้น 3') commPercent = 18;
+        if (typeLabel.includes('ชั้น 1')) commPercent = 18;
+        else if (typeLabel.includes('ชั้น 2+')) commPercent = 25;
+        else if (typeLabel.includes('ชั้น 3+')) commPercent = 25;
+        else if (typeLabel.includes('ชั้น 3')) commPercent = 18;
+        else if (typeLabel.includes('ชั้น 2')) commPercent = 18;
       } else {
-        const typeLabel = nonMotorTypes.find(t => t.value === parseInt(policy.non_motor_type_id))?.label || '';
         if (typeLabel.includes('ขนส่ง')) commPercent = 10;
         else if (typeLabel.includes('อัคคีภัย') || typeLabel.includes('ไฟไหม้')) commPercent = 23;
         else if (typeLabel.includes('PA') || typeLabel.includes('อุบัติเหตุ')) commPercent = 18;
@@ -352,7 +354,7 @@ const IssuePolicyForm = () => {
         customerName: `${customer.first_name} ${customer.last_name}`,
         policyNo: policy.policy_no || '(สร้างใหม่อัตโนมัติ)',
         company: policy.company,
-        type: policy.category === 'motor' ? policy.type : (nonMotorTypes.find(t => t.value === parseInt(policy.non_motor_type_id))?.label),
+        type: policy.type || (nonMotorTypes.find(t => t.value === parseInt(policy.non_motor_type_id))?.label),
         totalPremium: policy.total_premium,
         commission: policy.commission_baht,
         status: followUp.status
@@ -502,16 +504,7 @@ const IssuePolicyForm = () => {
             </Accordion.Body>
           </Accordion.Item>
 
-          {/* Type Selection before Vehicle */}
-          <Card className="mb-3 border-0 shadow-sm rounded">
-            <Card.Body className="bg-light">
-              <div className="d-flex align-items-center">
-                <h5 className="mb-0 fw-bold me-4">ประเภทกรมธรรม์ที่ต้องการออก:</h5>
-                <Form.Check inline type="radio" label={<span className="fw-bold">🚗 Motor Insurance (รถยนต์)</span>} name="policyCategory" checked={policy.category === 'motor'} onChange={() => setPolicy({...policy, category: 'motor'})} id="cat-motor" className="me-4" />
-                <Form.Check inline type="radio" label={<span className="fw-bold">🏢 Non-Motor Insurance (ประกันอื่น)</span>} name="policyCategory" checked={policy.category === 'non-motor'} onChange={() => setPolicy({...policy, category: 'non-motor'})} id="cat-nm" />
-              </div>
-            </Card.Body>
-          </Card>
+          {/* No manual Type Selection needed, it's combined below */}
 
           {/* Section 2: Vehicle (Conditional) */}
           {policy.category === 'motor' && (
@@ -630,25 +623,27 @@ const IssuePolicyForm = () => {
                   <Form.Label>บริษัทประกัน <span className="text-danger">*</span></Form.Label>
                   <Select required options={companies} value={companies.find(c => c.value === policy.company)} onChange={opt => setPolicy({...policy, company: opt?.value || ''})} isClearable />
                 </Col>
-                {policy.category === 'motor' ? (
-                  <Col md={4}>
-                    <Form.Label>ประเภทประกันรถยนต์ <span className="text-danger">*</span></Form.Label>
-                    <Form.Select required value={policy.type} onChange={e => setPolicy({...policy, type: e.target.value})}>
-                      <option value="">เลือกประเภท...</option>
-                      <option value="ประกันภัยชั้น 1">ประกันภัยชั้น 1</option>
-                      <option value="ประกันภัยชั้น 2+">ประกันภัยชั้น 2+</option>
-                      <option value="ประกันภัยชั้น 2">ประกันภัยชั้น 2</option>
-                      <option value="ประกันภัยชั้น 3+">ประกันภัยชั้น 3+</option>
-                      <option value="ประกันภัยชั้น 3">ประกันภัยชั้น 3</option>
-                      <option value="พ.ร.บ. อย่างเดียว">พ.ร.บ. อย่างเดียว</option>
-                    </Form.Select>
-                  </Col>
-                ) : (
-                  <Col md={4}>
-                    <Form.Label>ประเภท Non-Motor <span className="text-danger">*</span></Form.Label>
-                    <Select required options={nonMotorTypes} value={nonMotorTypes.find(t => t.value === parseInt(policy.non_motor_type_id))} onChange={opt => setPolicy({...policy, non_motor_type_id: opt?.value || ''})} isClearable />
-                  </Col>
-                )}
+                <Col md={4}>
+                  <Form.Label>ประเภทประกันภัย <span className="text-danger">*</span></Form.Label>
+                  <Select 
+                    required 
+                    options={nonMotorTypes} 
+                    value={nonMotorTypes.find(t => t.value === parseInt(policy.non_motor_type_id) || t.label === policy.type)} 
+                    onChange={opt => {
+                      const label = opt ? opt.label : '';
+                      const isMotor = label.includes('ชั้น') || label.includes('พ.ร.บ') || label.includes('รถ');
+                      setPolicy({
+                        ...policy, 
+                        non_motor_type_id: opt?.value || '',
+                        type: label,
+                        type_name: label,
+                        category: isMotor ? 'motor' : 'non-motor'
+                      });
+                    }} 
+                    isClearable 
+                    placeholder="เลือกประเภทประกันภัย..."
+                  />
+                </Col>
                 <Col md={4}>
                   <Form.Label>เลขกรมธรรม์</Form.Label>
                   <Form.Control type="text" value={policy.policy_no} onChange={e => setPolicy({...policy, policy_no: e.target.value})} placeholder="เว้นว่างเพื่อสร้าง Auto" />
