@@ -22,7 +22,7 @@ const Login = () => {
   return (
     <div className="login-bg">
       <div className="login-card fade-in text-center">
-        <i className="bi bi-shield-fill-check text-primary" style={{ fontSize: '3rem' }}></i>
+        <img src="/logo.png" alt="Apple Insurance Logo" style={{ width: '140px', height: 'auto', marginBottom: '1rem', borderRadius: '12px' }} className="shadow-sm" />
         <h3 className="mb-1 fw-bold text-dark mt-2" style={{ fontFamily: 'Kanit, sans-serif' }}>สำนักงานเปิ้ลประกัน</h3>
         <p className="text-muted mb-4 pb-2" style={{ fontSize: '0.9rem' }}>ศูนย์รวมประกัน & งานทะเบียน ครบ จบ ดูแลต่อเนื่อง</p>
         
