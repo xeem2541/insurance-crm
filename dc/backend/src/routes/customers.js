@@ -2,36 +2,37 @@ const express = require('express');
 const router = express.Router();
 const { authenticateToken } = require('../middlewares/auth');
 
-// Get all customers with search
+// Get all customers with search and month filter
 router.get('/', authenticateToken, async (req, res) => {
-  const { search } = req.query;
+  const { search, month } = req.query;
+  
   let query = `
     SELECT c.*, 
       (SELECT v.plate_no FROM vehicles v WHERE v.customer_id = c.id ORDER BY v.created_at DESC LIMIT 1) as plate_no,
       (SELECT CONCAT(p.company, ' - ', p.type) FROM policies p WHERE p.customer_id = c.id ORDER BY p.created_at DESC LIMIT 1) as motor_type,
       (SELECT CONCAT(np.company, ' - ', t.name) FROM non_motor_policies np JOIN non_motor_types t ON np.non_motor_type_id = t.id WHERE np.customer_id = c.id ORDER BY np.created_at DESC LIMIT 1) as non_motor_type
     FROM customers c 
-    ORDER BY c.created_at DESC
   `;
+  
+  let conditions = [];
   let params = [];
   
   if (search) {
-    query = `
-      SELECT c.*, 
-        (SELECT v.plate_no FROM vehicles v WHERE v.customer_id = c.id ORDER BY v.created_at DESC LIMIT 1) as plate_no,
-        (SELECT CONCAT(p.company, ' - ', p.type) FROM policies p WHERE p.customer_id = c.id ORDER BY p.created_at DESC LIMIT 1) as motor_type,
-        (SELECT CONCAT(np.company, ' - ', t.name) FROM non_motor_policies np JOIN non_motor_types t ON np.non_motor_type_id = t.id WHERE np.customer_id = c.id ORDER BY np.created_at DESC LIMIT 1) as non_motor_type
-      FROM customers c 
-      WHERE c.first_name LIKE ? OR 
-        c.last_name LIKE ? OR 
-        c.phone LIKE ? OR 
-        c.id_card_no LIKE ? OR 
-        c.customer_code LIKE ?
-      ORDER BY c.created_at DESC
-    `;
+    conditions.push(`(c.first_name LIKE ? OR c.last_name LIKE ? OR c.phone LIKE ? OR c.id_card_no LIKE ? OR c.customer_code LIKE ?)`);
     const searchParam = `%${search}%`;
-    params = [searchParam, searchParam, searchParam, searchParam, searchParam];
+    params.push(searchParam, searchParam, searchParam, searchParam, searchParam);
   }
+  
+  if (month) {
+    conditions.push(`DATE_FORMAT(c.created_at, '%Y-%m') = ?`);
+    params.push(month);
+  }
+  
+  if (conditions.length > 0) {
+    query += ` WHERE ` + conditions.join(' AND ');
+  }
+  
+  query += ` ORDER BY c.created_at DESC`;
 
   try {
     const [customers] = await req.db.query(query, params);
