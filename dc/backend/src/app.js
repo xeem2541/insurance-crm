@@ -7,6 +7,8 @@ const bcrypt = require('bcryptjs');
 require('dotenv').config();
 const helmet = require('helmet');
 const { startCronJobs } = require('./cron');
+const cron = require('node-cron');
+const runBackup = require('./cron/backup');
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -176,6 +178,11 @@ async function initDb() {
     // Auto-migrate new columns for Single Page Form
     try {
       await connection.query('ALTER TABLE customers ADD COLUMN moo VARCHAR(50), ADD COLUMN soi VARCHAR(100), ADD COLUMN road VARCHAR(100), ADD COLUMN sub_district VARCHAR(100), ADD COLUMN district VARCHAR(100)');
+    } catch(e) {}
+    
+    // Auto-migrate alt_phone
+    try {
+      await connection.query('ALTER TABLE customers ADD COLUMN alt_phone VARCHAR(20) DEFAULT NULL');
     } catch(e) {}
 
     try {
@@ -351,6 +358,13 @@ app.use('/api/webhook', require('./routes/webhook'));
 app.use('/api/non-motor-policies', require('./routes/nonMotorPolicies'));
 app.use('/api/issue-policy', require('./routes/issuePolicy'));
 app.use('/api/payments', require('./routes/payments'));
+app.use('/api/notifications', require('./routes/notifications'));
+
+// Schedule Automated Backup every 1st day of the month at 01:00 AM (End of month backup)
+cron.schedule('0 1 1 * *', () => {
+  console.log('Cron triggered: Running automated monthly backup...');
+  runBackup();
+});
 
 // Start server
 app.listen(PORT, () => {
