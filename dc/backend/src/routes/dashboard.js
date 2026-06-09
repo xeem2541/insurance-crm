@@ -4,13 +4,16 @@ const { authenticateToken } = require('../middlewares/auth');
 
 router.get('/stats', authenticateToken, async (req, res) => {
   try {
+    const targetMonth = req.query.month ? parseInt(req.query.month) : new Date().getMonth() + 1;
+    const targetYear = req.query.year ? parseInt(req.query.year) : new Date().getFullYear();
+
     const [customers] = await req.db.query('SELECT COUNT(*) as count FROM customers');
     
     // Motor queries
     const [mPolicies] = await req.db.query('SELECT COUNT(*) as count FROM policies');
-    const [mSalesThisMonth] = await req.db.query(`SELECT SUM(total_premium) as total FROM policies WHERE status = 'สำเร็จ' AND MONTH(start_date) = MONTH(CURRENT_DATE()) AND YEAR(start_date) = YEAR(CURRENT_DATE())`);
-    const [mSalesThisYear] = await req.db.query(`SELECT SUM(total_premium) as total FROM policies WHERE status = 'สำเร็จ' AND YEAR(start_date) = YEAR(CURRENT_DATE())`);
-    const [mCommThisMonth] = await req.db.query(`SELECT SUM(commission_baht) as total FROM policies WHERE status = 'สำเร็จ' AND MONTH(start_date) = MONTH(CURRENT_DATE()) AND YEAR(start_date) = YEAR(CURRENT_DATE())`);
+    const [mSalesThisMonth] = await req.db.query(`SELECT SUM(total_premium) as total FROM policies WHERE status = 'สำเร็จ' AND MONTH(start_date) = ? AND YEAR(start_date) = ?`, [targetMonth, targetYear]);
+    const [mSalesThisYear] = await req.db.query(`SELECT SUM(total_premium) as total FROM policies WHERE status = 'สำเร็จ' AND YEAR(start_date) = ?`, [targetYear]);
+    const [mCommThisMonth] = await req.db.query(`SELECT SUM(commission_baht) as total FROM policies WHERE status = 'สำเร็จ' AND MONTH(start_date) = ? AND YEAR(start_date) = ?`, [targetMonth, targetYear]);
     const [mExpiringPolicies] = await req.db.query(`
       SELECT p.*, c.first_name, c.last_name, v.plate_no, DATEDIFF(p.expiry_date, CURRENT_DATE()) as days_left, 'Motor' as category
       FROM policies p 
@@ -18,15 +21,15 @@ router.get('/stats', authenticateToken, async (req, res) => {
       LEFT JOIN vehicles v ON p.vehicle_id = v.id
       WHERE p.status = 'สำเร็จ' AND p.expiry_date BETWEEN CURRENT_DATE() AND DATE_ADD(CURRENT_DATE(), INTERVAL 90 DAY)
     `);
-    const [mMonthlySales] = await req.db.query(`SELECT MONTH(start_date) as month, SUM(total_premium) as total_sales FROM policies WHERE status = 'สำเร็จ' AND YEAR(start_date) = YEAR(CURRENT_DATE()) GROUP BY MONTH(start_date)`);
+    const [mMonthlySales] = await req.db.query(`SELECT MONTH(start_date) as month, SUM(total_premium) as total_sales FROM policies WHERE status = 'สำเร็จ' AND YEAR(start_date) = ? GROUP BY MONTH(start_date)`, [targetYear]);
 
     // Non-Motor queries
     let nmPolicies = [{count: 0}], nmSalesThisMonth = [{total: 0}], nmSalesThisYear = [{total: 0}], nmCommThisMonth = [{total: 0}], nmExpiringPolicies = [], nmMonthlySales = [];
     try {
       [nmPolicies] = await req.db.query('SELECT COUNT(*) as count FROM non_motor_policies');
-      [nmSalesThisMonth] = await req.db.query(`SELECT SUM(total_premium) as total FROM non_motor_policies WHERE status = 'สำเร็จ' AND MONTH(start_date) = MONTH(CURRENT_DATE()) AND YEAR(start_date) = YEAR(CURRENT_DATE())`);
-      [nmSalesThisYear] = await req.db.query(`SELECT SUM(total_premium) as total FROM non_motor_policies WHERE status = 'สำเร็จ' AND YEAR(start_date) = YEAR(CURRENT_DATE())`);
-      [nmCommThisMonth] = await req.db.query(`SELECT SUM(commission_baht) as total FROM non_motor_policies WHERE status = 'สำเร็จ' AND MONTH(start_date) = MONTH(CURRENT_DATE()) AND YEAR(start_date) = YEAR(CURRENT_DATE())`);
+      [nmSalesThisMonth] = await req.db.query(`SELECT SUM(total_premium) as total FROM non_motor_policies WHERE status = 'สำเร็จ' AND MONTH(start_date) = ? AND YEAR(start_date) = ?`, [targetMonth, targetYear]);
+      [nmSalesThisYear] = await req.db.query(`SELECT SUM(total_premium) as total FROM non_motor_policies WHERE status = 'สำเร็จ' AND YEAR(start_date) = ?`, [targetYear]);
+      [nmCommThisMonth] = await req.db.query(`SELECT SUM(commission_baht) as total FROM non_motor_policies WHERE status = 'สำเร็จ' AND MONTH(start_date) = ? AND YEAR(start_date) = ?`, [targetMonth, targetYear]);
       [nmExpiringPolicies] = await req.db.query(`
         SELECT p.*, c.first_name, c.last_name, NULL as plate_no, DATEDIFF(p.expiry_date, CURRENT_DATE()) as days_left, 'Non-Motor' as category, t.name as type_name
         FROM non_motor_policies p 
@@ -34,13 +37,13 @@ router.get('/stats', authenticateToken, async (req, res) => {
         LEFT JOIN non_motor_types t ON p.non_motor_type_id = t.id
         WHERE p.status = 'สำเร็จ' AND p.expiry_date BETWEEN CURRENT_DATE() AND DATE_ADD(CURRENT_DATE(), INTERVAL 90 DAY)
       `);
-      [nmMonthlySales] = await req.db.query(`SELECT MONTH(start_date) as month, SUM(total_premium) as total_sales FROM non_motor_policies WHERE status = 'สำเร็จ' AND YEAR(start_date) = YEAR(CURRENT_DATE()) GROUP BY MONTH(start_date)`);
+      [nmMonthlySales] = await req.db.query(`SELECT MONTH(start_date) as month, SUM(total_premium) as total_sales FROM non_motor_policies WHERE status = 'สำเร็จ' AND YEAR(start_date) = ? GROUP BY MONTH(start_date)`, [targetYear]);
     } catch (e) {
       console.log('Non-motor tables might not exist yet');
     }
 
     const [documents] = await req.db.query('SELECT COUNT(*) as count FROM documents WHERE deleted_at IS NULL');
-    const [newCustomers] = await req.db.query(`SELECT COUNT(*) as count FROM customers WHERE MONTH(created_at) = MONTH(CURRENT_DATE()) AND YEAR(created_at) = YEAR(CURRENT_DATE())`);
+    const [newCustomers] = await req.db.query(`SELECT COUNT(*) as count FROM customers WHERE MONTH(created_at) = ? AND YEAR(created_at) = ?`, [targetMonth, targetYear]);
 
     // Installment / Payment queries
     let cashSalesTotal = 0, installmentSalesTotal = 0, unpaidInstallmentTotal = 0, collectedThisMonth = 0;
@@ -67,7 +70,7 @@ router.get('/stats', authenticateToken, async (req, res) => {
       const [unpaidRes] = await req.db.query("SELECT SUM(balance_amount) as total FROM installments WHERE status IN ('รอชำระ', 'ค้างชำระ')");
       unpaidInstallmentTotal = unpaidRes[0].total || 0;
 
-      const [collectedRes] = await req.db.query("SELECT SUM(paid_amount) as total FROM installments WHERE status IN ('ชำระแล้ว', 'ชำระบางส่วน') AND MONTH(payment_date) = MONTH(CURRENT_DATE()) AND YEAR(payment_date) = YEAR(CURRENT_DATE())");
+      const [collectedRes] = await req.db.query("SELECT SUM(paid_amount) as total FROM installments WHERE status IN ('ชำระแล้ว', 'ชำระบางส่วน') AND MONTH(payment_date) = ? AND YEAR(payment_date) = ?", [targetMonth, targetYear]);
       collectedThisMonth = collectedRes[0].total || 0;
 
       const [overdueCustRes] = await req.db.query("SELECT COUNT(DISTINCT IFNULL(pm.policy_id, pm.non_motor_policy_id)) as count FROM installments i JOIN payments pm ON i.payment_id = pm.id WHERE i.status = 'ค้างชำระ' OR (i.status = 'รอชำระ' AND i.due_date < CURRENT_DATE())");
@@ -88,6 +91,28 @@ router.get('/stats', authenticateToken, async (req, res) => {
       console.log('Installment tables might not exist yet', e.message);
     }
 
+    // List of customers who bought policies in this selected month
+    let monthlyCustomers = [];
+    try {
+      const [mcRes] = await req.db.query(`
+        SELECT 
+          c.first_name, c.last_name, c.phone,
+          p.policy_no, p.start_date, p.total_premium, 'Motor' as policy_type
+        FROM policies p JOIN customers c ON p.customer_id = c.id 
+        WHERE MONTH(p.start_date) = ? AND YEAR(p.start_date) = ? AND p.status IN ('สำเร็จ', 'ชำระครบแล้ว')
+        UNION ALL
+        SELECT 
+          c.first_name, c.last_name, c.phone,
+          np.policy_no, np.start_date, np.total_premium, 'Non-Motor' as policy_type
+        FROM non_motor_policies np JOIN customers c ON np.customer_id = c.id 
+        WHERE MONTH(np.start_date) = ? AND YEAR(np.start_date) = ? AND np.status IN ('สำเร็จ', 'ชำระครบแล้ว')
+        ORDER BY start_date DESC
+      `, [targetMonth, targetYear, targetMonth, targetYear]);
+      monthlyCustomers = mcRes;
+    } catch (e) {
+      console.log('Error fetching monthly customers', e.message);
+    }
+
     // Merge and sort expiring policies
     const allExpiring = [...mExpiringPolicies, ...nmExpiringPolicies].sort((a, b) => a.days_left - b.days_left);
 
@@ -104,22 +129,22 @@ router.get('/stats', authenticateToken, async (req, res) => {
     const [topCompanies] = await req.db.query(`
       SELECT company, SUM(total_premium) as total_sales, COUNT(*) as policy_count 
       FROM policies 
-      WHERE status = 'สำเร็จ'
+      WHERE status = 'สำเร็จ' AND YEAR(start_date) = ?
       GROUP BY company 
       ORDER BY total_sales DESC 
       LIMIT 10
-    `);
+    `, [targetYear]);
 
     // Top 10 Sales Persons (Motor)
     const [topSales] = await req.db.query(`
       SELECT u.name, SUM(p.total_premium) as total_sales, COUNT(p.id) as policy_count 
       FROM policies p
       JOIN users u ON p.sales_person_id = u.id
-      WHERE p.status = 'สำเร็จ'
+      WHERE p.status = 'สำเร็จ' AND YEAR(p.start_date) = ?
       GROUP BY u.id, u.name 
       ORDER BY total_sales DESC 
       LIMIT 10
-    `);
+    `, [targetYear]);
 
     res.json({
       totalCustomers: customers[0].count,
@@ -142,7 +167,10 @@ router.get('/stats', authenticateToken, async (req, res) => {
       unpaidInstallmentTotal,
       collectedThisMonth,
       overdueCustomersCount,
-      upcomingInstallments
+      upcomingInstallments,
+      monthlyCustomers,
+      selectedMonth: targetMonth,
+      selectedYear: targetYear
     });
   } catch (error) {
     console.error(error);

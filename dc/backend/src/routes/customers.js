@@ -51,12 +51,12 @@ router.post('/', authenticateToken, async (req, res) => {
   try {
     const [result] = await req.db.query(
       `INSERT INTO customers (
-        customer_code, prefix, first_name, last_name, phone, email, line_id, facebook, 
+        customer_code, prefix, first_name, last_name, phone, alt_phone, email, line_id, facebook, 
         dob, age, id_card_no, address, province, zipcode, occupation, secondary_contact, 
         customer_status, lead_status, source, note, created_by
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
-        customer_code, prefix, first_name, last_name, phone, email, line_id, facebook, 
+        customer_code, prefix, first_name, last_name, phone, req.body.alt_phone || null, email, line_id, facebook, 
         dob || null, age || null, id_card_no, address, province, zipcode, occupation, secondary_contact, 
         customer_status || 'ลูกค้าใหม่', lead_status || 'สนใจ', source, note, req.user.id
       ]
@@ -86,12 +86,12 @@ router.put('/:id', authenticateToken, async (req, res) => {
   try {
     await req.db.query(
       `UPDATE customers SET 
-        prefix=?, first_name=?, last_name=?, phone=?, email=?, line_id=?, facebook=?, 
+        prefix=?, first_name=?, last_name=?, phone=?, alt_phone=?, email=?, line_id=?, facebook=?, 
         dob=?, age=?, id_card_no=?, address=?, province=?, zipcode=?, occupation=?, secondary_contact=?, 
         customer_status=?, lead_status=?, source=?, note=? 
        WHERE id=?`,
       [
-        prefix, first_name, last_name, phone, email, line_id, facebook, 
+        prefix, first_name, last_name, phone, req.body.alt_phone || null, email, line_id, facebook, 
         dob || null, age || null, id_card_no, address, province, zipcode, occupation, secondary_contact, 
         customer_status || 'ลูกค้าใหม่', lead_status || 'สนใจ', source, note, req.params.id
       ]

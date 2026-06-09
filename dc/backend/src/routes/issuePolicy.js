@@ -38,12 +38,12 @@ router.post('/', authenticateToken, upload.array('files'), async (req, res) => {
       const customerCode = `CUS-${new Date().getFullYear()}-${String(Math.floor(Math.random() * 9000)).padStart(4, '0')}`;
       const [custResult] = await connection.query(
         `INSERT INTO customers (
-          customer_code, prefix, first_name, last_name, phone, email, line_id, facebook, 
+          customer_code, prefix, first_name, last_name, phone, alt_phone, email, line_id, facebook, 
           dob, age, id_card_no, address, moo, soi, road, sub_district, district, province, zipcode, occupation, 
           note, created_by
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
         [
-          customerCode, customer.prefix, customer.first_name, customer.last_name, customer.phone,
+          customerCode, customer.prefix, customer.first_name, customer.last_name, customer.phone, customer.alt_phone || null,
           customer.email, customer.line_id, customer.facebook, customer.dob || null, customer.age || null,
           customer.id_card_no, customer.address, customer.moo, customer.soi, customer.road,
           customer.sub_district, customer.district, customer.province, customer.zipcode, customer.occupation,
@@ -57,12 +57,12 @@ router.post('/', authenticateToken, upload.array('files'), async (req, res) => {
       // Update existing customer
       await connection.query(
         `UPDATE customers SET 
-          prefix=?, first_name=?, last_name=?, phone=?, email=?, line_id=?, facebook=?, 
+          prefix=?, first_name=?, last_name=?, phone=?, alt_phone=?, email=?, line_id=?, facebook=?, 
           dob=?, age=?, id_card_no=?, address=?, moo=?, soi=?, road=?, sub_district=?, district=?, 
           province=?, zipcode=?, occupation=?, note=? 
          WHERE id=?`,
         [
-          customer.prefix, customer.first_name, customer.last_name, customer.phone, customer.email,
+          customer.prefix, customer.first_name, customer.last_name, customer.phone, customer.alt_phone || null, customer.email,
           customer.line_id, customer.facebook, customer.dob || null, customer.age || null, customer.id_card_no,
           customer.address, customer.moo, customer.soi, customer.road, customer.sub_district, customer.district,
           customer.province, customer.zipcode, customer.occupation, customer.note, customerId
