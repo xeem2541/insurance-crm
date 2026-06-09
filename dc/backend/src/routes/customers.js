@@ -5,17 +5,30 @@ const { authenticateToken } = require('../middlewares/auth');
 // Get all customers with search
 router.get('/', authenticateToken, async (req, res) => {
   const { search } = req.query;
-  let query = 'SELECT * FROM customers ORDER BY created_at DESC';
+  let query = `
+    SELECT c.*, 
+      (SELECT v.plate_no FROM vehicles v WHERE v.customer_id = c.id ORDER BY v.created_at DESC LIMIT 1) as plate_no,
+      (SELECT p.type FROM policies p WHERE p.customer_id = c.id ORDER BY p.created_at DESC LIMIT 1) as motor_type,
+      (SELECT t.name FROM non_motor_policies np JOIN non_motor_types t ON np.non_motor_type_id = t.id WHERE np.customer_id = c.id ORDER BY np.created_at DESC LIMIT 1) as non_motor_type
+    FROM customers c 
+    ORDER BY c.created_at DESC
+  `;
   let params = [];
   
   if (search) {
-    query = `SELECT * FROM customers WHERE 
-      first_name LIKE ? OR 
-      last_name LIKE ? OR 
-      phone LIKE ? OR 
-      id_card_no LIKE ? OR 
-      customer_code LIKE ?
-      ORDER BY created_at DESC`;
+    query = `
+      SELECT c.*, 
+        (SELECT v.plate_no FROM vehicles v WHERE v.customer_id = c.id ORDER BY v.created_at DESC LIMIT 1) as plate_no,
+        (SELECT p.type FROM policies p WHERE p.customer_id = c.id ORDER BY p.created_at DESC LIMIT 1) as motor_type,
+        (SELECT t.name FROM non_motor_policies np JOIN non_motor_types t ON np.non_motor_type_id = t.id WHERE np.customer_id = c.id ORDER BY np.created_at DESC LIMIT 1) as non_motor_type
+      FROM customers c 
+      WHERE c.first_name LIKE ? OR 
+        c.last_name LIKE ? OR 
+        c.phone LIKE ? OR 
+        c.id_card_no LIKE ? OR 
+        c.customer_code LIKE ?
+      ORDER BY c.created_at DESC
+    `;
     const searchParam = `%${search}%`;
     params = [searchParam, searchParam, searchParam, searchParam, searchParam];
   }
