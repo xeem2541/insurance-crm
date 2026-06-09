@@ -93,15 +93,10 @@ router.post('/', authenticateToken, upload.array('files'), async (req, res) => {
       );
       vehicleId = vehResult.insertId;
 
-      // Calculate Commission for Motor
-      let commissionPercent = 0;
-      if (policy.type === 'ประกันภัยชั้น 1') commissionPercent = 18;
-      else if (policy.type === 'ประกันภัยชั้น 2+') commissionPercent = 25;
-      else if (policy.type === 'ประกันภัยชั้น 3+') commissionPercent = 25;
-      else if (policy.type === 'ประกันภัยชั้น 3') commissionPercent = 18;
-      
+      // Use Commission from frontend
+      const commissionPercent = parseFloat(policy.commission_percent) || 0;
+      const commissionBaht = parseFloat(policy.commission_baht) || 0;
       const netPremium = parseFloat(policy.net_premium) || 0;
-      const commissionBaht = netPremium * (commissionPercent / 100);
 
       // Insert Motor Policy
       const policyNo = policy.policy_no || `POL-${new Date().getFullYear()}-${String(Math.floor(Math.random() * 9000)).padStart(4, '0')}`;
@@ -126,14 +121,10 @@ router.post('/', authenticateToken, upload.array('files'), async (req, res) => {
         [req.user.id, 'CREATE', 'policies', policyId, `Created motor policy ${policyNo}`]);
     } else {
       // Non-Motor Policy
-      let commissionPercent = 0;
-      const typeName = policy.type_name || ''; // e.g., 'ประกันภัยขนส่งสินค้า'
-      if (typeName.includes('ขนส่ง')) commissionPercent = 10;
-      else if (typeName.includes('อัคคีภัย') || typeName.includes('ไฟไหม้')) commissionPercent = 23;
-      else if (typeName.includes('PA') || typeName.includes('อุบัติเหตุ')) commissionPercent = 18;
-
+      // Use Commission from frontend
+      const commissionPercent = parseFloat(policy.commission_percent) || 0;
+      const commissionBaht = parseFloat(policy.commission_baht) || 0;
       const netPremium = parseFloat(policy.net_premium) || 0;
-      const commissionBaht = netPremium * (commissionPercent / 100);
 
       const policyNo = policy.policy_no || `NM-${new Date().getFullYear()}-${String(Math.floor(Math.random() * 9000)).padStart(4, '0')}`;
       const [nmPolResult] = await connection.query(
