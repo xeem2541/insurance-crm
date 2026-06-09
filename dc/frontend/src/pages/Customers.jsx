@@ -83,7 +83,7 @@ const Customers = () => {
   };
 
   const [formData, setFormData] = useState({
-    customer_code: '', prefix: '', first_name: '', last_name: '', phone: '', email: '', 
+    customer_code: '', prefix: '', first_name: '', last_name: '', phone: '', alt_phone: '', email: '', 
     line_id: '', facebook: '', dob: '', age: '', id_card_no: '', address: '', sub_district: '', district: '', province: '', zipcode: '',
     occupation: '', secondary_contact: '', customer_status: 'ลูกค้าใหม่', lead_status: 'สนใจ', source: '', note: ''
   });
@@ -166,7 +166,7 @@ const Customers = () => {
           </button>
           <button className="btn btn-primary fw-bold" onClick={() => { 
             setFormData({
-              customer_code: '', prefix: '', first_name: '', last_name: '', phone: '', email: '', 
+              customer_code: '', prefix: '', first_name: '', last_name: '', phone: '', alt_phone: '', email: '', 
               line_id: '', facebook: '', dob: '', age: '', id_card_no: '', address: '', sub_district: '', district: '', province: '', zipcode: '',
               occupation: '', secondary_contact: '', customer_status: 'ลูกค้าใหม่', lead_status: 'สนใจ', source: '', note: ''
             }); 
@@ -280,6 +280,10 @@ const Customers = () => {
                 <Form.Control required type="text" value={formData.phone || ''} onChange={e => setFormData({...formData, phone: formatPhone(e.target.value)})} maxLength={12} />
               </div>
               <div className="col-md-3">
+                <Form.Label>เบอร์สำรอง</Form.Label>
+                <Form.Control type="text" value={formData.alt_phone || ''} onChange={e => setFormData({...formData, alt_phone: formatPhone(e.target.value)})} maxLength={12} />
+              </div>
+              <div className="col-md-3">
                 <Form.Label>อีเมล</Form.Label>
                 <Form.Control type="email" value={formData.email || ''} onChange={e => setFormData({...formData, email: e.target.value})} />
               </div>
@@ -287,7 +291,7 @@ const Customers = () => {
                 <Form.Label>LINE ID</Form.Label>
                 <Form.Control type="text" value={formData.line_id || ''} onChange={e => setFormData({...formData, line_id: e.target.value})} />
               </div>
-              <div className="col-md-3">
+              <div className="col-md-4 mt-3">
                 <Form.Label>Facebook</Form.Label>
                 <Form.Control type="text" value={formData.facebook || ''} onChange={e => setFormData({...formData, facebook: e.target.value})} />
               </div>

@@ -52,7 +52,7 @@ const IssuePolicyForm = () => {
   // Form State
   const [customer, setCustomer] = useState({
     id: null, prefix: 'นาย', first_name: '', last_name: '', id_card_no: '', dob: '', age: '',
-    phone: '', email: '', line_id: '', facebook: '', occupation: '',
+    phone: '', alt_phone: '', email: '', line_id: '', facebook: '', occupation: '',
     address: '', moo: '', soi: '', road: '', sub_district: '', district: '', province: '', zipcode: '', note: ''
   });
 
@@ -443,7 +443,11 @@ const IssuePolicyForm = () => {
                   <Form.Label>เบอร์โทรศัพท์ <span className="text-danger">*</span></Form.Label>
                   <Form.Control required type="text" inputMode="numeric" pattern="[0-9]*" value={customer.phone} onChange={e => setCustomer({...customer, phone: formatPhone(e.target.value)})} maxLength={12} />
                 </Col>
-                <Col md={5}>
+                <Col md={2}>
+                  <Form.Label>เบอร์สำรอง</Form.Label>
+                  <Form.Control type="text" inputMode="numeric" pattern="[0-9]*" value={customer.alt_phone} onChange={e => setCustomer({...customer, alt_phone: formatPhone(e.target.value)})} maxLength={12} />
+                </Col>
+                <Col md={3}>
                   <Form.Label>Email</Form.Label>
                   <Form.Control type="email" value={customer.email} onChange={e => setCustomer({...customer, email: e.target.value})} />
                 </Col>
