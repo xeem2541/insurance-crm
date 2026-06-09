@@ -308,7 +308,9 @@ const Dashboard = () => {
                       <th>เบอร์ติดต่อ</th>
                       <th>เลขกรมธรรม์</th>
                       <th>ประเภทประกัน</th>
-                      <th>วันที่เริ่มคุ้มครอง</th>
+                      <th>วันแจ้งงาน (คีย์)</th>
+                      <th>วันเริ่มคุ้มครอง</th>
+                      <th>วันสิ้นสุดคุ้มครอง</th>
                       <th className="text-end">เบี้ยประกัน (บาท)</th>
                     </tr>
                   </thead>
@@ -320,17 +322,19 @@ const Dashboard = () => {
                         <td>{cust.phone}</td>
                         <td>{cust.policy_no || '-'}</td>
                         <td><span className={`badge ${cust.policy_type === 'Motor' ? 'bg-primary' : 'bg-info'}`}>{cust.policy_type}</span></td>
+                        <td>{new Date(cust.created_at).toLocaleDateString('th-TH')}</td>
                         <td>{new Date(cust.start_date).toLocaleDateString('th-TH')}</td>
+                        <td>{new Date(cust.expiry_date).toLocaleDateString('th-TH')}</td>
                         <td className="text-end fw-bold text-success">{formatMoney(cust.total_premium)}</td>
                       </tr>
                     )) : (
-                      <tr><td colSpan="7" className="text-center text-muted py-5">ไม่มีข้อมูลการขายในเดือนที่เลือก</td></tr>
+                      <tr><td colSpan="9" className="text-center text-muted py-5">ไม่มีข้อมูลการขายในเดือนที่เลือก</td></tr>
                     )}
                   </tbody>
                   {stats.monthlyCustomers && stats.monthlyCustomers.length > 0 && (
                     <tfoot className="table-light fw-bold">
                       <tr>
-                        <td colSpan="6" className="text-end">รวมยอดขายเดือนนี้:</td>
+                        <td colSpan="8" className="text-end">รวมยอดขายเดือนนี้:</td>
                         <td className="text-end text-success">{formatMoney(stats.salesThisMonth + stats.nmSalesThisMonth)}</td>
                       </tr>
                     </tfoot>
