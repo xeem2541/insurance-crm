@@ -55,11 +55,11 @@ const Dashboard = () => {
   };
 
   const barChartData = {
-    labels: stats.monthlySales.map(m => `เดือน ${m.month}`),
+    labels: (stats?.monthlySales || []).map(m => `เดือน ${m.month}`),
     datasets: [
       {
         label: 'ยอดขาย Motor (บาท)',
-        data: stats.monthlySales.map(m => m.motor_sales),
+        data: (stats?.monthlySales || []).map(m => m.motor_sales),
         backgroundColor: 'rgba(54, 162, 235, 0.6)',
         borderColor: 'rgba(54, 162, 235, 1)',
         borderWidth: 1,
@@ -68,7 +68,7 @@ const Dashboard = () => {
       },
       {
         label: 'ยอดขาย Non-Motor (บาท)',
-        data: stats.monthlySales.map(m => m.non_motor_sales),
+        data: (stats?.monthlySales || []).map(m => m.non_motor_sales),
         backgroundColor: 'rgba(255, 99, 132, 0.6)',
         borderColor: 'rgba(255, 99, 132, 1)',
         borderWidth: 1,
@@ -79,10 +79,10 @@ const Dashboard = () => {
   };
 
   const pieChartData = {
-    labels: stats.topCompanies.map(c => c.company),
+    labels: (stats?.topCompanies || []).map(c => c.company),
     datasets: [
       {
-        data: stats.topCompanies.map(c => c.total_sales),
+        data: (stats?.topCompanies || []).map(c => c.total_sales),
         backgroundColor: [
           '#FF6384', '#36A2EB', '#FFCE56', '#4BC0C0', '#9966FF',
           '#FF9F40', '#8AC926', '#1982C4', '#6A4C93', '#F15BB5'
