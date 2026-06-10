@@ -86,10 +86,13 @@ const Layout = () => {
       <div className={`sidebar d-flex flex-column ${isSidebarOpen ? 'open' : ''} ${darkMode ? 'border-end border-secondary' : ''}`} style={{ width: '280px', backgroundColor: darkMode ? '#1e1e1e' : '' }}>
         <div className="d-flex align-items-center justify-content-between mb-4 px-4 mt-2 pt-3">
           <Link to="/" className="d-flex align-items-center text-white text-decoration-none">
-            <div className="bg-white rounded p-1 me-2 d-flex align-items-center justify-content-center" style={{ width: '36px', height: '36px' }}>
+            <div className="bg-white rounded-circle p-1 me-3 flex-shrink-0 d-flex align-items-center justify-content-center shadow" style={{ width: '52px', height: '52px' }}>
               <img src="/logo.png" alt="Logo" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
             </div>
-            <span className="brand-text" style={{ fontFamily: 'Kanit, sans-serif' }}>สำนักงานเปิ้ลประกัน</span>
+            <div className="d-flex flex-column justify-content-center">
+              <span className="fw-bold" style={{ fontFamily: 'Kanit, sans-serif', fontSize: '1.1rem', lineHeight: '1.1', color: '#f8f9fa' }}>สำนักงาน</span>
+              <span className="fw-bold" style={{ fontFamily: 'Kanit, sans-serif', fontSize: '1.45rem', lineHeight: '1.2', color: '#cba153', textShadow: '0 2px 4px rgba(0,0,0,0.3)' }}>เปิ้ลประกัน</span>
+            </div>
           </Link>
           <button className="btn btn-link text-white d-lg-none p-0" onClick={() => setIsSidebarOpen(false)}>
             <i className="bi bi-x-lg fs-4"></i>
