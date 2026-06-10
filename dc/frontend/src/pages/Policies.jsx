@@ -10,7 +10,7 @@ const Policies = () => {
   const [customers, setCustomers] = useState([]);
   const [vehicles, setVehicles] = useState([]);
   const [salesPersons, setSalesPersons] = useState([]);
-  const [search, setSearch] = useState('');
+  const [search, setSearch] = useState(() => sessionStorage.getItem('policiesSearch') || '');
   const [showModal, setShowModal] = useState(false);
   
   // Master Data States
@@ -69,6 +69,7 @@ const Policies = () => {
   };
 
   useEffect(() => {
+    sessionStorage.setItem('policiesSearch', search);
     fetchData();
   }, [search]);
 

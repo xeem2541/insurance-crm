@@ -38,8 +38,8 @@ const formatIdCard = (val) => {
 
 const Customers = () => {
   const [customers, setCustomers] = useState([]);
-  const [search, setSearch] = useState('');
-  const [selectedMonth, setSelectedMonth] = useState(''); // Month filter
+  const [search, setSearch] = useState(() => sessionStorage.getItem('customersSearch') || '');
+  const [selectedMonth, setSelectedMonth] = useState(() => sessionStorage.getItem('customersMonth') || ''); // Month filter
   const [showModal, setShowModal] = useState(false);
   
   // Master Data
@@ -104,6 +104,8 @@ const Customers = () => {
   };
 
   useEffect(() => {
+    sessionStorage.setItem('customersSearch', search);
+    sessionStorage.setItem('customersMonth', selectedMonth);
     fetchData();
   }, [search, selectedMonth]);
 

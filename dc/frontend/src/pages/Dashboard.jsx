@@ -7,8 +7,8 @@ ChartJS.register(CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend,
 
 const Dashboard = () => {
   const currentDate = new Date();
-  const [filterMonth, setFilterMonth] = useState(currentDate.getMonth() + 1);
-  const [filterYear, setFilterYear] = useState(currentDate.getFullYear());
+  const [filterMonth, setFilterMonth] = useState(() => Number(sessionStorage.getItem('dashboardMonth')) || (currentDate.getMonth() + 1));
+  const [filterYear, setFilterYear] = useState(() => Number(sessionStorage.getItem('dashboardYear')) || currentDate.getFullYear());
   
   const [stats, setStats] = useState({
     totalCustomers: 0,
@@ -36,6 +36,8 @@ const Dashboard = () => {
   });
 
   useEffect(() => {
+    sessionStorage.setItem('dashboardMonth', filterMonth);
+    sessionStorage.setItem('dashboardYear', filterYear);
     fetchStats();
   }, [filterMonth, filterYear]);
 
