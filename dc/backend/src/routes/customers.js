@@ -18,9 +18,9 @@ router.get('/', authenticateToken, async (req, res) => {
   let params = [];
   
   if (search) {
-    conditions.push(`(c.first_name LIKE ? OR c.last_name LIKE ? OR c.phone LIKE ? OR c.id_card_no LIKE ? OR c.customer_code LIKE ?)`);
+    conditions.push(`(c.first_name LIKE ? OR c.last_name LIKE ? OR c.phone LIKE ? OR c.customer_code LIKE ?)`);
     const searchParam = `%${search}%`;
-    params.push(searchParam, searchParam, searchParam, searchParam, searchParam);
+    params.push(searchParam, searchParam, searchParam, searchParam);
   }
   
   if (month) {
@@ -57,22 +57,23 @@ router.get('/:id', authenticateToken, async (req, res) => {
 // Create customer
 router.post('/', authenticateToken, async (req, res) => {
   const { 
-    customer_code, prefix, first_name, last_name, phone, email, line_id, facebook, 
-    dob, age, id_card_no, address, province, zipcode, occupation, secondary_contact, 
+    customer_code, prefix, first_name, last_name, phone, line_id, facebook, 
+    dob, age, address, province, zipcode, secondary_contact, 
     customer_status, lead_status, source, note 
   } = req.body;
   
   try {
+    const dummyIdCard = 'DEL_' + Date.now() + Math.floor(Math.random() * 10000);
     const [result] = await req.db.query(
       `INSERT INTO customers (
-        customer_code, prefix, first_name, last_name, phone, alt_phone, email, line_id, facebook, 
-        dob, age, id_card_no, address, province, zipcode, occupation, secondary_contact, 
-        customer_status, lead_status, source, note, created_by
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        customer_code, prefix, first_name, last_name, phone, alt_phone, line_id, facebook, 
+        dob, age, address, province, zipcode, secondary_contact, 
+        customer_status, lead_status, source, note, created_by, id_card_no
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
-        customer_code, prefix, first_name, last_name, phone, req.body.alt_phone || null, email, line_id, facebook, 
-        dob || null, age || null, id_card_no, address, province, zipcode, occupation, secondary_contact, 
-        customer_status || 'ลูกค้าใหม่', lead_status || 'สนใจ', source, note, req.user.id
+        customer_code, prefix, first_name, last_name, phone, req.body.alt_phone || null, line_id, facebook, 
+        dob || null, age || null, address, province, zipcode, secondary_contact, 
+        customer_status || 'ลูกค้าใหม่', lead_status || 'สนใจ', source, note, req.user.id, dummyIdCard
       ]
     );
     
@@ -92,21 +93,21 @@ router.post('/', authenticateToken, async (req, res) => {
 // Update customer
 router.put('/:id', authenticateToken, async (req, res) => {
   const { 
-    prefix, first_name, last_name, phone, email, line_id, facebook, 
-    dob, age, id_card_no, address, province, zipcode, occupation, secondary_contact, 
+    prefix, first_name, last_name, phone, line_id, facebook, 
+    dob, age, address, province, zipcode, secondary_contact, 
     customer_status, lead_status, source, note 
   } = req.body;
   
   try {
     await req.db.query(
       `UPDATE customers SET 
-        prefix=?, first_name=?, last_name=?, phone=?, alt_phone=?, email=?, line_id=?, facebook=?, 
-        dob=?, age=?, id_card_no=?, address=?, province=?, zipcode=?, occupation=?, secondary_contact=?, 
+        prefix=?, first_name=?, last_name=?, phone=?, alt_phone=?, line_id=?, facebook=?, 
+        dob=?, age=?, address=?, province=?, zipcode=?, secondary_contact=?, 
         customer_status=?, lead_status=?, source=?, note=? 
        WHERE id=?`,
       [
-        prefix, first_name, last_name, phone, req.body.alt_phone || null, email, line_id, facebook, 
-        dob || null, age || null, id_card_no, address, province, zipcode, occupation, secondary_contact, 
+        prefix, first_name, last_name, phone, req.body.alt_phone || null, line_id, facebook, 
+        dob || null, age || null, address, province, zipcode, secondary_contact, 
         customer_status || 'ลูกค้าใหม่', lead_status || 'สนใจ', source, note, req.params.id
       ]
     );
