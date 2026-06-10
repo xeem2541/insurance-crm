@@ -370,13 +370,31 @@ const IssuePolicyForm = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    const missing = [];
     
-    if (!policy.company) {
-      alert('กรุณาเลือกบริษัทประกัน');
-      return;
+    // Validate Customer
+    if (!customer.first_name) missing.push('ชื่อ (ส่วนที่ 1)');
+    if (!customer.last_name) missing.push('นามสกุล (ส่วนที่ 1)');
+    if (!customer.phone) missing.push('เบอร์โทรศัพท์ (ส่วนที่ 1)');
+
+    // Validate Vehicle (Only if Motor)
+    if (policy.category === 'motor' && !vehicle.plate_no) {
+      missing.push('เลขทะเบียนรถ (ส่วนที่ 2)');
     }
-    if (!policy.type && !policy.non_motor_type_id) {
-      alert('กรุณาเลือกประเภทประกันภัย');
+
+    // Validate Policy
+    if (!policy.company) missing.push('บริษัทประกัน (ส่วนที่ 3)');
+    if (!policy.type && !policy.non_motor_type_id) missing.push('ประเภทประกันภัย (ส่วนที่ 3)');
+    if (!policy.net_premium) missing.push('เบี้ยสุทธิ (ส่วนที่ 3)');
+    if (!policy.status) missing.push('สถานะงาน (ส่วนที่ 5)');
+
+    // Validate Payment
+    if (payment.method === 'เงินผ่อน' && (!payment.installments || payment.installments < 1)) {
+      missing.push('จำนวนงวดผ่อน (ส่วนที่ 4)');
+    }
+
+    if (missing.length > 0) {
+      alert('กรุณากรอกข้อมูลที่จำเป็น (ช่องที่มีดอกจันสีแดง *) ให้ครบถ้วนครับ:\\n\\n- ' + missing.join('\\n- '));
       return;
     }
 
