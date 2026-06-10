@@ -80,18 +80,36 @@ router.post('/', authenticateToken, upload.array('files'), async (req, res) => {
     const isMotor = policy.category === 'motor';
 
     if (isMotor) {
-      // Insert Vehicle
-      const [vehResult] = await connection.query(
-        `INSERT INTO vehicles (
-          customer_id, vehicle_type, brand, model, year, color, 
-          plate_no, plate_province, vin, engine_no, sum_insured, tax_expiry
-         ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-        [
-          customerId, vehicle.vehicle_type, vehicle.brand, vehicle.model, vehicle.year, vehicle.color,
-          vehicle.plate_no, vehicle.plate_province, vehicle.vin, vehicle.engine_no, vehicle.sum_insured || null, vehicle.tax_expiry || null
-        ]
-      );
-      vehicleId = vehResult.insertId;
+      if (vehicle.id) {
+        // Update existing vehicle
+        await connection.query(
+          `UPDATE vehicles SET 
+            customer_id=?, vehicle_type=?, brand=?, model=?, year=?, color=?, 
+            plate_no=?, plate_province=?, vin=?, engine_no=?, sum_insured=?, tax_expiry=?
+           WHERE id=?`,
+          [
+            customerId, vehicle.vehicle_type, vehicle.brand, vehicle.model, vehicle.year, vehicle.color,
+            vehicle.plate_no, vehicle.plate_province, vehicle.vin, vehicle.engine_no, vehicle.sum_insured || null, vehicle.tax_expiry || null,
+            vehicle.id
+          ]
+        );
+        vehicleId = vehicle.id;
+        await connection.query('INSERT INTO activity_logs (user_id, action, target_table, target_id, details) VALUES (?, ?, ?, ?, ?)',
+          [req.user.id, 'UPDATE', 'vehicles', vehicleId, `Updated vehicle ID ${vehicleId} via Single Page Form`]);
+      } else {
+        // Insert new Vehicle
+        const [vehResult] = await connection.query(
+          `INSERT INTO vehicles (
+            customer_id, vehicle_type, brand, model, year, color, 
+            plate_no, plate_province, vin, engine_no, sum_insured, tax_expiry
+           ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+          [
+            customerId, vehicle.vehicle_type, vehicle.brand, vehicle.model, vehicle.year, vehicle.color,
+            vehicle.plate_no, vehicle.plate_province, vehicle.vin, vehicle.engine_no, vehicle.sum_insured || null, vehicle.tax_expiry || null
+          ]
+        );
+        vehicleId = vehResult.insertId;
+      }
 
       // Use Commission from frontend
       const commissionPercent = parseFloat(policy.commission_percent) || 0;
