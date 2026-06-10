@@ -237,17 +237,22 @@ const IssuePolicyForm = () => {
     }
   }, [payment.payment_method, payment.installments, payment.pay_date, policy.total_premium]);
 
-  const loadCustomerOptions = async (inputValue) => {
-    if (!inputValue || inputValue.length < 2) return [];
-    try {
-      const res = await api.get(`/customers?search=${inputValue}`);
-      return res.data.map(c => ({
-        label: `${c.phone} - ${c.first_name} ${c.last_name}`,
-        value: c
-      }));
-    } catch (err) {
-      return [];
-    }
+  const loadCustomerOptions = (inputValue) => {
+    return new Promise(resolve => {
+      if (!inputValue || inputValue.length < 2) return resolve([]);
+      if (window.customerSearchTimeout) clearTimeout(window.customerSearchTimeout);
+      window.customerSearchTimeout = setTimeout(async () => {
+        try {
+          const res = await api.get(`/customers?search=${inputValue}`);
+          resolve(res.data.map(c => ({
+            label: `${c.phone} - ${c.first_name} ${c.last_name}`,
+            value: c
+          })));
+        } catch (err) {
+          resolve([]);
+        }
+      }, 400);
+    });
   };
 
   const handleCustomerSelect = async (selectedOption) => {
@@ -279,17 +284,22 @@ const IssuePolicyForm = () => {
     }
   };
 
-  const loadVehicleOptions = async (inputValue) => {
-    if (!inputValue || inputValue.length < 2) return [];
-    try {
-      const res = await api.get(`/vehicles?search=${inputValue}`);
-      return res.data.map(v => ({
-        label: `ทะเบียน: ${v.plate_no} ${v.plate_province ? `(${v.plate_province})` : ''} - ${v.brand} ${v.model}`,
-        value: v
-      }));
-    } catch (err) {
-      return [];
-    }
+  const loadVehicleOptions = (inputValue) => {
+    return new Promise(resolve => {
+      if (!inputValue || inputValue.length < 2) return resolve([]);
+      if (window.vehicleSearchTimeout) clearTimeout(window.vehicleSearchTimeout);
+      window.vehicleSearchTimeout = setTimeout(async () => {
+        try {
+          const res = await api.get(`/vehicles?search=${inputValue}`);
+          resolve(res.data.map(v => ({
+            label: `ทะเบียน: ${v.plate_no} ${v.plate_province ? `(${v.plate_province})` : ''} - ${v.brand} ${v.model}`,
+            value: v
+          })));
+        } catch (err) {
+          resolve([]);
+        }
+      }, 400);
+    });
   };
 
   const handleVehicleSelect = (selectedOption) => {
@@ -343,6 +353,9 @@ const IssuePolicyForm = () => {
 
   const removeFile = (index) => {
     const newFiles = [...files];
+    if (newFiles[index].preview) {
+      URL.revokeObjectURL(newFiles[index].preview);
+    }
     newFiles.splice(index, 1);
     setFiles(newFiles);
   };
@@ -402,6 +415,11 @@ const IssuePolicyForm = () => {
         totalPremium: policy.total_premium,
         commission: policy.commission_baht,
         status: followUp.status
+      });
+
+      // Cleanup memory
+      files.forEach(f => {
+        if (f.preview) URL.revokeObjectURL(f.preview);
       });
 
       window.scrollTo(0, 0);
