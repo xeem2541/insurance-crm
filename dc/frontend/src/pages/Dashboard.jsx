@@ -105,17 +105,6 @@ const Dashboard = () => {
     <div>
       <div className="d-flex justify-content-between align-items-center mb-4">
         <h2 className="fw-bold"><i className="bi bi-graph-up-arrow text-primary me-2"></i> ภาพรวมระบบ (Dashboard)</h2>
-        <button className="btn btn-danger btn-lg fw-bold shadow-sm blink-bg" onClick={async () => {
-          try {
-            const res = await api.get('/fix-db');
-            alert('แก้ไขฐานข้อมูลสำเร็จ! ' + JSON.stringify(res.data));
-          } catch (e) {
-            alert('Error: ' + e.message);
-          }
-        }}>
-          <i className="bi bi-wrench-adjustable-circle-fill me-2"></i> กดปุ่มนี้เพื่อแก้บัค (Duplicate Entry)
-        </button>
-      </div>  
         {/* Filter Controls */}
         <div className="d-flex gap-2">
           <select 
