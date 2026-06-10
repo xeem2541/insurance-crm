@@ -391,21 +391,29 @@ app.get('/api/fix-db', async (req, res) => {
   }
 });
 
-// Placeholder for routes
-app.use('/api/auth', require('./routes/auth'));
-app.use('/api/users', require('./routes/users'));
-app.use('/api/customers', require('./routes/customers'));
-app.use('/api/vehicles', require('./routes/vehicles'));
-app.use('/api/policies', require('./routes/policies'));
-app.use('/api/documents', require('./routes/documents'));
-app.use('/api/dashboard', require('./routes/dashboard'));
-app.use('/api/reports', require('./routes/reports'));
-app.use('/api/master-data', require('./routes/masterData'));
-app.use('/api/webhook', require('./routes/webhook'));
-app.use('/api/non-motor-policies', require('./routes/nonMotorPolicies'));
-app.use('/api/issue-policy', require('./routes/issuePolicy'));
-app.use('/api/payments', require('./routes/payments'));
-app.use('/api/notifications', require('./routes/notifications'));
+// Safe route loader to prevent crashes if files are missing
+function safeUseRoute(path, modulePath) {
+  try {
+    app.use(path, require(modulePath));
+  } catch (e) {
+    console.log(`Route module ${modulePath} not found. Skipping.`);
+  }
+}
+
+safeUseRoute('/api/auth', './routes/auth');
+safeUseRoute('/api/users', './routes/users');
+safeUseRoute('/api/customers', './routes/customers');
+safeUseRoute('/api/vehicles', './routes/vehicles');
+safeUseRoute('/api/policies', './routes/policies');
+safeUseRoute('/api/documents', './routes/documents');
+safeUseRoute('/api/dashboard', './routes/dashboard');
+safeUseRoute('/api/reports', './routes/reports');
+safeUseRoute('/api/master-data', './routes/masterData');
+safeUseRoute('/api/webhook', './routes/webhook');
+safeUseRoute('/api/non-motor-policies', './routes/nonMotorPolicies');
+safeUseRoute('/api/issue-policy', './routes/issuePolicy');
+safeUseRoute('/api/payments', './routes/payments');
+safeUseRoute('/api/notifications', './routes/notifications');
 
 // Schedule Automated Backup every 1st day of the month at 01:00 AM (End of month backup)
 cron.schedule('0 1 1 * *', () => {
