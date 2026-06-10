@@ -761,7 +761,7 @@ const IssuePolicyForm = () => {
                   </Col>
                   <Col md={3}>
                     <Form.Label>วันภาษีรถหมดอายุ</Form.Label>
-                    <DateSelector value={vehicle.tax_expiry} onChange={val => setVehicle({...vehicle, tax_expiry: val})} />
+                    <Form.Control type="date" value={vehicle.tax_expiry} onChange={e => setVehicle({...vehicle, tax_expiry: e.target.value})} />
                   </Col>
                   <Col md={3}>
                     <div className="d-flex justify-content-between align-items-center mb-1">
@@ -771,8 +771,8 @@ const IssuePolicyForm = () => {
                         <Button variant="outline-secondary" size="sm" className="py-0" style={{fontSize:'0.75rem'}} onClick={() => setDateTomorrow(true)}>พรุ่งนี้</Button>
                       </div>
                     </div>
-                    <DateSelector value={policy.prb_start_date || ''} onChange={val => {
-                      const start = val;
+                    <Form.Control type="date" value={policy.prb_start_date || ''} onChange={e => {
+                      const start = e.target.value;
                       let end = policy.prb_expiry_date;
                       if (start) {
                         const d = new Date(start);
@@ -784,7 +784,7 @@ const IssuePolicyForm = () => {
                   </Col>
                   <Col md={3}>
                     <Form.Label>วันสิ้นสุดคุ้มครอง พ.ร.บ.</Form.Label>
-                    <DateSelector value={policy.prb_expiry_date} onChange={val => setPolicy({...policy, prb_expiry_date: val})} />
+                    <Form.Control type="date" value={policy.prb_expiry_date} onChange={e => setPolicy({...policy, prb_expiry_date: e.target.value})} />
                   </Col>
                 </Row>
               </Accordion.Body>
@@ -854,8 +854,8 @@ const IssuePolicyForm = () => {
                       <Button variant="outline-secondary" size="sm" className="py-0" style={{fontSize:'0.75rem'}} onClick={() => setDateTomorrow(false)}>พรุ่งนี้</Button>
                     </div>
                   </div>
-                  <DateSelector value={policy.start_date} onChange={val => {
-                      const start = val;
+                  <Form.Control type="date" value={policy.start_date} onChange={e => {
+                      const start = e.target.value;
                       let end = policy.expiry_date;
                       if (start) {
                         const d = new Date(start);
@@ -863,11 +863,11 @@ const IssuePolicyForm = () => {
                         end = d.toISOString().split('T')[0];
                       }
                       setPolicy({...policy, start_date: start, expiry_date: end});
-                    }} />
+                    }} required />
                 </Col>
                 <Col md={6}>
                   <div className="mb-1"><Form.Label className="mb-0">วันสิ้นสุดคุ้มครอง</Form.Label></div>
-                  <DateSelector value={policy.expiry_date} onChange={val => setPolicy({...policy, expiry_date: val})} />
+                  <Form.Control type="date" value={policy.expiry_date} onChange={e => setPolicy({...policy, expiry_date: e.target.value})} required />
                 </Col>
               </Row>
 
@@ -940,7 +940,7 @@ const IssuePolicyForm = () => {
                     </Col>
                     <Col md={4}>
                       <Form.Label>วันที่ชำระเงิน</Form.Label>
-                      <DateSelector value={payment.pay_date} onChange={val => setPayment({...payment, pay_date: val})} />
+                      <Form.Control type="date" value={payment.pay_date} onChange={e => setPayment({...payment, pay_date: e.target.value})} />
                     </Col>
                     <Col md={4}>
                       <Form.Label>สถานะการชำระเงิน</Form.Label>
