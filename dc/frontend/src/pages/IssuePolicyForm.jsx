@@ -744,7 +744,7 @@ const IssuePolicyForm = () => {
                 </Col>
                 <Col md={4}>
                   <Form.Label>เลขกรมธรรม์</Form.Label>
-                  <Form.Control type="text" value={policy.policy_no} onChange={e => setPolicy({...policy, policy_no: e.target.value})} placeholder="เว้นว่างเพื่อสร้าง Auto" />
+                  <Form.Control type="text" value={policy.policy_no} onChange={e => setPolicy({...policy, policy_no: e.target.value})} placeholder="พิมพ์เลขกรมธรรม์ หรือ เว้นว่างไว้เพื่อรัน Auto" />
                 </Col>
 
                 {policy.category === 'non-motor' && (
