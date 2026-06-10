@@ -142,9 +142,6 @@ const IssuePolicyForm = () => {
   useEffect(() => {
     if (policy.net_premium || policy.type || policy.category || policy.non_motor_type_id) {
       const net = parseFloat(policy.net_premium) || 0;
-      const stamp = Math.ceil(net * 0.004);
-      const v = parseFloat(((net + stamp) * 0.07).toFixed(2));
-      const total = net + stamp + v;
 
       let commPercent = policy.commission_percent;
       
@@ -166,23 +163,41 @@ const IssuePolicyForm = () => {
 
       // Only update if values actually changed to prevent infinite loops
       if (
-        policy.stamp_duty !== stamp ||
-        policy.vat !== v ||
-        policy.total_premium !== total ||
         policy.commission_percent !== commPercent ||
         policy.commission_baht !== commBaht
       ) {
         setPolicy(prev => ({
           ...prev,
-          stamp_duty: stamp,
-          vat: v,
-          total_premium: total,
           commission_percent: commPercent,
           commission_baht: commBaht
         }));
       }
     }
   }, [policy.net_premium, policy.type, policy.category, policy.non_motor_type_id, policy.commission_percent]);
+
+  const handlePremiumChange = (field, val) => {
+    const newPolicy = { ...policy, [field]: val };
+    
+    if (field === 'net_premium') {
+      const net = parseFloat(val) || 0;
+      const stamp = Math.ceil(net * 0.004);
+      const vat = parseFloat(((net + stamp) * 0.07).toFixed(2));
+      const total = net + stamp + vat;
+      
+      newPolicy.stamp_duty = stamp;
+      newPolicy.vat = vat;
+      newPolicy.total_premium = total.toFixed(2);
+      newPolicy.commission_baht = parseFloat((net * ((newPolicy.commission_percent || 0) / 100)).toFixed(2));
+    } else if (field === 'stamp_duty' || field === 'vat') {
+      const net = parseFloat(newPolicy.net_premium) || 0;
+      const stamp = parseFloat(newPolicy.stamp_duty) || 0;
+      const vat = parseFloat(newPolicy.vat) || 0;
+      const total = net + stamp + vat;
+      newPolicy.total_premium = total.toFixed(2);
+    }
+    
+    setPolicy(newPolicy);
+  };
 
   useEffect(() => {
     if (payment.payment_method === 'เงินผ่อน' && payment.installments > 1 && policy.total_premium > 0) {
@@ -737,19 +752,19 @@ const IssuePolicyForm = () => {
               <Row className="g-3">
                 <Col md={3}>
                   <Form.Label>เบี้ยสุทธิ <span className="text-danger">*</span></Form.Label>
-                  <Form.Control required type="number" inputMode="decimal" step="0.01" value={policy.net_premium} onChange={e => setPolicy({...policy, net_premium: e.target.value})} />
+                  <Form.Control required type="number" inputMode="decimal" step="0.01" value={policy.net_premium} onChange={e => handlePremiumChange('net_premium', e.target.value)} />
                 </Col>
                 <Col md={2}>
                   <Form.Label>อากร</Form.Label>
-                  <Form.Control type="number" step="0.01" value={policy.stamp_duty} onChange={e => setPolicy({...policy, stamp_duty: e.target.value})} />
+                  <Form.Control type="number" step="0.01" value={policy.stamp_duty} onChange={e => handlePremiumChange('stamp_duty', e.target.value)} />
                 </Col>
                 <Col md={3}>
                   <Form.Label>VAT</Form.Label>
-                  <Form.Control type="number" step="0.01" value={policy.vat} onChange={e => setPolicy({...policy, vat: e.target.value})} />
+                  <Form.Control type="number" step="0.01" value={policy.vat} onChange={e => handlePremiumChange('vat', e.target.value)} />
                 </Col>
                 <Col md={4}>
                   <Form.Label className="fw-bold text-success">เบี้ยรวม (Total)</Form.Label>
-                  <Form.Control type="number" step="0.01" className="bg-light fw-bold text-success" value={policy.total_premium} onChange={e => setPolicy({...policy, total_premium: e.target.value})} />
+                  <Form.Control type="number" step="0.01" className="bg-light fw-bold text-success" value={policy.total_premium} onChange={e => handlePremiumChange('total_premium', e.target.value)} />
                 </Col>
 
                 <Col md={12} className="mt-4"><hr/></Col>
