@@ -573,7 +573,7 @@ const IssuePolicyForm = () => {
                 </Col>
                 <Col md={1}>
                   <Form.Label>อายุ</Form.Label>
-                  <Form.Control type="number" readOnly className="bg-light" value={customer.age} />
+                  <Form.Control type="number" value={customer.age || ''} onChange={e => setCustomer({...customer, age: e.target.value})} />
                 </Col>
                 <Col md={3}>
                   <Form.Label>เบอร์โทรศัพท์ <span className="text-danger">*</span></Form.Label>
