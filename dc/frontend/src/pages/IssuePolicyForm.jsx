@@ -43,10 +43,11 @@ const IssuePolicyForm = () => {
   
   // Master Data Options
   const [companies, setCompanies] = useState([]);
-  const [provinces, setProvinces] = useState([]);
   const [vehicleTypes, setVehicleTypes] = useState([]);
-  const [jobStatuses, setJobStatuses] = useState([]);
   const [nonMotorTypes, setNonMotorTypes] = useState([]);
+  const [policyTypes, setPolicyTypes] = useState([]);
+  const [provinces, setProvinces] = useState([]);
+  const [jobStatuses, setJobStatuses] = useState([]);
   const [docTypes, setDocTypes] = useState([]);
 
   // Form State
@@ -97,6 +98,7 @@ const IssuePolicyForm = () => {
       setCompanies(md.filter(m => m.category === 'InsuranceCompany').map(m => ({ value: m.value, label: m.value })));
       setVehicleTypes(md.filter(m => m.category === 'VehicleType').map(m => ({ value: m.value, label: m.value })));
       setJobStatuses(md.filter(m => m.category === 'JobStatus').map(m => ({ value: m.value, label: m.value })));
+      setPolicyTypes(md.filter(m => m.category === 'PolicyType').map(m => ({ value: m.value, label: m.value })));
       
       const nmRes = await api.get('/non-motor-policies/types');
       setNonMotorTypes(nmRes.data.map(t => ({ value: t.id, label: t.name })));
@@ -716,14 +718,21 @@ const IssuePolicyForm = () => {
                 <Col md={3}>
                   <Form.Label>ประเภทประกันภัย <span className="text-danger">*</span></Form.Label>
                   <Select 
-                    options={nonMotorTypes} 
-                    value={nonMotorTypes.find(t => t.value === parseInt(policy.non_motor_type_id) || t.label === policy.type)} 
+                    options={[
+                      { label: 'ประกันภัยรถยนต์ (Motor)', options: policyTypes },
+                      { label: 'ประกันภัยอื่นๆ (Non-Motor)', options: nonMotorTypes }
+                    ]} 
+                    value={
+                      policy.category === 'motor' 
+                        ? policyTypes.find(t => t.value === policy.type)
+                        : nonMotorTypes.find(t => t.value === parseInt(policy.non_motor_type_id))
+                    } 
                     onChange={opt => {
                       const label = opt ? opt.label : '';
-                      const isMotor = label.includes('ชั้น') || label.includes('พ.ร.บ') || label.includes('รถ');
+                      const isMotor = opt && typeof opt.value === 'string';
                       setPolicy({
                         ...policy, 
-                        non_motor_type_id: opt?.value || '',
+                        non_motor_type_id: isMotor ? '' : (opt?.value || ''),
                         type: label,
                         type_name: label,
                         category: isMotor ? 'motor' : 'non-motor'
