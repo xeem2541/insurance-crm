@@ -467,11 +467,11 @@ const IssuePolicyForm = () => {
                     <option>นาย</option><option>นาง</option><option>นางสาว</option><option>บริษัท</option><option>หจก.</option>
                   </Form.Select>
                 </Col>
-                <Col md={5}>
+                <Col md={3}>
                   <Form.Label>ชื่อ <span className="text-danger">*</span></Form.Label>
                   <Form.Control required type="text" value={customer.first_name} onChange={e => setCustomer({...customer, first_name: e.target.value})} />
                 </Col>
-                <Col md={5}>
+                <Col md={3}>
                   <Form.Label>นามสกุล <span className="text-danger">*</span></Form.Label>
                   <Form.Control required type="text" value={customer.last_name} onChange={e => setCustomer({...customer, last_name: e.target.value})} />
                 </Col>
@@ -483,19 +483,19 @@ const IssuePolicyForm = () => {
                   <Form.Label>อายุ</Form.Label>
                   <Form.Control type="number" readOnly className="bg-light" value={customer.age} />
                 </Col>
-                <Col md={4}>
+                <Col md={3}>
                   <Form.Label>เบอร์โทรศัพท์ <span className="text-danger">*</span></Form.Label>
                   <Form.Control required type="text" inputMode="numeric" value={customer.phone} onChange={e => setCustomer({...customer, phone: formatPhone(e.target.value)})} maxLength={12} />
                 </Col>
-                <Col md={4}>
+                <Col md={3}>
                   <Form.Label>เบอร์สำรอง</Form.Label>
                   <Form.Control type="text" inputMode="numeric" value={customer.alt_phone} onChange={e => setCustomer({...customer, alt_phone: formatPhone(e.target.value)})} maxLength={12} />
                 </Col>
-                <Col md={6}>
+                <Col md={3}>
                   <Form.Label>LINE ID</Form.Label>
                   <Form.Control type="text" value={customer.line_id} onChange={e => setCustomer({...customer, line_id: e.target.value})} />
                 </Col>
-                <Col md={6}>
+                <Col md={3}>
                   <Form.Label>Facebook</Form.Label>
                   <Form.Control type="text" value={customer.facebook} onChange={e => setCustomer({...customer, facebook: e.target.value})} />
                 </Col>
@@ -518,11 +518,11 @@ const IssuePolicyForm = () => {
                   <Form.Label>หมู่</Form.Label>
                   <Form.Control type="text" value={customer.moo} onChange={e => setCustomer({...customer, moo: e.target.value})} />
                 </Col>
-                <Col md={4}>
+                <Col md={3}>
                   <Form.Label>ซอย</Form.Label>
                   <Form.Control type="text" value={customer.soi} onChange={e => setCustomer({...customer, soi: e.target.value})} />
                 </Col>
-                <Col md={4}>
+                <Col md={3}>
                   <Form.Label>ถนน</Form.Label>
                   <Form.Control type="text" value={customer.road} onChange={e => setCustomer({...customer, road: e.target.value})} />
                 </Col>
@@ -621,11 +621,11 @@ const IssuePolicyForm = () => {
 
                 <h6 className="text-primary fw-bold border-bottom pb-2 mb-3">ข้อมูลทางเทคนิค</h6>
                 <Row className="g-3 mb-4">
-                  <Col md={6}>
+                  <Col md={4}>
                     <Form.Label>เลขตัวถัง (VIN / Chassis No)</Form.Label>
                     <Form.Control type="text" value={vehicle.vin} onChange={e => setVehicle({...vehicle, vin: e.target.value})} />
                   </Col>
-                  <Col md={6}>
+                  <Col md={4}>
                     <Form.Label>เลขเครื่องยนต์</Form.Label>
                     <Form.Control type="text" value={vehicle.engine_no} onChange={e => setVehicle({...vehicle, engine_no: e.target.value})} />
                   </Col>
@@ -675,11 +675,11 @@ const IssuePolicyForm = () => {
             <Accordion.Body>
               <h6 className="text-primary fw-bold border-bottom pb-2 mb-3">รายละเอียดกรมธรรม์</h6>
               <Row className="g-3 mb-4">
-                <Col md={4}>
+                <Col md={3}>
                   <Form.Label>บริษัทประกัน <span className="text-danger">*</span></Form.Label>
                   <Select options={companies} value={companies.find(c => c.value === policy.company)} onChange={opt => setPolicy({...policy, company: opt?.value || ''})} isClearable />
                 </Col>
-                <Col md={4}>
+                <Col md={3}>
                   <Form.Label>ประเภทประกันภัย <span className="text-danger">*</span></Form.Label>
                   <Select 
                     options={nonMotorTypes} 
@@ -699,27 +699,27 @@ const IssuePolicyForm = () => {
                     placeholder="เลือกประเภทประกันภัย..."
                   />
                 </Col>
-                <Col md={4}>
+                <Col md={3}>
                   <Form.Label>เลขกรมธรรม์</Form.Label>
                   <Form.Control type="text" value={policy.policy_no} onChange={e => setPolicy({...policy, policy_no: e.target.value})} placeholder="เว้นว่างเพื่อสร้าง Auto" />
                 </Col>
 
                 {policy.category === 'non-motor' && (
                   <>
-                    <Col md={6}>
-                      <Form.Label>ชื่อผู้เอาประกัน (ถ้าไม่ระบุ จะใช้ชื่อลูกค้า)</Form.Label>
+                    <Col md={4}>
+                      <Form.Label>ชื่อผู้เอาประกัน (ถ้าไม่ระบุใช้ชื่อลูกค้า)</Form.Label>
                       <Form.Control type="text" value={policy.insured_name} onChange={e => setPolicy({...policy, insured_name: e.target.value})} />
                     </Col>
-                    <Col md={6}>
+                    <Col md={3}>
                       <Form.Label>ทุนประกันรวม</Form.Label>
                       <Form.Control type="number" step="0.01" value={policy.sum_insured} onChange={e => setPolicy({...policy, sum_insured: e.target.value})} />
                     </Col>
                   </>
                 )}
 
-                <Col md={6}>
+                <Col md={3}>
                   <div className="d-flex justify-content-between align-items-center mb-1">
-                    <Form.Label className="mb-0">วันเริ่มคุ้มครอง (กรมธรรม์)</Form.Label>
+                    <Form.Label className="mb-0">วันเริ่มคุ้มครอง</Form.Label>
                     <div>
                       <Button variant="outline-primary" size="sm" className="me-1 py-0" style={{fontSize:'0.75rem'}} onClick={() => setDateToday(false)}>วันนี้</Button>
                       <Button variant="outline-secondary" size="sm" className="py-0" style={{fontSize:'0.75rem'}} onClick={() => setDateTomorrow(false)}>พรุ่งนี้</Button>
@@ -736,8 +736,8 @@ const IssuePolicyForm = () => {
                       setPolicy({...policy, start_date: start, expiry_date: end});
                     }} />
                 </Col>
-                <Col md={6}>
-                  <Form.Label>วันสิ้นสุดคุ้มครอง (กรมธรรม์)</Form.Label>
+                <Col md={3}>
+                  <div className="mb-1"><Form.Label className="mb-0 text-white d-none d-md-block">.</Form.Label><Form.Label className="mb-0 d-md-none">วันสิ้นสุดคุ้มครอง</Form.Label></div>
                   <Form.Control type="date" value={policy.expiry_date} onChange={e => setPolicy({...policy, expiry_date: e.target.value})} />
                 </Col>
               </Row>
@@ -766,11 +766,11 @@ const IssuePolicyForm = () => {
 
                 <Col md={12} className="mt-4"><hr/></Col>
 
-                <Col md={4}>
+                <Col md={3}>
                   <Form.Label>เปอร์เซ็นต์คอมมิชชัน (%)</Form.Label>
                   <Form.Control type="number" step="0.01" value={policy.commission_percent || ''} onChange={e => setPolicy({...policy, commission_percent: e.target.value})} />
                 </Col>
-                <Col md={4}>
+                <Col md={3}>
                   <Form.Label className="fw-bold text-danger">ค่าคอมมิชชัน (บาท)</Form.Label>
                   <Form.Control type="number" step="0.01" className="bg-light fw-bold text-danger" value={policy.commission_baht || ''} onChange={e => setPolicy({...policy, commission_baht: e.target.value})} />
                 </Col>
