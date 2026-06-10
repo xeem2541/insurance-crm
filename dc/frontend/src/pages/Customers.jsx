@@ -69,7 +69,6 @@ const Customers = () => {
       'ชื่อ': c.first_name,
       'นามสกุล': c.last_name,
       'เบอร์โทรศัพท์': c.phone,
-      'อีเมล': c.email || '',
       'LINE ID': c.line_id || '',
       'สถานะลูกค้า': c.customer_status,
       'สถานะการขาย': c.lead_status,
@@ -84,9 +83,9 @@ const Customers = () => {
   };
 
   const [formData, setFormData] = useState({
-    customer_code: '', prefix: '', first_name: '', last_name: '', phone: '', alt_phone: '', email: '', 
-    line_id: '', facebook: '', dob: '', age: '', id_card_no: '', address: '', sub_district: '', district: '', province: '', zipcode: '',
-    occupation: '', secondary_contact: '', customer_status: 'ลูกค้าใหม่', lead_status: 'สนใจ', source: '', note: ''
+    customer_code: '', prefix: '', first_name: '', last_name: '', phone: '', alt_phone: '', 
+    line_id: '', facebook: '', dob: '', age: '', address: '', sub_district: '', district: '', province: '', zipcode: '',
+    secondary_contact: '', customer_status: 'ลูกค้าใหม่', lead_status: 'สนใจ', source: '', note: ''
   });
 
   const fetchData = async () => {
@@ -169,9 +168,9 @@ const Customers = () => {
           </button>
           <button className="btn btn-primary fw-bold" onClick={() => { 
             setFormData({
-              customer_code: '', prefix: '', first_name: '', last_name: '', phone: '', alt_phone: '', email: '', 
-              line_id: '', facebook: '', dob: '', age: '', id_card_no: '', address: '', sub_district: '', district: '', province: '', zipcode: '',
-              occupation: '', secondary_contact: '', customer_status: 'ลูกค้าใหม่', lead_status: 'สนใจ', source: '', note: ''
+              customer_code: '', prefix: '', first_name: '', last_name: '', phone: '', alt_phone: '', 
+              line_id: '', facebook: '', dob: '', age: '', address: '', sub_district: '', district: '', province: '', zipcode: '',
+              secondary_contact: '', customer_status: 'ลูกค้าใหม่', lead_status: 'สนใจ', source: '', note: ''
             }); 
             setShowModal(true); 
           }}>
@@ -264,10 +263,7 @@ const Customers = () => {
                 <Form.Label>รหัสลูกค้า</Form.Label>
                 <Form.Control type="text" value={formData.customer_code} onChange={e => setFormData({...formData, customer_code: e.target.value})} required disabled={!!formData.id} placeholder="CUS-YYYY-XXXX" />
               </div>
-              <div className="col-md-4">
-                <Form.Label>เลขบัตรประชาชน / เลขนิติบุคคล</Form.Label>
-                <Form.Control type="text" value={formData.id_card_no || ''} onChange={e => setFormData({...formData, id_card_no: formatIdCard(e.target.value)})} maxLength={17} />
-              </div>
+
               <div className="col-md-2">
                 <Form.Label>คำนำหน้า</Form.Label>
                 <Form.Select value={formData.prefix || ''} onChange={e => setFormData({...formData, prefix: e.target.value})}>
@@ -291,10 +287,7 @@ const Customers = () => {
                 <Form.Label>อายุ (ปี)</Form.Label>
                 <Form.Control type="number" value={formData.age || ''} readOnly className="bg-light" />
               </div>
-              <div className="col-md-2">
-                <Form.Label>อาชีพ</Form.Label>
-                <Form.Control type="text" value={formData.occupation || ''} onChange={e => setFormData({...formData, occupation: e.target.value})} />
-              </div>
+
 
               <h5 className="text-primary border-bottom pb-2 mt-4">ข้อมูลติดต่อ</h5>
               <div className="col-md-3">
@@ -305,10 +298,7 @@ const Customers = () => {
                 <Form.Label>เบอร์สำรอง</Form.Label>
                 <Form.Control type="text" value={formData.alt_phone || ''} onChange={e => setFormData({...formData, alt_phone: formatPhone(e.target.value)})} maxLength={12} />
               </div>
-              <div className="col-md-3">
-                <Form.Label>อีเมล</Form.Label>
-                <Form.Control type="email" value={formData.email || ''} onChange={e => setFormData({...formData, email: e.target.value})} />
-              </div>
+
               <div className="col-md-3">
                 <Form.Label>LINE ID</Form.Label>
                 <Form.Control type="text" value={formData.line_id || ''} onChange={e => setFormData({...formData, line_id: e.target.value})} />
