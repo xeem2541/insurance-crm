@@ -40,7 +40,7 @@ const Policies = () => {
   };
 
   const [formData, setFormData] = useState({
-    id: null, customer_id: '', vehicle_id: '', policy_no: '', company: '', type: '', 
+    id: null, customer_id: '', vehicle_id: '', plate_no: '', policy_no: '', company: '', type: '', 
     sum_insured: '', net_premium: '', stamp_duty: '', vat: '', total_premium: '',
     commission_percent: '', commission_baht: '', payment_method: '', 
     start_date: '', expiry_date: '', status: 'รอดำเนินการ', sales_person_id: ''
@@ -96,6 +96,7 @@ const Policies = () => {
         id: p.id,
         customer_id: p.customer_id,
         vehicle_id: p.vehicle_id || '',
+        plate_no: p.plate_no || '',
         policy_no: p.policy_no,
         company: p.company,
         type: p.type,
@@ -114,7 +115,7 @@ const Policies = () => {
       });
     } else {
       setFormData({
-        id: null, customer_id: '', vehicle_id: '', policy_no: '', company: '', type: '', 
+        id: null, customer_id: '', vehicle_id: '', plate_no: '', policy_no: '', company: '', type: '', 
         sum_insured: '', net_premium: '', stamp_duty: '', vat: '', total_premium: '',
         commission_percent: '', commission_baht: '', payment_method: '', 
         start_date: '', expiry_date: '', status: 'รอดำเนินการ', sales_person_id: ''
@@ -224,12 +225,12 @@ const Policies = () => {
         <Modal.Body>
           <Form onSubmit={handleSubmit}>
             <div className="row g-3">
-              <div className="col-md-6">
+              <div className="col-md-5">
                 <Form.Label>ลูกค้า <span className="text-danger">*</span></Form.Label>
                 <Select
                   options={customerOptions}
                   value={customerOptions.find(c => c.value === formData.customer_id)}
-                  onChange={option => setFormData({...formData, customer_id: option?.value || '', vehicle_id: ''})}
+                  onChange={option => setFormData({...formData, customer_id: option?.value || '', vehicle_id: '', plate_no: ''})}
                   isDisabled={formData.id !== null}
                   isClearable
                   placeholder="เลือก..."
@@ -237,16 +238,28 @@ const Policies = () => {
                   required
                 />
               </div>
-              <div className="col-md-6">
+              <div className="col-md-4">
                 <Form.Label>รถยนต์ (อ้างอิงจากลูกค้า)</Form.Label>
                 <Select
                   options={vehicleOptions}
                   value={vehicleOptions.find(v => v.value === formData.vehicle_id)}
-                  onChange={option => setFormData({...formData, vehicle_id: option?.value || ''})}
+                  onChange={option => {
+                    const selectedVeh = vehicles.find(v => v.id === option?.value);
+                    setFormData({...formData, vehicle_id: option?.value || '', plate_no: selectedVeh ? selectedVeh.plate_no : ''})
+                  }}
                   isClearable
                   placeholder="เลือก..."
                   noOptionsMessage={() => "ไม่พบข้อมูล"}
                   isDisabled={!formData.customer_id}
+                />
+              </div>
+              <div className="col-md-3">
+                <Form.Label>ทะเบียนรถ (แก้ไข/เพิ่มใหม่)</Form.Label>
+                <Form.Control 
+                  type="text" 
+                  value={formData.plate_no} 
+                  onChange={e => setFormData({...formData, plate_no: e.target.value})}
+                  placeholder="เช่น กข 1234 กทม"
                 />
               </div>
 
