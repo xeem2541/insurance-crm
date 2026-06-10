@@ -450,7 +450,6 @@ const IssuePolicyForm = () => {
           </Row>
           <div className="mt-3">
             <Button variant="outline-success" className="me-2 fw-bold" onClick={() => window.location.reload()}>+ ออกกรมธรรม์ใหม่</Button>
-            <Button variant="primary" className="fw-bold" onClick={() => window.location.href='/dashboard'}>กลับไปหน้า Dashboard</Button>
           </div>
         </div>
       )}
