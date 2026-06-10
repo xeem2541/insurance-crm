@@ -55,11 +55,13 @@ const IssuePolicyForm = () => {
     phone: '', alt_phone: '', email: '', line_id: '', facebook: '', occupation: '',
     address: '', moo: '', soi: '', road: '', sub_district: '', district: '', province: '', zipcode: '', note: ''
   });
+  const [customerSearchText, setCustomerSearchText] = useState('');
 
   const [vehicle, setVehicle] = useState({
     vehicle_type: '', brand: '', model: '', year: '', color: '', 
     plate_no: '', plate_province: '', vin: '', engine_no: '', sum_insured: '', tax_expiry: ''
   });
+  const [vehicleSearchText, setVehicleSearchText] = useState('');
 
   const [policy, setPolicy] = useState({
     category: 'motor', // 'motor' or 'non-motor'
@@ -407,6 +409,25 @@ const IssuePolicyForm = () => {
                   loadOptions={loadCustomerOptions} 
                   defaultOptions={false}
                   onChange={handleCustomerSelect}
+                  inputValue={customerSearchText}
+                  onInputChange={(val, { action }) => {
+                    if (action === 'input-change') {
+                      setCustomerSearchText(val);
+                    } else if (action === 'set-value') {
+                      setCustomerSearchText('');
+                    }
+                  }}
+                  onBlur={() => {
+                    // Auto-fill field if not found
+                    if (customerSearchText && !customer.id) {
+                      const digits = customerSearchText.replace(/\D/g, '');
+                      if (digits.length >= 9) {
+                        setCustomer(prev => ({...prev, phone: formatPhone(digits)}));
+                      } else if (!/^\d+$/.test(customerSearchText)) {
+                        setCustomer(prev => ({...prev, first_name: customerSearchText}));
+                      }
+                    }
+                  }}
                   placeholder="พิมพ์เบอร์โทร, ชื่อ, นามสกุล หรือเลขบัตรประชาชน..."
                   noOptionsMessage={() => "ไม่พบข้อมูลลูกค้า (หรือพิมพ์อย่างน้อย 2 ตัวอักษร)"}
                   loadingMessage={() => "กำลังค้นหา..."}
@@ -518,6 +539,19 @@ const IssuePolicyForm = () => {
                     loadOptions={loadVehicleOptions} 
                     defaultOptions={false}
                     onChange={handleVehicleSelect}
+                    inputValue={vehicleSearchText}
+                    onInputChange={(val, { action }) => {
+                      if (action === 'input-change') {
+                        setVehicleSearchText(val);
+                      } else if (action === 'set-value') {
+                        setVehicleSearchText('');
+                      }
+                    }}
+                    onBlur={() => {
+                      if (vehicleSearchText && !vehicle.id) {
+                        setVehicle(prev => ({...prev, plate_no: vehicleSearchText}));
+                      }
+                    }}
                     placeholder="พิมพ์เลขทะเบียนรถ..."
                     noOptionsMessage={() => "ไม่พบข้อมูลรถ (หรือพิมพ์อย่างน้อย 2 ตัวอักษร)"}
                     loadingMessage={() => "กำลังค้นหา..."}
