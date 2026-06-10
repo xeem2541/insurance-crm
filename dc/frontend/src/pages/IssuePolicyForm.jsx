@@ -323,6 +323,16 @@ const IssuePolicyForm = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    
+    if (!policy.company) {
+      alert('กรุณาเลือกบริษัทประกัน');
+      return;
+    }
+    if (!policy.type && !policy.non_motor_type_id) {
+      alert('กรุณาเลือกประเภทประกันภัย');
+      return;
+    }
+
     setLoading(true);
     setSuccessMsg(null);
 
@@ -655,12 +665,11 @@ const IssuePolicyForm = () => {
               <Row className="g-3 mb-4">
                 <Col md={4}>
                   <Form.Label>บริษัทประกัน <span className="text-danger">*</span></Form.Label>
-                  <Select required options={companies} value={companies.find(c => c.value === policy.company)} onChange={opt => setPolicy({...policy, company: opt?.value || ''})} isClearable />
+                  <Select options={companies} value={companies.find(c => c.value === policy.company)} onChange={opt => setPolicy({...policy, company: opt?.value || ''})} isClearable />
                 </Col>
                 <Col md={4}>
                   <Form.Label>ประเภทประกันภัย <span className="text-danger">*</span></Form.Label>
                   <Select 
-                    required 
                     options={nonMotorTypes} 
                     value={nonMotorTypes.find(t => t.value === parseInt(policy.non_motor_type_id) || t.label === policy.type)} 
                     onChange={opt => {
