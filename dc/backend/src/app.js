@@ -8,7 +8,12 @@ require('dotenv').config();
 const helmet = require('helmet');
 const { startCronJobs } = require('./cron');
 const cron = require('node-cron');
-const runBackup = require('./cron/backup');
+let runBackup;
+try {
+  runBackup = require('./cron/backup');
+} catch (e) {
+  console.log('Backup module not found. Please upload cron/backup.js to enable automated backups.');
+}
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -375,7 +380,11 @@ app.use('/api/notifications', require('./routes/notifications'));
 // Schedule Automated Backup every 1st day of the month at 01:00 AM (End of month backup)
 cron.schedule('0 1 1 * *', () => {
   console.log('Cron triggered: Running automated monthly backup...');
-  runBackup();
+  if (runBackup) {
+    runBackup();
+  } else {
+    console.log('Backup module is missing, skipping automated backup.');
+  }
 });
 
 // Start server
