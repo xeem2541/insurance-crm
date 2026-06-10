@@ -585,33 +585,42 @@ const IssuePolicyForm = () => {
                 </div>
                 <h6 className="text-primary fw-bold border-bottom pb-2 mb-3">ข้อมูลรถ และ ทะเบียน</h6>
                 <Row className="g-3 mb-4">
-                  <Col md={3}>
+                  <Col md={2}>
                     <Form.Label>ประเภทรถ</Form.Label>
                     <Select options={vehicleTypes} value={vehicleTypes.find(t => t.value === vehicle.vehicle_type)} onChange={opt => setVehicle({...vehicle, vehicle_type: opt?.value || ''})} isClearable />
                   </Col>
                   <Col md={3}>
                     <Form.Label>ยี่ห้อรถ (Brand)</Form.Label>
-                    <Form.Control list="car-brands" type="text" value={vehicle.brand} onChange={e => setVehicle({...vehicle, brand: e.target.value, model: ''})} />
-                    <datalist id="car-brands">
-                      {carBrands.map(b => <option key={b} value={b} />)}
-                    </datalist>
+                    <Form.Select value={vehicle.brand} onChange={e => setVehicle({...vehicle, brand: e.target.value, model: ''})}>
+                      <option value="">เลือกยี่ห้อ...</option>
+                      {carBrands.map(b => <option key={b} value={b}>{b}</option>)}
+                    </Form.Select>
                   </Col>
                   <Col md={3}>
                     <Form.Label>รุ่นรถ (Model)</Form.Label>
-                    <Form.Control list="car-models" type="text" value={vehicle.model} onChange={e => setVehicle({...vehicle, model: e.target.value})} />
-                    <datalist id="car-models">
-                      {(carModels[vehicle.brand] || []).map(m => <option key={m} value={m} />)}
-                    </datalist>
+                    <Form.Select value={vehicle.model} onChange={e => setVehicle({...vehicle, model: e.target.value})}>
+                      <option value="">เลือกรุ่น...</option>
+                      {(carModels[vehicle.brand] || []).map(m => <option key={m} value={m}>{m}</option>)}
+                    </Form.Select>
                   </Col>
-                  <Col md={1}>
+                  <Col md={2}>
                     <Form.Label>ปีรถ</Form.Label>
-                    <Form.Control type="text" value={vehicle.year} onChange={e => setVehicle({...vehicle, year: e.target.value})} />
+                    <Form.Select value={vehicle.year} onChange={e => setVehicle({...vehicle, year: e.target.value})}>
+                      <option value="">ปี...</option>
+                      {Array.from({ length: 40 }, (_, i) => new Date().getFullYear() + 1 - i).map(y => (
+                        <option key={y} value={y}>{y}</option>
+                      ))}
+                    </Form.Select>
                   </Col>
                   <Col md={2}>
                     <Form.Label>สีรถ</Form.Label>
-                    <Form.Control type="text" value={vehicle.color} onChange={e => setVehicle({...vehicle, color: e.target.value})} />
+                    <Form.Select value={vehicle.color} onChange={e => setVehicle({...vehicle, color: e.target.value})}>
+                      <option value="">สี...</option>
+                      {['ขาว', 'ดำ', 'เทา', 'บรอนซ์เงิน', 'บรอนซ์ทอง', 'แดง', 'น้ำเงิน', 'ฟ้า', 'น้ำตาล', 'เขียว', 'เหลือง', 'ส้ม', 'ชมพู', 'อื่นๆ'].map(c => (
+                        <option key={c} value={c}>{c}</option>
+                      ))}
+                    </Form.Select>
                   </Col>
-                  
                   <Col md={3}>
                     <Form.Label>เลขทะเบียน <span className="text-danger">*</span></Form.Label>
                     <Form.Control required={policy.category === 'motor'} type="text" value={vehicle.plate_no} onChange={e => setVehicle({...vehicle, plate_no: e.target.value})} />

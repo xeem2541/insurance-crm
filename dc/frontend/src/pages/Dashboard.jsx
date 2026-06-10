@@ -134,7 +134,7 @@ const Dashboard = () => {
         <div className="col-md-3">
           <div className="card stat-card shadow-sm h-100 border-0 bg-primary text-white">
             <i className="bi bi-graph-up stat-icon text-white opacity-50"></i>
-            <div className="stat-value text-white">{formatMoney(stats.salesThisYear + stats.nmSalesThisYear)}</div>
+            <div className="stat-value text-white">{formatMoney((parseFloat(stats.salesThisYear) || 0) + (parseFloat(stats.nmSalesThisYear) || 0))}</div>
             <div className="stat-label mb-2 text-white">ยอดรวมสิ้นปี (ปี {filterYear})</div>
             <div className="d-flex justify-content-between small opacity-75">
               <span>M: {formatMoney(stats.salesThisYear)}</span>
@@ -147,7 +147,7 @@ const Dashboard = () => {
         <div className="col-md-3">
           <div className="card stat-card shadow-sm h-100 border-0">
             <i className="bi bi-cash-stack stat-icon text-success"></i>
-            <div className="stat-value text-success">{formatMoney(stats.salesThisMonth + stats.nmSalesThisMonth)}</div>
+            <div className="stat-value text-success">{formatMoney((parseFloat(stats.salesThisMonth) || 0) + (parseFloat(stats.nmSalesThisMonth) || 0))}</div>
             <div className="stat-label mb-2">ยอดขาย (เดือนที่เลือก)</div>
             <div className="d-flex justify-content-between small text-muted">
               <span>M: {formatMoney(stats.salesThisMonth)}</span>
@@ -160,7 +160,7 @@ const Dashboard = () => {
         <div className="col-md-3">
           <div className="card stat-card shadow-sm h-100 border-0">
             <i className="bi bi-percent stat-icon text-warning"></i>
-            <div className="stat-value text-warning">{formatMoney(stats.commThisMonth + stats.nmCommThisMonth)}</div>
+            <div className="stat-value text-warning">{formatMoney((parseFloat(stats.commThisMonth) || 0) + (parseFloat(stats.nmCommThisMonth) || 0))}</div>
             <div className="stat-label mb-2">คอมมิชชัน (เดือนที่เลือก)</div>
             <div className="d-flex justify-content-between small text-muted">
               <span>M: {formatMoney(stats.commThisMonth)}</span>
@@ -337,7 +337,7 @@ const Dashboard = () => {
                     <tfoot className="table-light fw-bold">
                       <tr>
                         <td colSpan="8" className="text-end">รวมยอดขายเดือนนี้:</td>
-                        <td className="text-end text-success">{formatMoney(stats.salesThisMonth + stats.nmSalesThisMonth)}</td>
+                        <td className="text-end text-success">{formatMoney((parseFloat(stats.salesThisMonth) || 0) + (parseFloat(stats.nmSalesThisMonth) || 0))}</td>
                       </tr>
                     </tfoot>
                   )}
