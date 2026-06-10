@@ -2,6 +2,18 @@ import React, { useState, useEffect } from 'react';
 import api from '../services/api';
 import { Modal, Button, Form } from 'react-bootstrap';
 import Select from 'react-select';
+import { carBrands, carModels } from '../data/carData';
+
+const provincesList = [
+  'กรุงเทพมหานคร', 'กระบี่', 'กาญจนบุรี', 'กาฬสินธุ์', 'กำแพงเพชร', 'ขอนแก่น', 'จันทบุรี', 'ฉะเชิงเทรา', 'ชลบุรี', 'ชัยนาท', 
+  'ชัยภูมิ', 'ชุมพร', 'เชียงราย', 'เชียงใหม่', 'ตรัง', 'ตราด', 'ตาก', 'นครนายก', 'นครปฐม', 'นครพนม', 'นครราชสีมา', 
+  'นครศรีธรรมราช', 'นครสวรรค์', 'นนทบุรี', 'นราธิวาส', 'น่าน', 'บึงกาฬ', 'บุรีรัมย์', 'ปทุมธานี', 'ประจวบคีรีขันธ์', 
+  'ปราจีนบุรี', 'ปัตตานี', 'พระนครศรีอยุธยา', 'พะเยา', 'พังงา', 'พัทลุง', 'พิจิตร', 'พิษณุโลก', 'เพชรบุรี', 'เพชรบูรณ์', 
+  'แพร่', 'ภูเก็ต', 'มหาสารคาม', 'มุกดาหาร', 'แม่ฮ่องสอน', 'ยโสธร', 'ยะลา', 'ร้อยเอ็ด', 'ระนอง', 'ระยอง', 'ราชบุรี', 
+  'ลพบุรี', 'ลำปาง', 'ลำพูน', 'เลย', 'ศรีสะเกษ', 'สกลนคร', 'สงขลา', 'สตูล', 'สมุทรปราการ', 'สมุทรสงคราม', 'สมุทรสาคร', 
+  'สระแก้ว', 'สระบุรี', 'สิงห์บุรี', 'สุโขทัย', 'สุพรรณบุรี', 'สุราษฎร์ธานี', 'สุรินทร์', 'หนองคาย', 'หนองบัวลำภู', 
+  'อ่างทอง', 'อำนาจเจริญ', 'อุดรธานี', 'อุตรดิตถ์', 'อุทัยธานี', 'อุบลราชธานี'
+].map(p => ({ value: p, label: p }));
 
 const Vehicles = () => {
   const [vehicles, setVehicles] = useState([]);
@@ -167,7 +179,13 @@ const Vehicles = () => {
               </div>
               <div className="col-md-6">
                 <Form.Label>จังหวัดทะเบียน</Form.Label>
-                <Form.Control type="text" value={formData.plate_province} onChange={e => setFormData({...formData, plate_province: e.target.value})} />
+                <Select 
+                  options={provincesList} 
+                  value={provincesList.find(p => p.value === formData.plate_province)} 
+                  onChange={opt => setFormData({...formData, plate_province: opt?.value || ''})} 
+                  isClearable 
+                  placeholder="เลือกจังหวัด..."
+                />
               </div>
               <div className="col-md-6">
                 <Form.Label>ประเภทรถ <span className="text-danger">*</span></Form.Label>
@@ -183,19 +201,35 @@ const Vehicles = () => {
               </div>
               <div className="col-md-6">
                 <Form.Label>ยี่ห้อ (Brand)</Form.Label>
-                <Form.Control type="text" value={formData.brand} onChange={e => setFormData({...formData, brand: e.target.value})} />
+                <Form.Select value={formData.brand} onChange={e => setFormData({...formData, brand: e.target.value, model: ''})}>
+                  <option value="">เลือกยี่ห้อ...</option>
+                  {carBrands.map(b => <option key={b} value={b}>{b}</option>)}
+                </Form.Select>
               </div>
               <div className="col-md-6">
                 <Form.Label>รุ่น (Model)</Form.Label>
-                <Form.Control type="text" value={formData.model} onChange={e => setFormData({...formData, model: e.target.value})} />
+                <Form.Select value={formData.model} onChange={e => setFormData({...formData, model: e.target.value})}>
+                  <option value="">เลือกรุ่น...</option>
+                  {(carModels[formData.brand] || []).map(m => <option key={m} value={m}>{m}</option>)}
+                </Form.Select>
               </div>
               <div className="col-md-6">
                 <Form.Label>ปีจดทะเบียน (Year)</Form.Label>
-                <Form.Control type="text" value={formData.year} onChange={e => setFormData({...formData, year: e.target.value})} />
+                <Form.Select value={formData.year} onChange={e => setFormData({...formData, year: e.target.value})}>
+                  <option value="">เลือกปี...</option>
+                  {Array.from({ length: 40 }, (_, i) => new Date().getFullYear() + 1 - i).map(y => (
+                    <option key={y} value={y}>{y}</option>
+                  ))}
+                </Form.Select>
               </div>
               <div className="col-md-6">
                 <Form.Label>สีรถ</Form.Label>
-                <Form.Control type="text" value={formData.color} onChange={e => setFormData({...formData, color: e.target.value})} />
+                <Form.Select value={formData.color} onChange={e => setFormData({...formData, color: e.target.value})}>
+                  <option value="">เลือกสี...</option>
+                  {['ขาว', 'ดำ', 'เทา', 'บรอนซ์เงิน', 'บรอนซ์ทอง', 'แดง', 'น้ำเงิน', 'ฟ้า', 'น้ำตาล', 'เขียว', 'เหลือง', 'ส้ม', 'ชมพู', 'อื่นๆ'].map(c => (
+                    <option key={c} value={c}>{c}</option>
+                  ))}
+                </Form.Select>
               </div>
               <div className="col-md-6">
                 <Form.Label>ทุนประกันที่แนะนำ (บาท)</Form.Label>
