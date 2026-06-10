@@ -154,4 +154,26 @@ router.put('/:id', authenticateToken, async (req, res) => {
   }
 });
 
+// Delete policy
+router.delete('/:id', authenticateToken, async (req, res) => {
+  try {
+    const [result] = await req.db.query('DELETE FROM policies WHERE id = ?', [req.params.id]);
+    if (result.affectedRows === 0) {
+      return res.status(404).json({ error: 'Policy not found' });
+    }
+    
+    await req.db.query('INSERT INTO activity_logs (user_id, action, target_table, target_id, details) VALUES (?, ?, ?, ?, ?)',
+      [req.user.id, 'DELETE', 'policies', req.params.id, `Deleted policy ID ${req.params.id}`]);
+      
+    res.json({ message: 'Deleted successfully' });
+  } catch (error) {
+    console.error(error);
+    if (error.code === 'ER_ROW_IS_REFERENCED_2') {
+      res.status(400).json({ error: 'ไม่สามารถลบได้เนื่องจากมีการอ้างอิงข้อมูลนี้อยู่' });
+    } else {
+      res.status(500).json({ error: 'Server error' });
+    }
+  }
+});
+
 module.exports = router;

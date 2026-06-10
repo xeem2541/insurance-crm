@@ -123,4 +123,26 @@ router.put('/:id', authenticateToken, async (req, res) => {
   }
 });
 
+// Delete customer
+router.delete('/:id', authenticateToken, async (req, res) => {
+  try {
+    const [result] = await req.db.query('DELETE FROM customers WHERE id = ?', [req.params.id]);
+    if (result.affectedRows === 0) {
+      return res.status(404).json({ error: 'Customer not found' });
+    }
+    
+    await req.db.query('INSERT INTO activity_logs (user_id, action, target_table, target_id, details) VALUES (?, ?, ?, ?, ?)',
+      [req.user.id, 'DELETE', 'customers', req.params.id, `Deleted customer ID ${req.params.id}`]);
+      
+    res.json({ message: 'Deleted successfully' });
+  } catch (error) {
+    console.error(error);
+    if (error.code === 'ER_ROW_IS_REFERENCED_2') {
+      res.status(400).json({ error: 'ไม่สามารถลบได้เนื่องจากลูกค้าคนนี้มีข้อมูลกรมธรรม์หรือรถยนต์ผูกอยู่' });
+    } else {
+      res.status(500).json({ error: 'Server error' });
+    }
+  }
+});
+
 module.exports = router;
