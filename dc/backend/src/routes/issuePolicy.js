@@ -38,15 +38,15 @@ router.post('/', authenticateToken, upload.array('files'), async (req, res) => {
       const customerCode = `CUS-${new Date().getFullYear()}-${String(Math.floor(Math.random() * 9000)).padStart(4, '0')}`;
       const [custResult] = await connection.query(
         `INSERT INTO customers (
-          customer_code, prefix, first_name, last_name, phone, alt_phone, email, line_id, facebook, 
-          dob, age, id_card_no, address, moo, soi, road, sub_district, district, province, zipcode, occupation, 
+          customer_code, prefix, first_name, last_name, phone, alt_phone, line_id, facebook, 
+          dob, age, address, moo, soi, road, sub_district, district, province, zipcode, 
           note, created_by
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
         [
           customerCode, customer.prefix, customer.first_name, customer.last_name, customer.phone, customer.alt_phone || null,
-          customer.email, customer.line_id, customer.facebook, customer.dob || null, customer.age || null,
-          customer.id_card_no, customer.address, customer.moo, customer.soi, customer.road,
-          customer.sub_district, customer.district, customer.province, customer.zipcode, customer.occupation,
+          customer.line_id, customer.facebook, customer.dob || null, customer.age || null,
+          customer.address, customer.moo, customer.soi, customer.road,
+          customer.sub_district, customer.district, customer.province, customer.zipcode, 
           customer.note, req.user.id
         ]
       );
@@ -57,15 +57,15 @@ router.post('/', authenticateToken, upload.array('files'), async (req, res) => {
       // Update existing customer
       await connection.query(
         `UPDATE customers SET 
-          prefix=?, first_name=?, last_name=?, phone=?, alt_phone=?, email=?, line_id=?, facebook=?, 
-          dob=?, age=?, id_card_no=?, address=?, moo=?, soi=?, road=?, sub_district=?, district=?, 
-          province=?, zipcode=?, occupation=?, note=? 
+          prefix=?, first_name=?, last_name=?, phone=?, alt_phone=?, line_id=?, facebook=?, 
+          dob=?, age=?, address=?, moo=?, soi=?, road=?, sub_district=?, district=?, 
+          province=?, zipcode=?, note=? 
          WHERE id=?`,
         [
-          customer.prefix, customer.first_name, customer.last_name, customer.phone, customer.alt_phone || null, customer.email,
-          customer.line_id, customer.facebook, customer.dob || null, customer.age || null, customer.id_card_no,
+          customer.prefix, customer.first_name, customer.last_name, customer.phone, customer.alt_phone || null,
+          customer.line_id, customer.facebook, customer.dob || null, customer.age || null,
           customer.address, customer.moo, customer.soi, customer.road, customer.sub_district, customer.district,
-          customer.province, customer.zipcode, customer.occupation, customer.note, customerId
+          customer.province, customer.zipcode, customer.note, customerId
         ]
       );
       await connection.query('INSERT INTO activity_logs (user_id, action, target_table, target_id, details) VALUES (?, ?, ?, ?, ?)',
@@ -226,8 +226,7 @@ router.post('/', authenticateToken, upload.array('files'), async (req, res) => {
     
     let errMsg = error.message;
     if (error.code === 'ER_DUP_ENTRY') {
-      if (errMsg.includes('id_card_no')) errMsg = 'เลขบัตรประชาชนนี้มีในระบบแล้ว กรุณาค้นหาลูกค้าจากช่องดึงข้อมูลลูกค้าเก่าอัตโนมัติ';
-      else if (errMsg.includes('phone')) errMsg = 'เบอร์โทรศัพท์นี้มีในระบบแล้ว กรุณาค้นหาลูกค้าจากช่องดึงข้อมูลลูกค้าเก่าอัตโนมัติ';
+      if (errMsg.includes('phone')) errMsg = 'เบอร์โทรศัพท์นี้มีในระบบแล้ว กรุณาค้นหาลูกค้าจากช่องดึงข้อมูลลูกค้าเก่าอัตโนมัติ';
       else if (errMsg.includes('plate_no')) errMsg = 'ทะเบียนรถนี้มีในระบบแล้ว กรุณาค้นหาข้อมูลรถจากช่องดึงข้อมูลอัตโนมัติ';
       else errMsg = 'มีข้อมูลซ้ำซ้อนในระบบ (Duplicate Entry)';
     }
