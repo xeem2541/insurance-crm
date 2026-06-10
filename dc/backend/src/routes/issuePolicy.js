@@ -223,7 +223,16 @@ router.post('/', authenticateToken, upload.array('files'), async (req, res) => {
   } catch (error) {
     await connection.rollback();
     console.error('Transaction Error:', error);
-    res.status(500).json({ error: 'Failed to issue policy: ' + error.message });
+    
+    let errMsg = error.message;
+    if (error.code === 'ER_DUP_ENTRY') {
+      if (errMsg.includes('id_card_no')) errMsg = 'เลขบัตรประชาชนนี้มีในระบบแล้ว กรุณาค้นหาลูกค้าจากช่องดึงข้อมูลลูกค้าเก่าอัตโนมัติ';
+      else if (errMsg.includes('phone')) errMsg = 'เบอร์โทรศัพท์นี้มีในระบบแล้ว กรุณาค้นหาลูกค้าจากช่องดึงข้อมูลลูกค้าเก่าอัตโนมัติ';
+      else if (errMsg.includes('plate_no')) errMsg = 'ทะเบียนรถนี้มีในระบบแล้ว กรุณาค้นหาข้อมูลรถจากช่องดึงข้อมูลอัตโนมัติ';
+      else errMsg = 'มีข้อมูลซ้ำซ้อนในระบบ (Duplicate Entry)';
+    }
+
+    res.status(500).json({ error: 'เกิดข้อผิดพลาด: ' + errMsg });
   } finally {
     connection.release();
   }
