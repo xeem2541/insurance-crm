@@ -117,6 +117,17 @@ const NonMotorPolicies = () => {
     }
   };
 
+  const handleDelete = async (id) => {
+    if (window.confirm('คุณต้องการลบข้อมูลนี้ใช่หรือไม่? การกระทำนี้ไม่สามารถย้อนกลับได้')) {
+      try {
+        await api.delete(`/non-motor-policies/${id}`);
+        fetchData();
+      } catch (error) {
+        alert(error.response?.data?.error || 'เกิดข้อผิดพลาดในการลบข้อมูล');
+      }
+    }
+  };
+
   const updateAdditionalData = (key, value) => {
     setFormData({
       ...formData,
@@ -261,8 +272,11 @@ const NonMotorPolicies = () => {
                   <td>{new Date(p.start_date).toLocaleDateString('th-TH')} - {new Date(p.expiry_date).toLocaleDateString('th-TH')}</td>
                   <td>{getStatusBadge(p.status)}</td>
                   <td>
-                    <button className="btn btn-sm btn-outline-primary" onClick={() => handleOpenModal(p)} title="แก้ไข">
+                    <button className="btn btn-sm btn-outline-primary me-2" onClick={() => handleOpenModal(p)} title="แก้ไข">
                       <i className="bi bi-pencil"></i>
+                    </button>
+                    <button className="btn btn-sm btn-outline-danger" onClick={() => handleDelete(p.id)} title="ลบ">
+                      <i className="bi bi-trash"></i>
                     </button>
                   </td>
                 </tr>

@@ -123,6 +123,17 @@ const Customers = () => {
     }
   };
 
+  const handleDelete = async (id) => {
+    if (window.confirm('คุณต้องการลบข้อมูลนี้ใช่หรือไม่? (หากลูกค้ามีกรมธรรม์ผูกอยู่ จะไม่สามารถลบได้)')) {
+      try {
+        await api.delete(`/customers/${id}`);
+        fetchData();
+      } catch (error) {
+        alert(error.response?.data?.error || 'เกิดข้อผิดพลาดในการลบข้อมูล');
+      }
+    }
+  };
+
   const openEdit = (c) => {
     setFormData({ 
       ...c, 
@@ -238,8 +249,11 @@ const Customers = () => {
                   <td>{getStatusBadge(c.lead_status)}</td>
                   <td>{c.source || '-'}</td>
                   <td>
-                    <button className="btn btn-sm btn-outline-primary" onClick={() => openEdit(c)}>
-                      <i className="bi bi-pencil-square"></i> แก้ไข
+                    <button className="btn btn-sm btn-outline-primary me-2" onClick={() => openEdit(c)} title="แก้ไข">
+                      <i className="bi bi-pencil"></i>
+                    </button>
+                    <button className="btn btn-sm btn-outline-danger" onClick={() => handleDelete(c.id)} title="ลบ">
+                      <i className="bi bi-trash"></i>
                     </button>
                   </td>
                 </tr>

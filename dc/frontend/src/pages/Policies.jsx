@@ -139,6 +139,17 @@ const Policies = () => {
     }
   };
 
+  const handleDelete = async (id) => {
+    if (window.confirm('คุณต้องการลบข้อมูลนี้ใช่หรือไม่? การกระทำนี้ไม่สามารถย้อนกลับได้')) {
+      try {
+        await api.delete(`/policies/${id}`);
+        fetchData();
+      } catch (error) {
+        alert(error.response?.data?.error || 'เกิดข้อผิดพลาดในการลบข้อมูล');
+      }
+    }
+  };
+
   const getStatusBadge = (status) => {
     if (status === 'สำเร็จ' || status === 'ชำระครบแล้ว' || status === 'Active') return <span className="badge bg-success">{status}</span>;
     if (status === 'รอดำเนินการ' || status === 'รอถ่ายรูปรถ' || status === 'รอผ่อนชำระ') return <span className="badge bg-warning text-dark">{status}</span>;
@@ -208,7 +219,10 @@ const Policies = () => {
                     <button className="btn btn-sm btn-outline-primary me-2" onClick={() => handleOpenModal(p)} title="แก้ไข">
                       <i className="bi bi-pencil"></i>
                     </button>
-                    <button className="btn btn-sm btn-outline-danger" onClick={() => window.open(`/print-policy/${p.id}`, '_blank')} title="พิมพ์ใบเสนอราคา">
+                    <button className="btn btn-sm btn-outline-danger me-2" onClick={() => handleDelete(p.id)} title="ลบ">
+                      <i className="bi bi-trash"></i>
+                    </button>
+                    <button className="btn btn-sm btn-outline-info" onClick={() => window.open(`/print-policy/${p.id}`, '_blank')} title="พิมพ์ใบเสนอราคา">
                       <i className="bi bi-file-pdf"></i>
                     </button>
                   </td>
