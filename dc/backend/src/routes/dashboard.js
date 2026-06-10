@@ -56,7 +56,7 @@ router.get('/stats', authenticateToken, async (req, res) => {
         LEFT JOIN non_motor_policies np ON pm.non_motor_policy_id = np.id AND np.status = 'สำเร็จ'
         WHERE pm.payment_method = 'เงินสด' AND (p.id IS NOT NULL OR np.id IS NOT NULL)
       `);
-      cashSalesTotal = cashRes[0].total || 0;
+      cashSalesTotal = parseFloat(cashRes[0].total) || 0;
       
       const [instRes] = await req.db.query(`
         SELECT SUM(IFNULL(p.total_premium, np.total_premium)) as total 
@@ -65,13 +65,13 @@ router.get('/stats', authenticateToken, async (req, res) => {
         LEFT JOIN non_motor_policies np ON pm.non_motor_policy_id = np.id AND np.status = 'สำเร็จ'
         WHERE pm.payment_method = 'เงินผ่อน' AND (p.id IS NOT NULL OR np.id IS NOT NULL)
       `);
-      installmentSalesTotal = instRes[0].total || 0;
+      installmentSalesTotal = parseFloat(instRes[0].total) || 0;
 
       const [unpaidRes] = await req.db.query("SELECT SUM(balance_amount) as total FROM installments WHERE status IN ('รอชำระ', 'ค้างชำระ')");
-      unpaidInstallmentTotal = unpaidRes[0].total || 0;
+      unpaidInstallmentTotal = parseFloat(unpaidRes[0].total) || 0;
 
       const [collectedRes] = await req.db.query("SELECT SUM(paid_amount) as total FROM installments WHERE status IN ('ชำระแล้ว', 'ชำระบางส่วน') AND MONTH(payment_date) = ? AND YEAR(payment_date) = ?", [targetMonth, targetYear]);
-      collectedThisMonth = collectedRes[0].total || 0;
+      collectedThisMonth = parseFloat(collectedRes[0].total) || 0;
 
       const [overdueCustRes] = await req.db.query("SELECT COUNT(DISTINCT IFNULL(pm.policy_id, pm.non_motor_policy_id)) as count FROM installments i JOIN payments pm ON i.payment_id = pm.id WHERE i.status = 'ค้างชำระ' OR (i.status = 'รอชำระ' AND i.due_date < CURRENT_DATE())");
       overdueCustomersCount = overdueCustRes[0].count || 0;
@@ -152,12 +152,12 @@ router.get('/stats', authenticateToken, async (req, res) => {
       totalNonMotorPolicies: nmPolicies[0].count,
       totalDocuments: documents[0].count,
       newCustomersThisMonth: newCustomers[0].count,
-      salesThisMonth: mSalesThisMonth[0].total || 0,
-      salesThisYear: mSalesThisYear[0].total || 0,
-      commThisMonth: mCommThisMonth[0].total || 0,
-      nmSalesThisMonth: nmSalesThisMonth[0].total || 0,
-      nmSalesThisYear: nmSalesThisYear[0].total || 0,
-      nmCommThisMonth: nmCommThisMonth[0].total || 0,
+      salesThisMonth: parseFloat(mSalesThisMonth[0].total) || 0,
+      salesThisYear: parseFloat(mSalesThisYear[0].total) || 0,
+      commThisMonth: parseFloat(mCommThisMonth[0].total) || 0,
+      nmSalesThisMonth: parseFloat(nmSalesThisMonth[0].total) || 0,
+      nmSalesThisYear: parseFloat(nmSalesThisYear[0].total) || 0,
+      nmCommThisMonth: parseFloat(nmCommThisMonth[0].total) || 0,
       expiringPolicies: allExpiring,
       monthlySales: mergedMonthlySales,
       topCompanies: topCompanies,
