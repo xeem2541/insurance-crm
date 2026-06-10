@@ -43,6 +43,17 @@ async function initDb() {
     const connection = await pool.getConnection();
     console.log('Database connected successfully');
     
+    // Auto-drop removed columns to fix Duplicate Entry errors on id_card_no
+    const dropColumns = ['id_card_no', 'email', 'occupation'];
+    for (const col of dropColumns) {
+      try {
+        await connection.query(`ALTER TABLE customers DROP COLUMN ${col}`);
+        console.log(`Dropped column ${col} from customers`);
+      } catch (e) {
+        // Column might not exist or already dropped, ignore safely
+      }
+    }
+    
     // Seed Admin user if not exists
     const [users] = await connection.query('SELECT * FROM users WHERE username = ?', ['admin']);
     if (users.length === 0) {
