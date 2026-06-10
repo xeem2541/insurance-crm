@@ -125,7 +125,7 @@ router.put('/:id', authenticateToken, async (req, res) => {
         // Find customer_id of this policy to create a new vehicle
         const [polRow] = await req.db.query('SELECT customer_id FROM policies WHERE id = ?', [req.params.id]);
         if (polRow.length > 0) {
-          const [vehResult] = await req.db.query('INSERT INTO vehicles (customer_id, plate_no, created_by) VALUES (?, ?, ?)', [polRow[0].customer_id, plate_no, req.user.id]);
+          const [vehResult] = await req.db.query('INSERT INTO vehicles (customer_id, plate_no) VALUES (?, ?)', [polRow[0].customer_id, plate_no]);
           finalVehicleId = vehResult.insertId;
         }
       }
