@@ -250,7 +250,7 @@ const IssuePolicyForm = () => {
     }
   };
 
-  const handleCustomerSelect = (selectedOption) => {
+  const handleCustomerSelect = async (selectedOption) => {
     if (selectedOption && selectedOption.value) {
       const c = selectedOption.value;
       setCustomer({
@@ -259,6 +259,23 @@ const IssuePolicyForm = () => {
         dob: c.dob ? c.dob.split('T')[0] : '',
         id: c.id
       });
+
+      // Auto-fetch latest vehicle for this customer
+      try {
+        const res = await api.get(`/vehicles?customer_id=${c.id}`);
+        if (res.data && res.data.length > 0) {
+          const v = res.data[0];
+          setVehicle({
+            ...vehicle,
+            ...v,
+            tax_expiry: v.tax_expiry ? v.tax_expiry.split('T')[0] : '',
+            id: v.id
+          });
+          setVehicleSearchText(v.plate_no); // visually show it
+        }
+      } catch (err) {
+        console.error('Error fetching customer vehicle:', err);
+      }
     }
   };
 
