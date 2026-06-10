@@ -63,17 +63,16 @@ router.post('/', authenticateToken, async (req, res) => {
   } = req.body;
   
   try {
-    const dummyIdCard = 'D' + Date.now();
     const [result] = await req.db.query(
       `INSERT INTO customers (
         customer_code, prefix, first_name, last_name, phone, alt_phone, line_id, facebook, 
         dob, age, address, province, zipcode, secondary_contact, 
-        customer_status, lead_status, source, note, created_by, id_card_no
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        customer_status, lead_status, source, note, created_by
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         customer_code, prefix, first_name, last_name, phone, req.body.alt_phone || null, line_id, facebook, 
         dob || null, age || null, address, province, zipcode, secondary_contact, 
-        customer_status || 'ลูกค้าใหม่', lead_status || 'สนใจ', source, note, req.user.id, dummyIdCard
+        customer_status || 'ลูกค้าใหม่', lead_status || 'สนใจ', source, note, req.user.id
       ]
     );
     
