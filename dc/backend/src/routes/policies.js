@@ -108,12 +108,29 @@ router.post('/', authenticateToken, async (req, res) => {
 // Update policy
 router.put('/:id', authenticateToken, async (req, res) => {
   const { 
-    vehicle_id, company, type, sum_insured, 
+    vehicle_id, plate_no, company, type, sum_insured, 
     net_premium, stamp_duty, vat, total_premium, commission_percent, commission_baht, 
     payment_method, start_date, expiry_date, status, sales_person_id 
   } = req.body;
 
   try {
+    let finalVehicleId = vehicle_id || null;
+
+    // Handle plate_no update or creation
+    if (plate_no) {
+      if (finalVehicleId) {
+        // Update existing vehicle's plate_no
+        await req.db.query('UPDATE vehicles SET plate_no = ? WHERE id = ?', [plate_no, finalVehicleId]);
+      } else {
+        // Find customer_id of this policy to create a new vehicle
+        const [polRow] = await req.db.query('SELECT customer_id FROM policies WHERE id = ?', [req.params.id]);
+        if (polRow.length > 0) {
+          const [vehResult] = await req.db.query('INSERT INTO vehicles (customer_id, plate_no, created_by) VALUES (?, ?, ?)', [polRow[0].customer_id, plate_no, req.user.id]);
+          finalVehicleId = vehResult.insertId;
+        }
+      }
+    }
+
     await req.db.query(
       `UPDATE policies SET 
         vehicle_id=?, company=?, type=?, sum_insured=?, 
@@ -121,7 +138,7 @@ router.put('/:id', authenticateToken, async (req, res) => {
         payment_method=?, start_date=?, expiry_date=?, status=?, sales_person_id=?
        WHERE id=?`,
       [
-        vehicle_id || null, company, type, sum_insured || null,
+        finalVehicleId, company, type, sum_insured || null,
         net_premium || 0, stamp_duty || 0, vat || 0, total_premium || 0, commission_percent || 0, commission_baht || 0,
         payment_method || 'เงินสด', start_date, expiry_date, status || 'รอดำเนินการ', sales_person_id || null, req.params.id
       ]
