@@ -36,7 +36,7 @@ router.post('/', authenticateToken, upload.array('files'), async (req, res) => {
     if (!customerId) {
       // Create new customer
       const customerCode = `CUS-${new Date().getFullYear()}-${String(Math.floor(Math.random() * 9000)).padStart(4, '0')}`;
-      const dummyIdCard = 'DEL_' + Date.now() + Math.floor(Math.random() * 10000);
+      const dummyIdCard = 'D' + Date.now();
       const [custResult] = await connection.query(
         `INSERT INTO customers (
           customer_code, prefix, first_name, last_name, phone, alt_phone, line_id, facebook, 

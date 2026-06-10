@@ -63,7 +63,7 @@ router.post('/', authenticateToken, async (req, res) => {
   } = req.body;
   
   try {
-    const dummyIdCard = 'DEL_' + Date.now() + Math.floor(Math.random() * 10000);
+    const dummyIdCard = 'D' + Date.now();
     const [result] = await req.db.query(
       `INSERT INTO customers (
         customer_code, prefix, first_name, last_name, phone, alt_phone, line_id, facebook, 
