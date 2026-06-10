@@ -65,7 +65,6 @@ const Layout = () => {
     { path: '/issue-policy', label: 'ออกกรมธรรม์ใหม่', icon: 'bi-file-earmark-plus-fill', roles: ['Admin', 'Manager', 'Staff', 'Sales'] },
     { path: '/calendar', label: 'ปฏิทินงาน', icon: 'bi-calendar3', roles: ['Admin', 'Manager', 'Staff', 'Sales', 'Viewer'] },
     { path: '/customers', label: 'ข้อมูลลูกค้า', icon: 'bi-people-fill', roles: ['Admin', 'Manager', 'Staff', 'Sales', 'Viewer'] },
-    { path: '/vehicles', label: 'ข้อมูลรถยนต์', icon: 'bi-car-front-fill', roles: ['Admin', 'Manager', 'Staff', 'Sales', 'Viewer'] },
     { path: '/policies', label: 'Motor Insurance (รถยนต์)', icon: 'bi-shield-fill-check', roles: ['Admin', 'Manager', 'Staff', 'Sales', 'Viewer'] },
     { path: '/non-motor', label: 'Non-Motor (ประกันอื่น)', icon: 'bi-shield-plus', roles: ['Admin', 'Manager', 'Staff', 'Sales', 'Viewer'] },
     { path: '/payments', label: 'ระบบรับชำระเงิน', icon: 'bi-wallet2', roles: ['Admin', 'Manager', 'Staff', 'Sales'] },
