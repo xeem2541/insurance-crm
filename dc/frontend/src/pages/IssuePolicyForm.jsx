@@ -490,9 +490,7 @@ const IssuePolicyForm = () => {
         formData.append('files', f.file);
       });
 
-      const res = await api.post('/issue-policy', formData, {
-        headers: { 'Content-Type': 'multipart/form-data' }
-      });
+      const res = await api.post('/issue-policy', formData);
 
       setSuccessMsg({
         text: 'บันทึกข้อมูลลูกค้าและกรมธรรม์สำเร็จ!',
