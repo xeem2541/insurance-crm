@@ -146,7 +146,10 @@ const Policies = () => {
   };
 
   const customerOptions = customers.map(c => ({ value: c.id, label: `${c.customer_code} - ${c.first_name} ${c.last_name}` }));
-  const vehicleOptions = vehicles.filter(v => v.customer_id === formData.customer_id).map(v => ({ value: v.id, label: `${v.plate_no} ${v.plate_province} - ${v.brand}` }));
+  const vehicleOptions = vehicles.filter(v => v.customer_id === formData.customer_id).map(v => ({ 
+    value: v.id, 
+    label: `${v.plate_no || ''} ${v.plate_province && v.plate_province !== 'null' ? v.plate_province : ''} ${v.brand && v.brand !== 'null' ? `- ${v.brand}` : ''}`.trim()
+  }));
 
   return (
     <div>
