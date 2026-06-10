@@ -467,17 +467,13 @@ const IssuePolicyForm = () => {
                     <option>นาย</option><option>นาง</option><option>นางสาว</option><option>บริษัท</option><option>หจก.</option>
                   </Form.Select>
                 </Col>
-                <Col md={3}>
+                <Col md={5}>
                   <Form.Label>ชื่อ <span className="text-danger">*</span></Form.Label>
                   <Form.Control required type="text" value={customer.first_name} onChange={e => setCustomer({...customer, first_name: e.target.value})} />
                 </Col>
-                <Col md={3}>
+                <Col md={5}>
                   <Form.Label>นามสกุล <span className="text-danger">*</span></Form.Label>
                   <Form.Control required type="text" value={customer.last_name} onChange={e => setCustomer({...customer, last_name: e.target.value})} />
-                </Col>
-                <Col md={4}>
-                  <Form.Label>เลขบัตรประชาชน / เลขนิติบุคคล</Form.Label>
-                  <Form.Control type="text" inputMode="numeric" value={customer.id_card_no} onChange={e => setCustomer({...customer, id_card_no: formatIdCard(e.target.value)})} maxLength={17} />
                 </Col>
                 <Col md={3}>
                   <Form.Label>วันเดือนปีเกิด</Form.Label>
@@ -487,29 +483,21 @@ const IssuePolicyForm = () => {
                   <Form.Label>อายุ</Form.Label>
                   <Form.Control type="number" readOnly className="bg-light" value={customer.age} />
                 </Col>
-                <Col md={3}>
+                <Col md={4}>
                   <Form.Label>เบอร์โทรศัพท์ <span className="text-danger">*</span></Form.Label>
                   <Form.Control required type="text" inputMode="numeric" value={customer.phone} onChange={e => setCustomer({...customer, phone: formatPhone(e.target.value)})} maxLength={12} />
                 </Col>
-                <Col md={2}>
+                <Col md={4}>
                   <Form.Label>เบอร์สำรอง</Form.Label>
                   <Form.Control type="text" inputMode="numeric" value={customer.alt_phone} onChange={e => setCustomer({...customer, alt_phone: formatPhone(e.target.value)})} maxLength={12} />
                 </Col>
-                <Col md={3}>
-                  <Form.Label>Email</Form.Label>
-                  <Form.Control type="email" value={customer.email} onChange={e => setCustomer({...customer, email: e.target.value})} />
-                </Col>
-                <Col md={4}>
+                <Col md={6}>
                   <Form.Label>LINE ID</Form.Label>
                   <Form.Control type="text" value={customer.line_id} onChange={e => setCustomer({...customer, line_id: e.target.value})} />
                 </Col>
-                <Col md={4}>
+                <Col md={6}>
                   <Form.Label>Facebook</Form.Label>
                   <Form.Control type="text" value={customer.facebook} onChange={e => setCustomer({...customer, facebook: e.target.value})} />
-                </Col>
-                <Col md={4}>
-                  <Form.Label>อาชีพ</Form.Label>
-                  <Form.Control type="text" value={customer.occupation} onChange={e => setCustomer({...customer, occupation: e.target.value})} />
                 </Col>
               </Row>
 
