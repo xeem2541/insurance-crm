@@ -431,7 +431,7 @@ const IssuePolicyForm = () => {
                 </Col>
                 <Col md={4}>
                   <Form.Label>เลขบัตรประชาชน / เลขนิติบุคคล</Form.Label>
-                  <Form.Control type="text" inputMode="numeric" pattern="[0-9]*" value={customer.id_card_no} onChange={e => setCustomer({...customer, id_card_no: formatIdCard(e.target.value)})} maxLength={17} />
+                  <Form.Control type="text" inputMode="numeric" value={customer.id_card_no} onChange={e => setCustomer({...customer, id_card_no: formatIdCard(e.target.value)})} maxLength={17} />
                 </Col>
                 <Col md={3}>
                   <Form.Label>วันเดือนปีเกิด</Form.Label>
@@ -443,11 +443,11 @@ const IssuePolicyForm = () => {
                 </Col>
                 <Col md={3}>
                   <Form.Label>เบอร์โทรศัพท์ <span className="text-danger">*</span></Form.Label>
-                  <Form.Control required type="text" inputMode="numeric" pattern="[0-9]*" value={customer.phone} onChange={e => setCustomer({...customer, phone: formatPhone(e.target.value)})} maxLength={12} />
+                  <Form.Control required type="text" inputMode="numeric" value={customer.phone} onChange={e => setCustomer({...customer, phone: formatPhone(e.target.value)})} maxLength={12} />
                 </Col>
                 <Col md={2}>
                   <Form.Label>เบอร์สำรอง</Form.Label>
-                  <Form.Control type="text" inputMode="numeric" pattern="[0-9]*" value={customer.alt_phone} onChange={e => setCustomer({...customer, alt_phone: formatPhone(e.target.value)})} maxLength={12} />
+                  <Form.Control type="text" inputMode="numeric" value={customer.alt_phone} onChange={e => setCustomer({...customer, alt_phone: formatPhone(e.target.value)})} maxLength={12} />
                 </Col>
                 <Col md={3}>
                   <Form.Label>Email</Form.Label>
