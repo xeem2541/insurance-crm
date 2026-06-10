@@ -361,6 +361,36 @@ app.get('/api', (req, res) => {
   res.json({ message: 'Insurance API is running' });
 });
 
+// Fix DB route (Manual trigger)
+app.get('/api/fix-db', async (req, res) => {
+  try {
+    const connection = await pool.getConnection();
+    let results = [];
+    
+    const dropColumns = ['id_card_no', 'email', 'occupation'];
+    for (const col of dropColumns) {
+      try {
+        await connection.query(`ALTER TABLE customers DROP INDEX ${col}`);
+        results.push(`Dropped index ${col}`);
+      } catch (e) {
+        results.push(`Index ${col} error: ${e.message}`);
+      }
+      try {
+        await connection.query(`ALTER TABLE customers DROP COLUMN ${col}`);
+        results.push(`Dropped column ${col}`);
+      } catch (e) {
+        results.push(`Column ${col} error: ${e.message}`);
+      }
+    }
+    
+    // Also drop from update query if exists? No, just the schema is enough.
+    connection.release();
+    res.json({ message: 'Database fix executed!', details: results });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // Placeholder for routes
 app.use('/api/auth', require('./routes/auth'));
 app.use('/api/users', require('./routes/users'));
