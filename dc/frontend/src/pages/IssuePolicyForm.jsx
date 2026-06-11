@@ -307,6 +307,28 @@ const IssuePolicyForm = () => {
     }
   }, [payment.payment_method, payment.installments, payment.pay_date, policy.total_premium]);
 
+  useEffect(() => {
+    if (policy.start_date) {
+      const start = new Date(policy.start_date);
+      start.setFullYear(start.getFullYear() + 1);
+      const nextYearStr = start.toISOString().split('T')[0];
+      
+      setPolicy(prev => {
+        if (prev.expiry_date !== nextYearStr) {
+          return { ...prev, expiry_date: nextYearStr };
+        }
+        return prev;
+      });
+
+      setFollowUp(prev => {
+        if (prev.next_date !== nextYearStr) {
+          return { ...prev, next_date: nextYearStr };
+        }
+        return prev;
+      });
+    }
+  }, [policy.start_date]);
+
   const loadCustomerOptions = (inputValue) => {
     return new Promise(resolve => {
       if (!inputValue || inputValue.length < 2) return resolve([]);
