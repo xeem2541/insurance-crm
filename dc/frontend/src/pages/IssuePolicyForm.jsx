@@ -460,33 +460,8 @@ const IssuePolicyForm = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    const missing = [];
-    
-    // Validate Customer
-    if (!customer.first_name) missing.push('ชื่อ (ส่วนที่ 1)');
-    if (!customer.last_name) missing.push('นามสกุล (ส่วนที่ 1)');
-    if (!customer.phone) missing.push('เบอร์โทรศัพท์ (ส่วนที่ 1)');
-
-    // Validate Vehicle (Only if Motor)
-    if (policy.category === 'motor' && !vehicle.plate_no) {
-      missing.push('เลขทะเบียนรถ (ส่วนที่ 2)');
-    }
-
-    // Validate Policy
-    if (!policy.company) missing.push('บริษัทประกัน (ส่วนที่ 3)');
-    if (!policy.type && !policy.non_motor_type_id) missing.push('ประเภทประกันภัย (ส่วนที่ 3)');
-    if (!policy.net_premium) missing.push('เบี้ยสุทธิ (ส่วนที่ 3)');
-    if (!policy.status) missing.push('สถานะงาน (ส่วนที่ 5)');
-
-    // Validate Payment
-    if (payment.method === 'เงินผ่อน' && (!payment.installments || payment.installments < 1)) {
-      missing.push('จำนวนงวดผ่อน (ส่วนที่ 4)');
-    }
-
-    if (missing.length > 0) {
-      alert('กรุณากรอกข้อมูลที่จำเป็น (ช่องที่มีดอกจันสีแดง *) ให้ครบถ้วนครับ:\\n\\n- ' + missing.join('\\n- '));
-      return;
-    }
+    // Form validation has been removed as per user request
+    // that it should be able to save even if not fully filtered/filled.
 
     setLoading(true);
     setSuccessMsg(null);
@@ -611,11 +586,11 @@ const IssuePolicyForm = () => {
                 </Col>
                 <Col md={3}>
                   <Form.Label>ชื่อ <span className="text-danger">*</span></Form.Label>
-                  <Form.Control required type="text" value={customer.first_name} onChange={e => setCustomer({...customer, first_name: e.target.value})} />
+                  <Form.Control type="text" value={customer.first_name} onChange={e => setCustomer({...customer, first_name: e.target.value})} />
                 </Col>
                 <Col md={3}>
                   <Form.Label>นามสกุล <span className="text-danger">*</span></Form.Label>
-                  <Form.Control required type="text" value={customer.last_name} onChange={e => setCustomer({...customer, last_name: e.target.value})} />
+                  <Form.Control type="text" value={customer.last_name} onChange={e => setCustomer({...customer, last_name: e.target.value})} />
                 </Col>
                 <Col md={3}>
                   <Form.Label>วันเดือนปีเกิด</Form.Label>
@@ -627,7 +602,7 @@ const IssuePolicyForm = () => {
                 </Col>
                 <Col md={3}>
                   <Form.Label>เบอร์โทรศัพท์ <span className="text-danger">*</span></Form.Label>
-                  <Form.Control required type="text" inputMode="numeric" value={customer.phone} onChange={e => setCustomer({...customer, phone: formatPhone(e.target.value)})} maxLength={12} />
+                  <Form.Control type="text" inputMode="numeric" value={customer.phone} onChange={e => setCustomer({...customer, phone: formatPhone(e.target.value)})} maxLength={12} />
                 </Col>
                 <Col md={3}>
                   <Form.Label>เบอร์สำรอง</Form.Label>
@@ -753,7 +728,7 @@ const IssuePolicyForm = () => {
                   </Col>
                   <Col md={3}>
                     <Form.Label>เลขทะเบียน <span className="text-danger">*</span></Form.Label>
-                    <Form.Control required={policy.category === 'motor'} type="text" value={vehicle.plate_no} onChange={e => setVehicle({...vehicle, plate_no: e.target.value})} />
+                    <Form.Control type="text" value={vehicle.plate_no} onChange={e => setVehicle({...vehicle, plate_no: e.target.value})} />
                   </Col>
                   <Col md={3}>
                     <Form.Label>จังหวัดทะเบียนรถ</Form.Label>
@@ -883,11 +858,11 @@ const IssuePolicyForm = () => {
                         end = d.toISOString().split('T')[0];
                       }
                       setPolicy({...policy, start_date: start, expiry_date: end});
-                    }} required />
+                    }} />
                 </Col>
                 <Col md={6}>
                   <div className="mb-1"><Form.Label className="mb-0">วันสิ้นสุดคุ้มครอง</Form.Label></div>
-                  <Form.Control type="date" value={policy.expiry_date} onChange={e => setPolicy({...policy, expiry_date: e.target.value})} required />
+                  <Form.Control type="date" value={policy.expiry_date} onChange={e => setPolicy({...policy, expiry_date: e.target.value})} />
                 </Col>
               </Row>
 
@@ -898,7 +873,7 @@ const IssuePolicyForm = () => {
               <Row className="g-3">
                 <Col md={3}>
                   <Form.Label>เบี้ยสุทธิ <span className="text-danger">*</span></Form.Label>
-                  <Form.Control required type="number" inputMode="decimal" step="0.01" value={policy.net_premium} onChange={e => handlePremiumChange('net_premium', e.target.value)} />
+                  <Form.Control type="number" inputMode="decimal" step="0.01" value={policy.net_premium} onChange={e => handlePremiumChange('net_premium', e.target.value)} />
                 </Col>
                 <Col md={2}>
                   <Form.Label>อากร</Form.Label>
