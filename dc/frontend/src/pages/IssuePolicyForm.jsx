@@ -62,7 +62,7 @@ const normalizeDate = (val) => {
   if (!s) return '';
 
   // 1. Try YYYY-MM-DD or YYYY/MM/DD
-  let match = s.match(/^(d{4})[-/](d{1,2})[-/](d{1,2})$/);
+  let match = s.match(/^(\d{4})[-/](\d{1,2})[-/](\d{1,2})$/);
   if (match) {
     let year = parseInt(match[1], 10);
     let month = match[2].padStart(2, '0');
@@ -72,17 +72,17 @@ const normalizeDate = (val) => {
   }
 
   // 2. Try DD/MM/YYYY or DD-MM-YYYY
-  match = s.match(/^(d{1,2})[-/](d{1,2})[-/](d{4})$/);
+  match = s.match(/^(\d{1,2})[-/](\d{1,2})[-/](\d{4})$/);
   if (match) {
     let day = match[1].padStart(2, '0');
     let month = match[2].padStart(2, '0');
     let year = parseInt(match[3], 10);
     if (year > 2400) year -= 543;
-    return `${year}-\$${month}-\$${day}`;
+    return `${year}-${month}-${day}`;
   }
 
   // 3. Try DD/MM/YY or DD-MM-YY (e.g. 15/12/66)
-  match = s.match(/^(d{1,2})[-/](d{1,2})[-/](d{2})$/);
+  match = s.match(/^(\d{1,2})[-/](\d{1,2})[-/](\d{2})$/);
   if (match) {
     let day = match[1].padStart(2, '0');
     let month = match[2].padStart(2, '0');
@@ -110,8 +110,8 @@ const normalizeDate = (val) => {
   
   for (const [key, value] of Object.entries(thMonths)) {
     if (s.includes(key)) {
-      const dayMatch = s.match(/^(d{1,2})/);
-      const yearMatch = s.match(/(d{4})/);
+      const dayMatch = s.match(/^(\d{1,2})/);
+      const yearMatch = s.match(/(\d{4})/);
       if (dayMatch && yearMatch) {
         let day = dayMatch[1].padStart(2, '0');
         let year = parseInt(yearMatch[1], 10);
