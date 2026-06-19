@@ -157,11 +157,13 @@ const IssuePolicyForm = () => {
   const [ocrLoading, setOcrLoading] = useState(false);
 
   const handleAIExtract = async (e) => {
-    const file = e.target.files[0];
-    if (!file) return;
+    const files = Array.from(e.target.files);
+    if (!files.length) return;
 
     const formData = new FormData();
-    formData.append('image', file);
+    files.forEach(file => {
+      formData.append('images', file);
+    });
 
     setOcrLoading(true);
     try {
@@ -555,8 +557,8 @@ const IssuePolicyForm = () => {
             </div>
           ) : (
             <label className="btn btn-dark btn-lg fw-bold px-5 rounded-pill shadow-sm">
-              <i className="bi bi-camera-fill me-2"></i> ถ่ายรูป / อัปโหลดตารางกรมธรรม์
-              <input type="file" accept="image/*" capture="environment" className="d-none" onChange={handleAIExtract} />
+              <i className="bi bi-camera-fill me-2"></i> ถ่ายรูป / อัปโหลดตารางกรมธรรม์ (เลือกได้หลายรูป)
+              <input type="file" accept="image/*" capture="environment" className="d-none" multiple onChange={handleAIExtract} />
             </label>
           )}
         </div>
