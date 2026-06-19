@@ -19,8 +19,8 @@ router.post('/extract', authenticateToken, upload.array('images', 10), async (re
     }
 
     const genAI = new GoogleGenerativeAI(apiKey);
-    // Fallback to the classic gemini-pro-vision which is universally available
-    const model = genAI.getGenerativeModel({ model: 'gemini-pro-vision' });
+    // Use gemini-1.5-flash exactly as written in Google's documentation
+    const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
 
     const prompt = `คุณคือผู้เชี่ยวชาญด้านการดึงข้อมูลจากตารางกรมธรรม์ประกันภัยของประเทศไทย (Insurance Policy Schedule)
 จงอ่านรูปภาพที่แนบมา และดึงข้อมูลให้แม่นยำที่สุด 100% โดยให้ผลลัพธ์เป็น JSON Object เท่านั้น ห้ามมีคำอธิบายอื่นใด ห้ามมี Markdown (\`\`\`) ครอบ
