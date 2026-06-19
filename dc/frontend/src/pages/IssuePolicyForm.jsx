@@ -56,25 +56,51 @@ const getUpcomingAnniversary = (dateStr) => {
   return anniversary.toISOString().split('T')[0];
 };
 
+const normalizeDate = (val) => {
+  if (!val) return '';
+  const parts = val.split('-');
+  if (parts.length === 3) {
+    let year = parseInt(parts[0], 10);
+    if (year > 2400) {
+      year -= 543;
+      return `${year}-${parts[1]}-${parts[2]}`;
+    }
+  }
+  return val;
+};
+
 const findMatchingCompany = (extractedCompany, companyList) => {
   if (!extractedCompany || !companyList.length) return '';
-  const cleanExtracted = extractedCompany.replace(/\s+/g, '').toLowerCase();
   
-  // 1. Exact match (case insensitive, ignoring spaces)
-  let found = companyList.find(c => c.value.replace(/\s+/g, '').toLowerCase() === cleanExtracted);
+  const stripAffixes = (name) => {
+    if (!name) return '';
+    return name
+      .replace(/\s+/g, '')
+      .replace(/บริษัท/g, '')
+      .replace(/บมจ\.?/g, '')
+      .replace(/จำกัด/g, '')
+      .replace(/\(?มหาชน\)?/g, '')
+      .toLowerCase();
+  };
+
+  const cleanExtracted = stripAffixes(extractedCompany);
+  if (!cleanExtracted) return extractedCompany;
+  
+  // 1. Exact match on stripped names
+  let found = companyList.find(c => stripAffixes(c.value) === cleanExtracted);
   if (found) return found.value;
   
-  // 2. Extracted name contains option name (e.g., "บมจ.วิริยะประกันภัย" contains "วิริยะประกันภัย")
+  // 2. Extracted contains option name
   found = companyList.find(c => {
-    const cleanVal = c.value.replace(/\s+/g, '').toLowerCase();
-    return cleanExtracted.includes(cleanVal);
+    const cleanVal = stripAffixes(c.value);
+    return cleanVal && cleanExtracted.includes(cleanVal);
   });
   if (found) return found.value;
 
-  // 3. Option name contains extracted name (e.g., option "วิริยะประกันภัย" contains extracted "วิริยะ")
+  // 3. Option name contains extracted name
   found = companyList.find(c => {
-    const cleanVal = c.value.replace(/\s+/g, '').toLowerCase();
-    return cleanExtracted.length >= 3 && cleanVal.includes(cleanExtracted);
+    const cleanVal = stripAffixes(c.value);
+    return cleanVal && cleanVal.includes(cleanExtracted);
   });
   if (found) return found.value;
   
@@ -270,6 +296,18 @@ const IssuePolicyForm = () => {
       });
       const data = res.data;
       
+      // Auto-normalize any extracted dates (e.g. converting BE to AD)
+      if (data.customer && data.customer.dob) {
+        data.customer.dob = normalizeDate(data.customer.dob);
+      }
+      if (data.vehicle && data.vehicle.registration_date) {
+        data.vehicle.registration_date = normalizeDate(data.vehicle.registration_date);
+      }
+      if (data.policy) {
+        if (data.policy.start_date) data.policy.start_date = normalizeDate(data.policy.start_date);
+        if (data.policy.expiry_date) data.policy.expiry_date = normalizeDate(data.policy.expiry_date);
+      }
+      
       if (data.customer) {
         let calculatedAge = data.customer.age;
         if (data.customer.dob) {
@@ -377,7 +415,7 @@ const IssuePolicyForm = () => {
   };
 
   const handleDobChange = (e) => {
-    const dob = e.target.value;
+    const dob = normalizeDate(e.target.value);
     let age = '';
     if (dob) {
       const birthDate = new Date(dob);
@@ -1053,11 +1091,11 @@ const IssuePolicyForm = () => {
                   </Col>
                   <Col md={2}>
                     <Form.Label>วันจดทะเบียนรถ</Form.Label>
-                    <Form.Control type="date" value={vehicle.registration_date || ''} onChange={e => setVehicle({...vehicle, registration_date: e.target.value})} />
+                    <Form.Control type="date" value={vehicle.registration_date || ''} onChange={e => setVehicle({...vehicle, registration_date: normalizeDate(e.target.value)})} />
                   </Col>
                   <Col md={2}>
                     <Form.Label>วันภาษีรถหมดอายุ</Form.Label>
-                    <Form.Control type="date" value={vehicle.tax_expiry} onChange={e => setVehicle({...vehicle, tax_expiry: e.target.value})} />
+                    <Form.Control type="date" value={vehicle.tax_expiry} onChange={e => setVehicle({...vehicle, tax_expiry: normalizeDate(e.target.value)})} />
                   </Col>
                   <Col md={3}>
                     <div className="d-flex justify-content-between align-items-center mb-1">
@@ -1068,7 +1106,7 @@ const IssuePolicyForm = () => {
                       </div>
                     </div>
                     <Form.Control type="date" value={policy.prb_start_date || ''} onChange={e => {
-                      const start = e.target.value;
+                      const start = normalizeDate(e.target.value);
                       let end = policy.prb_expiry_date;
                       if (start) {
                         const d = new Date(start);
@@ -1080,7 +1118,7 @@ const IssuePolicyForm = () => {
                   </Col>
                   <Col md={3}>
                     <Form.Label>วันสิ้นสุดคุ้มครอง พ.ร.บ.</Form.Label>
-                    <Form.Control type="date" value={policy.prb_expiry_date} onChange={e => setPolicy({...policy, prb_expiry_date: e.target.value})} />
+                    <Form.Control type="date" value={policy.prb_expiry_date} onChange={e => setPolicy({...policy, prb_expiry_date: normalizeDate(e.target.value)})} />
                   </Col>
                 </Row>
               </Accordion.Body>
@@ -1158,7 +1196,7 @@ const IssuePolicyForm = () => {
                     </div>
                   </div>
                   <Form.Control type="date" value={policy.start_date} onChange={e => {
-                      const start = e.target.value;
+                      const start = normalizeDate(e.target.value);
                       let end = policy.expiry_date;
                       if (start) {
                         const d = new Date(start);
@@ -1170,7 +1208,7 @@ const IssuePolicyForm = () => {
                 </Col>
                 <Col md={6}>
                   <div className="mb-1"><Form.Label className="mb-0">วันสิ้นสุดคุ้มครอง</Form.Label></div>
-                  <Form.Control type="date" value={policy.expiry_date} onChange={e => setPolicy({...policy, expiry_date: e.target.value})} />
+                  <Form.Control type="date" value={policy.expiry_date} onChange={e => setPolicy({...policy, expiry_date: normalizeDate(e.target.value)})} />
                 </Col>
               </Row>
 
@@ -1243,7 +1281,7 @@ const IssuePolicyForm = () => {
                     </Col>
                     <Col md={4}>
                       <Form.Label>วันที่ชำระเงิน</Form.Label>
-                      <Form.Control type="date" value={payment.pay_date} onChange={e => setPayment({...payment, pay_date: e.target.value})} />
+                      <Form.Control type="date" value={payment.pay_date} onChange={e => setPayment({...payment, pay_date: normalizeDate(e.target.value)})} />
                     </Col>
                     <Col md={4}>
                       <Form.Label>สถานะการชำระเงิน</Form.Label>
@@ -1274,7 +1312,7 @@ const IssuePolicyForm = () => {
                     </Col>
                     <Col md={4}>
                       <Form.Label>วันที่เริ่มผ่อนงวดแรก</Form.Label>
-                      <Form.Control type="date" value={payment.pay_date} onChange={e => setPayment({...payment, pay_date: e.target.value})} />
+                      <Form.Control type="date" value={payment.pay_date} onChange={e => setPayment({...payment, pay_date: normalizeDate(e.target.value)})} />
                     </Col>
                   </Row>
 
@@ -1321,7 +1359,7 @@ const IssuePolicyForm = () => {
                 </Col>
                 <Col md={4}>
                   <Form.Label>วันที่ติดตามครั้งถัดไป</Form.Label>
-                  <Form.Control type="date" value={followUp.next_date} onChange={e => setFollowUp({...followUp, next_date: e.target.value})} />
+                  <Form.Control type="date" value={followUp.next_date} onChange={e => setFollowUp({...followUp, next_date: normalizeDate(e.target.value)})} />
                 </Col>
                 <Col md={4}>
                   <Form.Label>ผู้ดูแลลูกค้า (Sales)</Form.Label>
