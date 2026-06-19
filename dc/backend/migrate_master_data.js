@@ -36,15 +36,15 @@ const masterData = [
   { category: 'InsuranceCompany', value: 'เทเวศประกันภัย' },
 
   // Vehicle Types
-  { category: 'VehicleType', value: 'รถมอเตอร์ไซค์' },
-  { category: 'VehicleType', value: 'รถกระบะ' },
-  { category: 'VehicleType', value: 'รถเก๋ง' },
-  { category: 'VehicleType', value: 'รถกระบะ 4 ประตู' },
-  { category: 'VehicleType', value: 'รถโดยสาร' },
-  { category: 'VehicleType', value: 'รถ 6 ล้อ' },
-  { category: 'VehicleType', value: 'รถ 10 ล้อ' },
-  { category: 'VehicleType', value: 'รถพ่วง' },
-  { category: 'VehicleType', value: 'รถเพื่อการเกษตร' },
+  { category: 'VehicleType', value: 'รถจักรยานยนต์' },
+  { category: 'VehicleType', value: 'รถยนต์บรรทุกส่วนบุคคล (กระบะตอนเดียว/แค็บ)' },
+  { category: 'VehicleType', value: 'รถยนต์นั่งส่วนบุคคลไม่เกิน 7 คน' },
+  { category: 'VehicleType', value: 'รถยนต์บรรทุกส่วนบุคคล (ดับเบิลแค็บ 4 ประตู)' },
+  { category: 'VehicleType', value: 'รถยนต์โดยสาร' },
+  { category: 'VehicleType', value: 'รถบรรทุก 6 ล้อ หรือ รถยนต์บรรทุก' },
+  { category: 'VehicleType', value: 'รถบรรทุก 10 ล้อ หรือ รถยนต์บรรทุก' },
+  { category: 'VehicleType', value: 'รถลากจูงและรถกึ่งพ่วง / รถพ่วง' },
+  { category: 'VehicleType', value: 'รถเพื่อการเกษตร (เช่น รถไถนา รถเกี่ยวข้าว รถตัดอ้อย)' },
 
   // Job Statuses
   { category: 'JobStatus', value: 'สำเร็จ' },
