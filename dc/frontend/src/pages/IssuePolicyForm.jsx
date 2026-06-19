@@ -570,17 +570,17 @@ const IssuePolicyForm = () => {
           <h4 className="fw-bold text-dark mb-3">✨ สแกนรูปด้วย AI แม่นยำ 100%</h4>
           <div className="mb-3">
             <small className="text-muted">
-              (ขับเคลื่อนโดย Gemini AI) 
+              (ขับเคลื่อนโดย Groq AI) 
               <button className="btn btn-link btn-sm text-decoration-none" onClick={() => {
-                const key = window.prompt('กรุณาใส่ Gemini API Key ใหม่:', localStorage.getItem('geminiApiKey') || '');
-                if(key) localStorage.setItem('geminiApiKey', key);
+                const key = window.prompt('กรุณาใส่ Groq API Key ใหม่ (ขอรับฟรีได้ที่ console.groq.com):', localStorage.getItem('groqApiKey') || '');
+                if(key) localStorage.setItem('groqApiKey', key);
               }}>⚙️ ตั้งค่า API Key</button>
             </small>
           </div>
           {ocrLoading ? (
             <div className="d-flex align-items-center justify-content-center text-primary fw-bold">
               <span className="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
-              กำลังใช้ Gemini AI อ่านเอกสาร... (อาจใช้เวลา 10-20 วินาที)
+              กำลังใช้ Groq AI อ่านเอกสาร... (อาจใช้เวลา 10-20 วินาที)
             </div>
           ) : (
             <label className="btn btn-dark btn-lg fw-bold px-5 rounded-pill shadow-sm">
