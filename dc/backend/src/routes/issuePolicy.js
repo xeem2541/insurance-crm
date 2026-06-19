@@ -34,8 +34,8 @@ router.post('/', authenticateToken, upload.array('files'), async (req, res) => {
 
     // 1. Handle Customer
       if (!customerId) {
-      // Create new customer
-      const customerCode = `CUS-${new Date().getFullYear()}-${String(Math.floor(Math.random() * 9000)).padStart(4, '0')}`;
+      // Create new customer (with unique code using timestamp to avoid duplicates)
+      const customerCode = `CUS-${new Date().getFullYear()}-${Date.now().toString().slice(-4)}${Math.floor(Math.random() * 10)}`;
       const [custResult] = await connection.query(
         `INSERT INTO customers (
           customer_code, prefix, first_name, last_name, phone, alt_phone, line_id, facebook, 
@@ -116,8 +116,8 @@ router.post('/', authenticateToken, upload.array('files'), async (req, res) => {
       const commissionBaht = parseFloat(policy.commission_baht) || 0;
       const netPremium = parseFloat(policy.net_premium) || 0;
 
-      // Insert Motor Policy
-      const policyNo = policy.policy_no || `POL-${new Date().getFullYear()}-${String(Math.floor(Math.random() * 9000)).padStart(4, '0')}`;
+      // Insert Motor Policy (with unique generated policy number to avoid duplicate entry error)
+      const policyNo = policy.policy_no || `POL-${new Date().getFullYear()}-${Date.now().toString().slice(-4)}${Math.floor(Math.random() * 10)}`;
       const [polResult] = await connection.query(
         `INSERT INTO policies (
           customer_id, vehicle_id, policy_no, company, type, sum_insured,
@@ -144,7 +144,7 @@ router.post('/', authenticateToken, upload.array('files'), async (req, res) => {
       const commissionBaht = parseFloat(policy.commission_baht) || 0;
       const netPremium = parseFloat(policy.net_premium) || 0;
 
-      const policyNo = policy.policy_no || `NM-${new Date().getFullYear()}-${String(Math.floor(Math.random() * 9000)).padStart(4, '0')}`;
+      const policyNo = policy.policy_no || `NM-${new Date().getFullYear()}-${Date.now().toString().slice(-4)}${Math.floor(Math.random() * 10)}`;
       const [nmPolResult] = await connection.query(
         `INSERT INTO non_motor_policies (
           customer_id, policy_no, company, non_motor_type_id, insured_name, sum_insured,
@@ -244,9 +244,24 @@ router.post('/', authenticateToken, upload.array('files'), async (req, res) => {
     
     let errMsg = error.message;
     if (error.code === 'ER_DUP_ENTRY') {
-      if (errMsg.includes('phone')) errMsg = 'เบอร์โทรศัพท์นี้มีในระบบแล้ว กรุณาค้นหาลูกค้าจากช่องดึงข้อมูลลูกค้าเก่าอัตโนมัติ';
-      else if (errMsg.includes('plate_no')) errMsg = 'ทะเบียนรถนี้มีในระบบแล้ว กรุณาค้นหาข้อมูลรถจากช่องดึงข้อมูลอัตโนมัติ';
-      else errMsg = 'มีข้อมูลซ้ำซ้อนในระบบ (Duplicate Entry)';
+      const match = errMsg.match(/Duplicate entry '(.*)' for key '(.*)'/);
+      if (match) {
+        const val = match[1];
+        const key = match[2];
+        if (key.includes('policy_no')) {
+          errMsg = `เลขที่กรมธรรม์ "${val}" นี้มีในระบบแล้ว กรุณาใช้เลขอื่น หรือตรวจสอบข้อมูลเดิม`;
+        } else if (key.includes('customer_code')) {
+          errMsg = `รหัสลูกค้า "${val}" ซ้ำในระบบ กรุณาลองใหม่อีกครั้ง`;
+        } else if (key.includes('phone')) {
+          errMsg = `เบอร์โทรศัพท์ "${val}" นี้มีในระบบแล้ว กรุณาค้นหาลูกค้าจากช่องดึงข้อมูลลูกค้าเก่าอัตโนมัติ`;
+        } else if (key.includes('plate_no')) {
+          errMsg = `ทะเบียนรถ "${val}" นี้มีในระบบแล้ว กรุณาค้นหาข้อมูลรถจากช่องดึงข้อมูลอัตโนมัติ`;
+        } else {
+          errMsg = `ข้อมูล "${val}" ซ้ำในระบบ (${key})`;
+        }
+      } else {
+        errMsg = 'มีข้อมูลซ้ำในระบบ (Duplicate Entry)';
+      }
     }
 
     res.status(500).json({ error: 'เกิดข้อผิดพลาด: ' + errMsg });

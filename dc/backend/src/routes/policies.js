@@ -99,7 +99,7 @@ router.post('/', authenticateToken, async (req, res) => {
   } catch (error) {
     console.error(error);
     if (error.code === 'ER_DUP_ENTRY') {
-      return res.status(400).json({ error: 'Policy number already exists' });
+      return res.status(400).json({ error: 'เลขที่กรมธรรม์นี้มีในระบบแล้ว' });
     }
     res.status(500).json({ error: 'Server error' });
   }

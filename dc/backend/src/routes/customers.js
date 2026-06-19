@@ -83,7 +83,7 @@ router.post('/', authenticateToken, async (req, res) => {
   } catch (error) {
     console.error(error);
     if (error.code === 'ER_DUP_ENTRY') {
-      return res.status(400).json({ error: 'Customer code or ID card already exists' });
+      return res.status(400).json({ error: 'รหัสลูกค้านี้มีในระบบแล้ว' });
     }
     res.status(500).json({ error: 'Server error' });
   }
