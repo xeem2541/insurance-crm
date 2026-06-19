@@ -99,18 +99,18 @@ router.post('/extract', authenticateToken, upload.array('images', 10), async (re
     }));
 
     const modelsToTry = [
-      'gemini-3.5-flash',
-      'gemini-2.5-flash'
+      { name: 'gemini-3.5-flash', timeout: 20000 }, // 20 seconds for the premium model
+      { name: 'gemini-2.5-flash', timeout: 8000 }   // 8 seconds for the fallback
     ];
 
     let lastError = null;
     let responseText = null;
 
-    for (const modelName of modelsToTry) {
+    for (const modelConfig of modelsToTry) {
       try {
-        console.log(`Trying Gemini model: ${modelName}`);
+        console.log(`Trying Gemini model: ${modelConfig.name}`);
         const response = await axios.post(
-          `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent`,
+          `https://generativelanguage.googleapis.com/v1beta/models/${modelConfig.name}:generateContent`,
           {
             contents: [
               {
@@ -130,20 +130,20 @@ router.post('/extract', authenticateToken, upload.array('images', 10), async (re
               'x-goog-api-key': apiKey,
               'Content-Type': 'application/json'
             },
-            timeout: 12000 // 12 seconds timeout per model attempt (to prevent Render 30s gateway timeout on fallback)
+            timeout: modelConfig.timeout
           }
         );
         
         if (response.data?.candidates?.[0]?.content?.parts?.[0]?.text) {
           responseText = response.data.candidates[0].content.parts[0].text;
-          console.log(`Successfully processed with model: ${modelName}`);
+          console.log(`Successfully processed with model: ${modelConfig.name}`);
           break; // Success! Exit the loop
         }
       } catch (error) {
         lastError = error;
         const status = error.response?.status;
         const msg = error.response?.data?.error?.message || error.message;
-        console.warn(`Failed with model ${modelName}:`, msg);
+        console.warn(`Failed with model ${modelConfig.name}:`, msg);
         
         // If it's a key/auth issue (400 Bad Request (often invalid key), 401 Unauthorized, 403 Forbidden), 
         // fail immediately since other models will also fail
