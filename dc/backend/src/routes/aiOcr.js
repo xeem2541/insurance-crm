@@ -13,9 +13,9 @@ router.post('/extract', authenticateToken, upload.array('images', 10), async (re
       return res.status(400).json({ error: 'No images provided' });
     }
 
-    const apiKey = req.headers['x-gemini-api-key'] || process.env.OPENAI_API_KEY;
+    const apiKey = (req.headers['x-gemini-api-key'] || process.env.GEMINI_API_KEY || '').trim();
     if (!apiKey) {
-      return res.status(401).json({ error: 'OPENAI_API_KEY_REQUIRED' });
+      return res.status(401).json({ error: 'GEMINI_API_KEY_REQUIRED' });
     }
 
     // No need to initialize OpenAI client, we will use axios
@@ -70,36 +70,36 @@ router.post('/extract', authenticateToken, upload.array('images', 10), async (re
 }`;
 
     const imageParts = req.files.map(file => ({
-      type: "image_url",
-      image_url: {
-        url: `data:${file.mimetype};base64,${file.buffer.toString('base64')}`
+      inline_data: {
+        mime_type: file.mimetype,
+        data: file.buffer.toString('base64')
       }
     }));
 
     const response = await axios.post(
-      'https://api.groq.com/openai/v1/chat/completions',
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent`,
       {
-        model: "llama-3.2-90b-vision-preview",
-        messages: [
+        contents: [
           {
-            role: "user",
-            content: [
-              { type: "text", text: prompt },
-              imageParts[0] // Groq Vision currently supports 1 image per request
+            parts: [
+              { text: prompt },
+              ...imageParts // Support multiple images seamlessly
             ]
           }
-        ]
-        // Removed response_format: { type: "json_object" } to prevent 400 errors
+        ],
+        generationConfig: {
+          responseMimeType: "application/json"
+        }
       },
       {
         headers: {
-          'Authorization': `Bearer ${apiKey}`,
+          'x-goog-api-key': apiKey,
           'Content-Type': 'application/json'
         }
       }
     );
 
-    const responseText = response.data.choices[0].message.content;
+    const responseText = response.data.candidates[0].content.parts[0].text;
     
     // Clean up markdown syntax if Gemini returns it despite instructions
     let jsonText = responseText.trim();
