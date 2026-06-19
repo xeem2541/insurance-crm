@@ -453,6 +453,7 @@ const IssuePolicyForm = () => {
 
   const [files, setFiles] = useState([]);
   const [ocrLoading, setOcrLoading] = useState(false);
+  const [aiWarning, setAiWarning] = useState('');
   const [activePreviewIdx, setActivePreviewIdx] = useState(0);
   const [zoomLevel, setZoomLevel] = useState(1);
   const [rotation, setRotation] = useState(0);
@@ -500,6 +501,46 @@ const IssuePolicyForm = () => {
         headers: { 'x-gemini-api-key': geminiApiKey } 
       });
       const data = res.data;
+
+      // Auto-set document warnings if any
+      if (data.validation && data.validation.warning_message) {
+        setAiWarning(data.validation.warning_message);
+      }
+
+      // Handle payment slip auto-population
+      if (data.document_type === 'payment_slip' && data.payment_slip_data) {
+        const slip = data.payment_slip_data;
+        setPayment(prev => ({
+          ...prev,
+          payment_method: 'เงินสด', // Mark as cash (one-time)
+          pay_date: slip.transfer_date_time ? normalizeDate(slip.transfer_date_time) : prev.pay_date,
+          status: 'ชำระครบแล้ว'
+        }));
+        
+        let bankText = '';
+        if (slip.bank_sender || slip.bank_receiver) {
+          bankText = ` (${slip.bank_sender || ''} -> ${slip.bank_receiver || ''})`;
+        }
+        let slipNotice = `ตรวจพบสลิปโอนเงิน ยอดโอน: ฿${parseFloat(slip.amount || 0).toLocaleString()}${bankText} วันที่โอน: ${slip.transfer_date_time || ''}`;
+        setAiWarning(prev => prev ? `${prev} | ${slipNotice}` : slipNotice);
+      }
+
+      // Auto-set the document type in the files state for the newly added files
+      let detectedTypeId = 1; // default to policy
+      if (data.document_type === 'vehicle_book') detectedTypeId = 4;
+      else if (data.document_type === 'payment_slip') detectedTypeId = 2;
+      
+      setFiles(prev => {
+        const updated = [...prev];
+        for (let i = currentLength; i < updated.length; i++) {
+          updated[i] = {
+            ...updated[i],
+            type_id: detectedTypeId,
+            note: `สแกนด้วย AI: ${data.document_type === 'payment_slip' ? 'สลิปโอนเงิน' : data.document_type === 'vehicle_book' ? 'ทะเบียนรถ' : 'กรมธรรม์'}`
+          };
+        }
+        return updated;
+      });
       
       // Auto-normalize any extracted dates (e.g. converting BE to AD)
       if (data.customer && data.customer.dob) {
@@ -1059,6 +1100,15 @@ const IssuePolicyForm = () => {
           <div className="mt-3">
             <Button variant="outline-success" className="me-2 fw-bold" onClick={() => window.location.reload()}>+ ออกกรมธรรม์ใหม่</Button>
           </div>
+        </div>
+      )}
+
+      {aiWarning && (
+        <div className="alert alert-warning shadow-sm border-0 mb-4 p-4 rounded-3" style={{ borderLeft: '5px solid #ffc107', backgroundColor: '#fff9e6' }}>
+          <h5 className="alert-heading fw-bold text-warning-emphasis mb-2">
+            <i className="bi bi-exclamation-triangle-fill me-2"></i> คำแนะนำ / ข้อแนะนำจาก AI
+          </h5>
+          <p className="mb-0 fs-6 text-dark" style={{ lineHeight: '1.6' }}>{aiWarning}</p>
         </div>
       )}
 
