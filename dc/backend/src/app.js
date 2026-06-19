@@ -488,7 +488,7 @@ function safeUseRoute(path, modulePath) {
   try {
     app.use(path, require(modulePath));
   } catch (e) {
-    console.log(`Route module ${modulePath} not found. Skipping.`);
+    console.log(`Route module ${modulePath} failed to load:`, e.message);
   }
 }
 
