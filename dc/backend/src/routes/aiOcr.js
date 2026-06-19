@@ -85,11 +85,11 @@ router.post('/extract', authenticateToken, upload.array('images', 10), async (re
             role: "user",
             content: [
               { type: "text", text: prompt },
-              ...imageParts
+              imageParts[0] // Groq Vision currently supports 1 image per request
             ]
           }
-        ],
-        response_format: { type: "json_object" }
+        ]
+        // Removed response_format: { type: "json_object" } to prevent 400 errors
       },
       {
         headers: {
@@ -120,8 +120,9 @@ router.post('/extract', authenticateToken, upload.array('images', 10), async (re
     res.json(parsedData);
 
   } catch (error) {
-    console.error('OCR Error:', error);
-    res.status(500).json({ error: 'Error processing image: ' + error.message });
+    const apiError = error.response?.data?.error?.message || error.message;
+    console.error('OCR Error Details:', error.response?.data || error);
+    res.status(500).json({ error: apiError });
   }
 });
 
