@@ -105,7 +105,8 @@ router.post('/extract', authenticateToken, upload.array('images', 10), async (re
           }
         ],
         generationConfig: {
-          responseMimeType: "application/json"
+          responseMimeType: "application/json",
+          temperature: 0.1
         }
       },
       {
