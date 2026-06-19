@@ -299,7 +299,7 @@ const IssuePolicyForm = () => {
     try {
       // Compress images in parallel before sending to backend to speed up upload & processing
       const compressedFiles = await Promise.all(
-        rawFiles.map(file => compressImage(file))
+        rawFiles.map(file => compressImage(file, 1200, 1200, 0.6))
       );
 
       const formData = new FormData();
