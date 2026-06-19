@@ -19,8 +19,8 @@ router.post('/extract', authenticateToken, upload.array('images', 10), async (re
     }
 
     const genAI = new GoogleGenerativeAI(apiKey);
-    // Use gemini-2.0-flash model as per the new Google AI Studio documentation
-    const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash' });
+    // Use gemini-1.5-pro which has a free tier quota
+    const model = genAI.getGenerativeModel({ model: 'gemini-1.5-pro' });
 
     const prompt = `
 You are an expert data entry assistant for an insurance CRM. 
