@@ -19,8 +19,8 @@ router.post('/extract', authenticateToken, upload.array('images', 10), async (re
     }
 
     const genAI = new GoogleGenerativeAI(apiKey);
-    // Use gemini-1.5-pro which has a free tier quota
-    const model = genAI.getGenerativeModel({ model: 'gemini-1.5-pro' });
+    // Fallback to the classic gemini-pro-vision which is universally available
+    const model = genAI.getGenerativeModel({ model: 'gemini-pro-vision' });
 
     const prompt = `
 You are an expert data entry assistant for an insurance CRM. 
