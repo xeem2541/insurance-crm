@@ -19,8 +19,8 @@ router.post('/extract', authenticateToken, upload.array('images', 10), async (re
     }
 
     const genAI = new GoogleGenerativeAI(apiKey);
-    // Use flash model for fast multi-modal tasks
-    const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
+    // Use flash-latest model for fast multi-modal tasks
+    const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash-latest' });
 
     const prompt = `
 You are an expert data entry assistant for an insurance CRM. 
