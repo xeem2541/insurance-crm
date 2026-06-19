@@ -1531,6 +1531,27 @@ const IssuePolicyForm = () => {
         </Row>
       </Form>
 
+      {/* Floating Preview Button for Mobile/Tablet */}
+      {imageFiles.length > 0 && (
+        <div className="d-lg-none position-fixed" style={{ bottom: '70px', right: '15px', zIndex: 1040 }}>
+          <Button 
+            variant="success" 
+            className="rounded-pill shadow-lg d-flex align-items-center gap-2 px-3 py-2 fw-bold" 
+            onClick={() => {
+              setPreviewModalUrl(imageFiles[validActiveIdx]?.preview);
+              setZoomLevel(1);
+              setRotation(0);
+            }}
+            style={{ 
+              border: '2px solid #fff',
+              background: 'linear-gradient(45deg, #00b09b, #96c93d)',
+            }}
+          >
+            <i className="bi bi-eye-fill"></i> ดูเอกสารแนบ ({validActiveIdx + 1}/{imageFiles.length})
+          </Button>
+        </div>
+      )}
+
       {/* Modal Preview for images */}
       <Modal show={previewModalUrl !== null} onHide={() => setPreviewModalUrl(null)} size="lg" centered>
         <Modal.Header closeButton className="py-2">
@@ -1538,9 +1559,55 @@ const IssuePolicyForm = () => {
         </Modal.Header>
         <Modal.Body className="p-0 bg-dark text-center overflow-auto" style={{ maxHeight: '80vh' }}>
           {previewModalUrl && (
-            <img src={previewModalUrl} alt="Preview Modal" style={{ maxWidth: '100%', maxHeight: '75vh', objectFit: 'contain' }} />
+            <div className="p-2 d-flex align-items-center justify-content-center" style={{ minHeight: '300px' }}>
+              <img 
+                src={previewModalUrl} 
+                alt="Preview Modal" 
+                style={{ 
+                  transform: `scale(${zoomLevel}) rotate(${rotation}deg)`,
+                  transition: 'transform 0.2s ease-in-out',
+                  maxWidth: '100%', 
+                  maxHeight: '70vh', 
+                  objectFit: 'contain' 
+                }} 
+              />
+            </div>
           )}
         </Modal.Body>
+        <Modal.Footer className="bg-light py-1 d-flex justify-content-between align-items-center">
+          {imageFiles.length > 1 && (
+            <div className="btn-group btn-group-sm">
+              <Button variant="outline-secondary" size="sm" disabled={validActiveIdx === 0} onClick={() => {
+                const newIdx = Math.max(0, validActiveIdx - 1);
+                setActivePreviewIdx(newIdx);
+                setPreviewModalUrl(imageFiles[newIdx]?.preview);
+                setZoomLevel(1);
+                setRotation(0);
+              }}><i className="bi bi-chevron-left"></i></Button>
+              <Button variant="outline-secondary" size="sm" disabled={validActiveIdx === imageFiles.length - 1} onClick={() => {
+                const newIdx = Math.min(imageFiles.length - 1, validActiveIdx + 1);
+                setActivePreviewIdx(newIdx);
+                setPreviewModalUrl(imageFiles[newIdx]?.preview);
+                setZoomLevel(1);
+                setRotation(0);
+              }}><i className="bi bi-chevron-right"></i></Button>
+            </div>
+          )}
+          <div className="btn-group btn-group-sm ms-auto">
+            <Button variant="outline-secondary" size="sm" title="ซูมเข้า" onClick={() => setZoomLevel(z => Math.min(3, z + 0.25))}>
+              <i className="bi bi-zoom-in"></i>
+            </Button>
+            <Button variant="outline-secondary" size="sm" title="ซูมออก" onClick={() => setZoomLevel(z => Math.max(0.5, z - 0.25))}>
+              <i className="bi bi-zoom-out"></i>
+            </Button>
+            <Button variant="outline-secondary" size="sm" title="หมุนรูป" onClick={() => setRotation(r => (r + 90) % 360)}>
+              <i className="bi bi-arrow-clockwise"></i>
+            </Button>
+            <Button variant="outline-danger" size="sm" title="รีเซ็ต" onClick={() => { setZoomLevel(1); setRotation(0); }}>
+              <i className="bi bi-arrow-counterclockwise"></i>
+            </Button>
+          </div>
+        </Modal.Footer>
       </Modal>
     </div>
   );
