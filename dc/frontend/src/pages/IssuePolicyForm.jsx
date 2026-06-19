@@ -620,7 +620,7 @@ const IssuePolicyForm = () => {
               >
                 <i className="bi bi-camera-fill me-2 fs-4 align-middle"></i> 
                 <span className="align-middle">อัปโหลดตารางกรมธรรม์ (ดึงข้อมูลอัตโนมัติ)</span>
-                <input type="file" accept="image/*" capture="environment" className="d-none" multiple onChange={handleAIExtract} />
+                <input type="file" accept="image/*" className="d-none" multiple onChange={handleAIExtract} />
               </label>
             </div>
           )}
