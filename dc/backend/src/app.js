@@ -339,25 +339,54 @@ async function initDb() {
       console.log('Successfully auto-seeded mock data!');
     }
 
-    // Auto-seed missing insurance companies in master_data
+    // Auto-migrate and update existing insurance company names to formal names
     try {
+      const companyMap = {
+        'วิริยะประกันภัย': 'บริษัท วิริยะประกันภัย จำกัด (มหาชน)',
+        'กรุงเทพประกันภัย': 'บริษัท กรุงเทพประกันภัย จำกัด (มหาชน)',
+        'ธนชาตประกันภัย': 'บริษัท ธนชาตประกันภัย จำกัด (มหาชน)',
+        'ทิพยประกันภัย': 'บริษัท ทิพยประกันภัย จำกัด (มหาชน)',
+        'คุ้มภัยโตเกียวมารีน': 'บริษัท คุ้มภัยโตเกียวมารีนประกันภัย (ประเทศไทย) จำกัด (มหาชน)',
+        'ไทยวิวัฒน์ประกันภัย': 'บริษัท ไทยวิวัฒน์ จำกัด (มหาชน)',
+        'เมืองไทยประกันภัย': 'บริษัท เมืองไทยประกันภัย จำกัด (มหาชน)',
+        'แอกซ่าประกันภัย': 'บริษัท แอกซ่าประกันภัย จำกัด (มหาชน)',
+        'MSIG ประกันภัย': 'บริษัท เอ็ม เอส ไอ จี ประกันภัย (ประเทศไทย) จำกัด (มหาชน)',
+        'แอลเอ็มจีประกันภัย': 'บริษัท แอลเอ็มจี ประกันภัย จำกัด (มหาชน)',
+        'ซับบ์สามัคคีประกันภัย': 'บริษัท ชับบ์สามัคคีประกันภัย จำกัด (มหาชน)',
+        'นวกิจประกันภัย': 'บริษัท นวกิจประกันภัย จำกัด (มหาชน)',
+        'เออร์โก้ประกันภัย': 'บริษัท เออร์โกประกันภัย (ประเทศไทย) จำกัด (มหาชน)',
+        'ไอโออิกรุงเทพประกันภัย': 'บริษัท ไอโออิ กรุงเทพ ประกันภัย จำกัด (มหาชน)',
+        'อลิอันซ์ประกันภัย': 'บริษัท อลิอันซ์ อยุธยา ประกันภัย จำกัด (มหาชน)',
+        'เทเวศประกันภัย': 'บริษัท เทเวศประกันภัย จำกัด (มหาชน)',
+        'อินทรประกันภัย': 'บริษัท อินทรประกันภัย จำกัด (มหาชน)',
+        'มิตรแท้ประกันภัย': 'บริษัท มิตรแท้ประกันภัย จำกัด (มหาชน)'
+      };
+      
+      for (const [shortName, formalName] of Object.entries(companyMap)) {
+        await connection.query(
+          "UPDATE master_data SET value = ? WHERE category = 'InsuranceCompany' AND value = ?",
+          [formalName, shortName]
+        );
+        await connection.query(
+          "UPDATE policies SET company = ? WHERE company = ?",
+          [formalName, shortName]
+        );
+        await connection.query(
+          "UPDATE non_motor_policies SET company = ? WHERE company = ?",
+          [formalName, shortName]
+        );
+      }
+
       const [existingCompanies] = await connection.query("SELECT value FROM master_data WHERE category = 'InsuranceCompany'");
       const existingNames = existingCompanies.map(c => c.value);
-      const targetCompanies = [
-        'วิริยะประกันภัย', 'กรุงเทพประกันภัย', 'ธนชาตประกันภัย', 'ทิพยประกันภัย',
-        'คุ้มภัยโตเกียวมารีน', 'ไทยวิวัฒน์ประกันภัย', 'เมืองไทยประกันภัย', 'แอกซ่าประกันภัย',
-        'MSIG ประกันภัย', 'แอลเอ็มจีประกันภัย', 'ซับบ์สามัคคีประกันภัย', 'นวกิจประกันภัย',
-        'เออร์โก้ประกันภัย', 'ไอโออิกรุงเทพประกันภัย', 'อลิอันซ์ประกันภัย', 'เทเวศประกันภัย',
-        'อินทรประกันภัย', 'มิตรแท้ประกันภัย'
-      ];
-      for (const name of targetCompanies) {
-        if (!existingNames.includes(name)) {
-          await connection.query("INSERT INTO master_data (category, value) VALUES ('InsuranceCompany', ?)", [name]);
-          console.log(`Seeded missing company: ${name}`);
+      for (const formalName of Object.values(companyMap)) {
+        if (!existingNames.includes(formalName)) {
+          await connection.query("INSERT INTO master_data (category, value) VALUES ('InsuranceCompany', ?)", [formalName]);
+          console.log(`Seeded formal company: ${formalName}`);
         }
       }
     } catch (e) {
-      console.error('Error seeding companies:', e);
+      console.error('Error migrating company names:', e);
     }
     
     connection.release();
