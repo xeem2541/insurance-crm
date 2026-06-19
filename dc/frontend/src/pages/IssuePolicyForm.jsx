@@ -160,14 +160,14 @@ const IssuePolicyForm = () => {
     const files = Array.from(e.target.files);
     if (!files.length) return;
 
-    let geminiApiKey = localStorage.getItem('geminiApiKey');
-    if (!geminiApiKey) {
-      geminiApiKey = window.prompt('ระบบจำเป็นต้องใช้ Gemini API Key ในการอ่านรูปภาพ\\nกรุณาใส่ API Key ของคุณที่ได้จาก Google AI Studio:');
-      if (!geminiApiKey) {
+    let openaiApiKey = localStorage.getItem('openaiApiKey');
+    if (!openaiApiKey) {
+      openaiApiKey = window.prompt('ระบบจำเป็นต้องใช้ OpenAI API Key ในการอ่านรูปภาพ\\nกรุณาใส่ API Key ของคุณที่ได้จาก platform.openai.com:');
+      if (!openaiApiKey) {
         e.target.value = null;
         return;
       }
-      localStorage.setItem('geminiApiKey', geminiApiKey);
+      localStorage.setItem('openaiApiKey', openaiApiKey);
     }
 
     const formData = new FormData();
@@ -178,7 +178,7 @@ const IssuePolicyForm = () => {
     setOcrLoading(true);
     try {
       const res = await api.post('/ai-ocr/extract', formData, {
-        headers: { 'x-gemini-api-key': geminiApiKey }
+        headers: { 'x-gemini-api-key': openaiApiKey } // Kept the header name same to avoid CORS/backend header changes if any, but backend expects this header anyway
       });
       const data = res.data;
       
@@ -188,9 +188,9 @@ const IssuePolicyForm = () => {
       
       alert('ดึงข้อมูลจากรูปภาพสำเร็จ! กรุณาตรวจสอบความถูกต้องก่อนบันทึกอีกครั้งนะครับ');
     } catch (err) {
-      if (err.response?.data?.error === 'GEMINI_API_KEY_REQUIRED') {
-        alert('API Key ของ Gemini ไม่ถูกต้องหรือหมดอายุ กรุณาตั้งค่าใหม่ครับ');
-        localStorage.removeItem('geminiApiKey');
+      if (err.response?.data?.error === 'OPENAI_API_KEY_REQUIRED') {
+        alert('API Key ของ OpenAI ไม่ถูกต้องหรือหมดอายุ กรุณาตั้งค่าใหม่ครับ');
+        localStorage.removeItem('openaiApiKey');
       } else {
         alert(err.response?.data?.error || 'เกิดข้อผิดพลาดในการดึงข้อมูลด้วย AI');
       }
