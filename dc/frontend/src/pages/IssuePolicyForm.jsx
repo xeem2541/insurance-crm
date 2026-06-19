@@ -3,6 +3,7 @@ import api from '../services/api';
 import { Form, Button, Row, Col, Accordion, Card, Badge } from 'react-bootstrap';
 import Select from 'react-select';
 import AsyncSelect from 'react-select/async';
+import CreatableSelect from 'react-select/creatable';
 import { useDropzone } from 'react-dropzone';
 import ThaiAddressSelect from '../components/ThaiAddressSelect';
 import { carBrands, carModels } from '../data/carData';
@@ -523,6 +524,18 @@ const IssuePolicyForm = () => {
       setPolicy(prev => ({ ...prev, sum_insured: vehicle.sum_insured }));
     }
   }, [vehicle.sum_insured, policy.category]);
+
+  useEffect(() => {
+    const targetDate = policy.start_date || policy.prb_start_date;
+    if (targetDate) {
+      setPayment(prev => {
+        if (prev.pay_date !== targetDate) {
+          return { ...prev, pay_date: targetDate };
+        }
+        return prev;
+      });
+    }
+  }, [policy.start_date, policy.prb_start_date]);
 
   const loadCustomerOptions = (inputValue) => {
     return new Promise(resolve => {
@@ -1055,7 +1068,14 @@ const IssuePolicyForm = () => {
               <Row className="g-3 mb-4">
                 <Col md={4}>
                   <Form.Label>บริษัทประกัน <span className="text-danger">*</span></Form.Label>
-                  <Select options={companies} value={companies.find(c => c.value === policy.company)} onChange={opt => setPolicy({...policy, company: opt?.value || ''})} isClearable />
+                  <CreatableSelect 
+                    options={companies} 
+                    value={policy.company ? { value: policy.company, label: policy.company } : null} 
+                    onChange={opt => setPolicy({...policy, company: opt?.value || ''})} 
+                    isClearable 
+                    placeholder="เลือก หรือ พิมพ์ชื่อบริษัท..."
+                    formatCreateLabel={(inputValue) => `ใช้ชื่อ: "${inputValue}"`}
+                  />
                 </Col>
                 <Col md={4}>
                   <Form.Label>ประเภทประกันภัย <span className="text-danger">*</span></Form.Label>
