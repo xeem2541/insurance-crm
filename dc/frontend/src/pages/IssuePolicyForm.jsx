@@ -160,14 +160,14 @@ const IssuePolicyForm = () => {
     const files = Array.from(e.target.files);
     if (!files.length) return;
 
-    let openaiApiKey = localStorage.getItem('openaiApiKey');
-    if (!openaiApiKey) {
-      openaiApiKey = window.prompt('ระบบจำเป็นต้องใช้ OpenAI API Key ในการอ่านรูปภาพ\\nกรุณาใส่ API Key ของคุณที่ได้จาก platform.openai.com:');
-      if (!openaiApiKey) {
+    let groqApiKey = localStorage.getItem('groqApiKey');
+    if (!groqApiKey) {
+      groqApiKey = window.prompt('ระบบจำเป็นต้องใช้ Groq API Key ในการอ่านรูปภาพ (ฟรี 100%)\\nกรุณาใส่ API Key ของคุณที่ได้จาก console.groq.com:');
+      if (!groqApiKey) {
         e.target.value = null;
         return;
       }
-      localStorage.setItem('openaiApiKey', openaiApiKey);
+      localStorage.setItem('groqApiKey', groqApiKey);
     }
 
     const formData = new FormData();
@@ -178,7 +178,7 @@ const IssuePolicyForm = () => {
     setOcrLoading(true);
     try {
       const res = await api.post('/ai-ocr/extract', formData, {
-        headers: { 'x-gemini-api-key': openaiApiKey } // Kept the header name same to avoid CORS/backend header changes if any, but backend expects this header anyway
+        headers: { 'x-gemini-api-key': groqApiKey } // Kept header name same for backend compatibility
       });
       const data = res.data;
       
@@ -189,8 +189,8 @@ const IssuePolicyForm = () => {
       alert('ดึงข้อมูลจากรูปภาพสำเร็จ! กรุณาตรวจสอบความถูกต้องก่อนบันทึกอีกครั้งนะครับ');
     } catch (err) {
       if (err.response?.data?.error === 'OPENAI_API_KEY_REQUIRED') {
-        alert('API Key ของ OpenAI ไม่ถูกต้องหรือหมดอายุ กรุณาตั้งค่าใหม่ครับ');
-        localStorage.removeItem('openaiApiKey');
+        alert('API Key ของ Groq ไม่ถูกต้องหรือหมดอายุ กรุณาตั้งค่าใหม่ครับ');
+        localStorage.removeItem('groqApiKey');
       } else {
         const errorMsg = err.response?.data?.error || err.message || JSON.stringify(err.response?.data);
         alert(`เกิดข้อผิดพลาดในการดึงข้อมูลด้วย AI: ${errorMsg}`);
