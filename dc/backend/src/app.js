@@ -414,6 +414,7 @@ safeUseRoute('/api/non-motor-policies', './routes/nonMotorPolicies');
 safeUseRoute('/api/issue-policy', './routes/issuePolicy');
 safeUseRoute('/api/payments', './routes/payments');
 safeUseRoute('/api/notifications', './routes/notifications');
+safeUseRoute('/api/ai-ocr', './routes/aiOcr');
 
 // Schedule Automated Backup every 1st day of the month at 01:00 AM (End of month backup)
 cron.schedule('0 1 1 * *', () => {
