@@ -1998,6 +1998,27 @@ const IssuePolicyForm = () => {
             </div>
           )}
           <div className="btn-group btn-group-sm ms-auto">
+            <Button variant="danger" size="sm" title="ลบรูปภาพนี้" onClick={() => {
+              const actualIdx = files.findIndex(f => f === imageFiles[validActiveIdx]);
+              if (actualIdx !== -1) {
+                removeFile(actualIdx);
+                if (imageFiles.length <= 1) {
+                  setPreviewModalUrl(null);
+                } else {
+                  const newIdx = Math.max(0, validActiveIdx - 1);
+                  const nextImages = imageFiles.filter((_, i) => i !== validActiveIdx);
+                  if (nextImages.length > 0) {
+                    const nextActiveIdx = Math.min(nextImages.length - 1, newIdx);
+                    setActivePreviewIdx(nextActiveIdx);
+                    setPreviewModalUrl(nextImages[nextActiveIdx]?.preview);
+                  } else {
+                    setPreviewModalUrl(null);
+                  }
+                }
+              }
+            }}>
+              <i className="bi bi-trash"></i> ลบรูป
+            </Button>
             <Button variant="outline-secondary" size="sm" title="ซูมเข้า" onClick={() => setZoomLevel(z => Math.min(3, z + 0.25))}>
               <i className="bi bi-zoom-in"></i>
             </Button>
