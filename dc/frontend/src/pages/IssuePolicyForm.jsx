@@ -110,6 +110,28 @@ const findMatchingType = (extractedType, motorTypes, nonMotorTypesList) => {
   return null;
 };
 
+const findMatchingBrand = (extractedBrand, brandsList) => {
+  if (!extractedBrand || !brandsList.length) return '';
+  const cleanExtracted = extractedBrand.replace(/\s+/g, '').toLowerCase();
+  
+  const found = brandsList.find(b => {
+    const cleanBrand = b.replace(/\s+/g, '').toLowerCase();
+    return cleanBrand === cleanExtracted || cleanBrand.includes(cleanExtracted) || cleanExtracted.includes(cleanBrand);
+  });
+  return found || extractedBrand;
+};
+
+const findMatchingModel = (extractedModel, brand, modelsMap) => {
+  if (!extractedModel || !brand || !modelsMap[brand]) return '';
+  const cleanExtracted = extractedModel.replace(/\s+/g, '').toLowerCase();
+  
+  const found = modelsMap[brand].find(m => {
+    const cleanModel = m.replace(/\s+/g, '').toLowerCase();
+    return cleanModel === cleanExtracted || cleanModel.includes(cleanExtracted) || cleanExtracted.includes(cleanModel);
+  });
+  return found || extractedModel;
+};
+
 const compressImage = (file, maxWidth = 1600, maxHeight = 1600, quality = 0.8) => {
   return new Promise((resolve) => {
     if (!file.type.startsWith('image/')) {
@@ -267,9 +289,14 @@ const IssuePolicyForm = () => {
       }
 
       if (data.vehicle) {
+        const matchedBrand = data.vehicle.brand ? findMatchingBrand(data.vehicle.brand, carBrands) : '';
+        const matchedModel = data.vehicle.model ? findMatchingModel(data.vehicle.model, matchedBrand, carModels) : '';
+
         setVehicle(prev => ({ 
           ...prev, 
           ...data.vehicle,
+          brand: matchedBrand || data.vehicle.brand || prev.brand,
+          model: matchedModel || data.vehicle.model || prev.model,
           registration_date: data.vehicle.registration_date || prev.registration_date,
           sum_insured: data.vehicle.sum_insured || data.policy?.sum_insured || prev.sum_insured
         }));
