@@ -7,10 +7,10 @@ const { GoogleGenerativeAI } = require('@google/generative-ai');
 // Use memory storage for quick processing without saving to disk permanently
 const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 10 * 1024 * 1024 } }); // 10MB max
 
-router.post('/extract', authenticateToken, upload.single('image'), async (req, res) => {
+router.post('/extract', authenticateToken, upload.array('images', 10), async (req, res) => {
   try {
-    if (!req.file) {
-      return res.status(400).json({ error: 'No image provided' });
+    if (!req.files || req.files.length === 0) {
+      return res.status(400).json({ error: 'No images provided' });
     }
 
     const apiKey = process.env.GEMINI_API_KEY;
@@ -24,7 +24,7 @@ router.post('/extract', authenticateToken, upload.single('image'), async (req, r
 
     const prompt = `
 You are an expert data entry assistant for an insurance CRM. 
-Analyze the provided image of an insurance policy schedule (ตารางกรมธรรม์) and extract the following data fields. 
+Analyze the provided image(s) of an insurance policy schedule (ตารางกรมธรรม์) and extract the following data fields. 
 Return ONLY a valid JSON object matching the exact structure below, without any markdown formatting or comments.
 
 If a field is not found or unclear, leave it empty ("").
@@ -69,14 +69,12 @@ Expected JSON structure:
   }
 }`;
 
-    const imageParts = [
-      {
-        inlineData: {
-          data: req.file.buffer.toString('base64'),
-          mimeType: req.file.mimetype
-        }
+    const imageParts = req.files.map(file => ({
+      inlineData: {
+        data: file.buffer.toString('base64'),
+        mimeType: file.mimetype
       }
-    ];
+    }));
 
     const result = await model.generateContent([prompt, ...imageParts]);
     const responseText = result.response.text();
