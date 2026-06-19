@@ -158,6 +158,47 @@ const findMatchingModel = (extractedModel, brand, modelsMap) => {
   return found || extractedModel;
 };
 
+const findMatchingVehicleType = (extractedType, vehicleTypesList) => {
+  if (!extractedType || !vehicleTypesList.length) return '';
+  const cleanExtracted = extractedType.replace(/\s+/g, '').replace(/ยนต์/g, '').toLowerCase();
+
+  // Mapping rules based on keywords
+  let targetKeyword = '';
+  if (cleanExtracted.includes('มอเตอร์ไซค์') || cleanExtracted.includes('จักรยานยนต์') || cleanExtracted.includes('มอไซ') || cleanExtracted.includes('มอร์เตอร์ไซค์')) {
+    targetKeyword = 'รถจักรยานยนต์';
+  } else if (cleanExtracted.includes('4ประตู') || cleanExtracted.includes('ดับเบิ้ลแค็บ') || cleanExtracted.includes('ดับเบิลแค็บ') || (cleanExtracted.includes('กระบะ') && cleanExtracted.includes('4'))) {
+    targetKeyword = 'รถยนต์บรรทุกส่วนบุคคล (ดับเบิลแค็บ 4 ประตู)';
+  } else if (cleanExtracted.includes('กระบะ') || cleanExtracted.includes('บรรทุกส่วนบุคคล') || cleanExtracted.includes('แค็บ') || cleanExtracted.includes('ตอนเดียว')) {
+    targetKeyword = 'รถยนต์บรรทุกส่วนบุคคล (กระบะตอนเดียว/แค็บ)';
+  } else if (cleanExtracted.includes('เก๋ง') || cleanExtracted.includes('นั่งส่วนบุคคล') || cleanExtracted.includes('ไม่เกิน7คน')) {
+    targetKeyword = 'รถยนต์นั่งส่วนบุคคลไม่เกิน 7 คน';
+  } else if (cleanExtracted.includes('โดยสาร') || cleanExtracted.includes('รถบัส') || cleanExtracted.includes('ตู้')) {
+    targetKeyword = 'รถยนต์โดยสาร';
+  } else if (cleanExtracted.includes('6ล้อ') || cleanExtracted.includes('หกล้อ')) {
+    targetKeyword = 'รถบรรทุก 6 ล้อ หรือ รถยนต์บรรทุก';
+  } else if (cleanExtracted.includes('10ล้อ') || cleanExtracted.includes('สิบล้อ')) {
+    targetKeyword = 'รถบรรทุก 10 ล้อ หรือ รถยนต์บรรทุก';
+  } else if (cleanExtracted.includes('ลากจูง') || cleanExtracted.includes('พ่วง') || cleanExtracted.includes('กึ่งพ่วง')) {
+    targetKeyword = 'รถลากจูงและรถกึ่งพ่วง / รถพ่วง';
+  } else if (cleanExtracted.includes('เกษตร') || cleanExtracted.includes('ไถ') || cleanExtracted.includes('เกี่ยวข้าว') || cleanExtracted.includes('ตัดอ้อย')) {
+    targetKeyword = 'รถเพื่อการเกษตร (เช่น รถไถนา รถเกี่ยวข้าว รถตัดอ้อย)';
+  }
+
+  if (targetKeyword) {
+    const found = vehicleTypesList.find(t => t.value === targetKeyword);
+    if (found) return found.value;
+  }
+
+  // Fallback to substring matching
+  const foundSub = vehicleTypesList.find(t => {
+    const val = t.value.replace(/\s+/g, '').replace(/ยนต์/g, '').toLowerCase();
+    return val.includes(cleanExtracted) || cleanExtracted.includes(val);
+  });
+  if (foundSub) return foundSub.value;
+
+  return extractedType;
+};
+
 const compressImage = (file, maxWidth = 1600, maxHeight = 1600, quality = 0.8) => {
   return new Promise((resolve) => {
     if (!file.type.startsWith('image/')) {
@@ -345,12 +386,14 @@ const IssuePolicyForm = () => {
       if (data.vehicle) {
         const matchedBrand = data.vehicle.brand ? findMatchingBrand(data.vehicle.brand, carBrands) : '';
         const matchedModel = data.vehicle.model ? findMatchingModel(data.vehicle.model, matchedBrand, carModels) : '';
+        const matchedVehicleType = data.vehicle.vehicle_type ? findMatchingVehicleType(data.vehicle.vehicle_type, vehicleTypes) : '';
 
         setVehicle(prev => ({ 
           ...prev, 
           ...data.vehicle,
           brand: matchedBrand || data.vehicle.brand || prev.brand,
           model: matchedModel || data.vehicle.model || prev.model,
+          vehicle_type: matchedVehicleType || data.vehicle.vehicle_type || prev.vehicle_type,
           registration_date: data.vehicle.registration_date || prev.registration_date,
           sum_insured: data.vehicle.sum_insured || data.policy?.sum_insured || prev.sum_insured
         }));
