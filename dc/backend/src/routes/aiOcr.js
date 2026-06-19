@@ -130,7 +130,7 @@ router.post('/extract', authenticateToken, upload.array('images', 10), async (re
               'x-goog-api-key': apiKey,
               'Content-Type': 'application/json'
             },
-            timeout: 25000 // 25 seconds timeout per model attempt
+            timeout: 12000 // 12 seconds timeout per model attempt (to prevent Render 30s gateway timeout on fallback)
           }
         );
         
