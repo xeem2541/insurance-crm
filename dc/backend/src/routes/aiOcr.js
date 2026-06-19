@@ -77,9 +77,9 @@ router.post('/extract', authenticateToken, upload.array('images', 10), async (re
     }));
 
     const response = await axios.post(
-      'https://api.openai.com/v1/chat/completions',
+      'https://api.groq.com/openai/v1/chat/completions',
       {
-        model: "gpt-4o-mini",
+        model: "llama-3.2-90b-vision-preview",
         messages: [
           {
             role: "user",
