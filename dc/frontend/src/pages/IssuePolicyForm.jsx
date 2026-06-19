@@ -62,7 +62,7 @@ const normalizeDate = (val) => {
   if (!s) return '';
 
   // 1. Try YYYY-MM-DD or YYYY/MM/DD
-  let match = s.match(/^(\d{4})[-\/](\d{1,2})[-\/](\d{1,2})$/);
+  let match = s.match(/^(d{4})[-/](d{1,2})[-/](d{1,2})$/);
   if (match) {
     let year = parseInt(match[1], 10);
     let month = match[2].padStart(2, '0');
@@ -72,17 +72,17 @@ const normalizeDate = (val) => {
   }
 
   // 2. Try DD/MM/YYYY or DD-MM-YYYY
-  match = s.match(/^(\d{1,2})[-\/](\d{1,2})[-\/](\d{4})$/);
+  match = s.match(/^(d{1,2})[-/](d{1,2})[-/](d{4})$/);
   if (match) {
     let day = match[1].padStart(2, '0');
     let month = match[2].padStart(2, '0');
     let year = parseInt(match[3], 10);
     if (year > 2400) year -= 543;
-    return `${year}-${month}-${day}`;
+    return `${year}-\$${month}-\$${day}`;
   }
 
   // 3. Try DD/MM/YY or DD-MM-YY (e.g. 15/12/66)
-  match = s.match(/^(\d{1,2})[-\/](\d{1,2})[-\/](\d{2})$/);
+  match = s.match(/^(d{1,2})[-/](d{1,2})[-/](d{2})$/);
   if (match) {
     let day = match[1].padStart(2, '0');
     let month = match[2].padStart(2, '0');
@@ -110,8 +110,8 @@ const normalizeDate = (val) => {
   
   for (const [key, value] of Object.entries(thMonths)) {
     if (s.includes(key)) {
-      const dayMatch = s.match(/^(\d{1,2})/);
-      const yearMatch = s.match(/(\d{4})/);
+      const dayMatch = s.match(/^(d{1,2})/);
+      const yearMatch = s.match(/(d{4})/);
       if (dayMatch && yearMatch) {
         let day = dayMatch[1].padStart(2, '0');
         let year = parseInt(yearMatch[1], 10);
@@ -136,10 +136,12 @@ const normalizeDate = (val) => {
 
 const findMatchingCompany = (extractedCompany, companyList) => {
   if (!extractedCompany || !companyList.length) return '';
+  const s = extractedCompany.toString();
   
   const stripAffixes = (name) => {
     if (!name) return '';
     return name
+      .toString()
       .replace(/\s+/g, '')
       .replace(/บริษัท/g, '')
       .replace(/บมจ\.?/g, '')
@@ -148,8 +150,8 @@ const findMatchingCompany = (extractedCompany, companyList) => {
       .toLowerCase();
   };
 
-  const cleanExtracted = stripAffixes(extractedCompany);
-  if (!cleanExtracted) return extractedCompany;
+  const cleanExtracted = stripAffixes(s);
+  if (!cleanExtracted) return s;
   
   // 1. Exact match on stripped names
   let found = companyList.find(c => stripAffixes(c.value) === cleanExtracted);
@@ -169,12 +171,12 @@ const findMatchingCompany = (extractedCompany, companyList) => {
   });
   if (found) return found.value;
   
-  return extractedCompany;
+  return s;
 };
 
 const findMatchingType = (extractedType, motorTypes, nonMotorTypesList) => {
   if (!extractedType) return null;
-  const cleanExtracted = extractedType.replace(/\s+/g, '').replace(/[.+]/g, '').toLowerCase();
+  const cleanExtracted = extractedType.toString().replace(/\s+/g, '').replace(/[.+]/g, '').toLowerCase();
   
   // Check for พ.ร.บ. / พรบ
   if (cleanExtracted.includes('พรบ') || cleanExtracted.includes('พ.ร.บ.') || cleanExtracted.includes('พ.ร.บ')) {
@@ -184,7 +186,7 @@ const findMatchingType = (extractedType, motorTypes, nonMotorTypesList) => {
 
   // 1. Search in Motor Types
   for (const t of motorTypes) {
-    const cleanVal = t.value.replace(/\s+/g, '').replace(/[.+]/g, '').toLowerCase();
+    const cleanVal = t.value.toString().replace(/\s+/g, '').replace(/[.+]/g, '').toLowerCase();
     if (cleanExtracted.includes(cleanVal) || cleanVal.includes(cleanExtracted)) {
       return { category: 'motor', type: t.value, non_motor_type_id: '' };
     }
@@ -192,7 +194,7 @@ const findMatchingType = (extractedType, motorTypes, nonMotorTypesList) => {
 
   // 2. Search in Non-Motor Types
   for (const t of nonMotorTypesList) {
-    const cleanVal = t.label.replace(/\s+/g, '').replace(/[.+]/g, '').toLowerCase();
+    const cleanVal = t.label.toString().replace(/\s+/g, '').replace(/[.+]/g, '').toLowerCase();
     if (cleanExtracted.includes(cleanVal) || cleanVal.includes(cleanExtracted)) {
       return { category: 'non-motor', type: t.label, non_motor_type_id: t.value };
     }
@@ -203,29 +205,29 @@ const findMatchingType = (extractedType, motorTypes, nonMotorTypesList) => {
 
 const findMatchingBrand = (extractedBrand, brandsList) => {
   if (!extractedBrand || !brandsList.length) return '';
-  const cleanExtracted = extractedBrand.replace(/\s+/g, '').toLowerCase();
+  const cleanExtracted = extractedBrand.toString().replace(/\s+/g, '').toLowerCase();
   
   const found = brandsList.find(b => {
-    const cleanBrand = b.replace(/\s+/g, '').toLowerCase();
+    const cleanBrand = b.toString().replace(/\s+/g, '').toLowerCase();
     return cleanBrand === cleanExtracted || cleanBrand.includes(cleanExtracted) || cleanExtracted.includes(cleanBrand);
   });
-  return found || extractedBrand;
+  return found || extractedBrand.toString();
 };
 
 const findMatchingModel = (extractedModel, brand, modelsMap) => {
   if (!extractedModel || !brand || !modelsMap[brand]) return '';
-  const cleanExtracted = extractedModel.replace(/\s+/g, '').toLowerCase();
+  const cleanExtracted = extractedModel.toString().replace(/\s+/g, '').toLowerCase();
   
   const found = modelsMap[brand].find(m => {
-    const cleanModel = m.replace(/\s+/g, '').toLowerCase();
+    const cleanModel = m.toString().replace(/\s+/g, '').toLowerCase();
     return cleanModel === cleanExtracted || cleanModel.includes(cleanExtracted) || cleanExtracted.includes(cleanModel);
   });
-  return found || extractedModel;
+  return found || extractedModel.toString();
 };
 
 const findMatchingVehicleType = (extractedType, vehicleTypesList) => {
   if (!extractedType || !vehicleTypesList.length) return '';
-  const cleanExtracted = extractedType.replace(/\s+/g, '').replace(/ยนต์/g, '').toLowerCase();
+  const cleanExtracted = extractedType.toString().replace(/\s+/g, '').replace(/ยนต์/g, '').toLowerCase();
 
   // Mapping rules based on keywords
   let targetKeyword = '';
@@ -256,17 +258,17 @@ const findMatchingVehicleType = (extractedType, vehicleTypesList) => {
 
   // Fallback to substring matching
   const foundSub = vehicleTypesList.find(t => {
-    const val = t.value.replace(/\s+/g, '').replace(/ยนต์/g, '').toLowerCase();
+    const val = t.value.toString().replace(/\s+/g, '').replace(/ยนต์/g, '').toLowerCase();
     return val.includes(cleanExtracted) || cleanExtracted.includes(val);
   });
   if (foundSub) return foundSub.value;
 
-  return extractedType;
+  return extractedType.toString();
 };
 
 const findMatchingColor = (extractedColor) => {
   if (!extractedColor) return '';
-  const clean = extractedColor.replace(/\s+/g, '').replace(/สี/g, '').trim();
+  const clean = extractedColor.toString().replace(/\s+/g, '').replace(/สี/g, '').trim();
   const standardColors = ['ขาว', 'ดำ', 'เทา', 'บรอนซ์เงิน', 'บรอนซ์ทอง', 'แดง', 'น้ำเงิน', 'ฟ้า', 'น้ำตาล', 'เขียว', 'เหลือง', 'ส้ม', 'ชมพู'];
   
   // 1. Exact match
@@ -296,16 +298,16 @@ const cleanAndExtractAddressFields = (customerObj) => {
   if (!customerObj) return customerObj;
   let { address, moo, soi, road } = customerObj;
   
-  address = address || '';
-  moo = moo || '';
-  soi = soi || '';
-  road = road || '';
+  address = address !== undefined && address !== null ? address.toString() : '';
+  moo = moo !== undefined && moo !== null ? moo.toString() : '';
+  soi = soi !== undefined && soi !== null ? soi.toString() : '';
+  road = road !== undefined && road !== null ? road.toString() : '';
 
   // 1. If moo is empty but address contains "หมู่" or "ม.", try to extract it
   if (!moo && address) {
     const mooMatch = address.match(/หมู่ที่\s*(\d+|[ก-ฮ]+)/) || address.match(/หมู่\s*(\d+|[ก-ฮ]+)/) || address.match(/ม\.\s*(\d+|[ก-ฮ]+)/);
     if (mooMatch) {
-      moo = mooMatch[1];
+      moo = mooMatch[1].toString();
     }
   }
 
@@ -313,7 +315,7 @@ const cleanAndExtractAddressFields = (customerObj) => {
   if (!soi && address) {
     const soiMatch = address.match(/ซอย\s*([ก-ฮa-zA-Z0-9\s]+)/) || address.match(/ซ\.\s*([ก-ฮa-zA-Z0-9\s]+)/);
     if (soiMatch) {
-      soi = soiMatch[1].split(' ')[0]; // take first word
+      soi = soiMatch[1].split(' ')[0].toString(); // take first word
     }
   }
 
