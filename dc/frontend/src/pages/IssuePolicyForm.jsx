@@ -58,14 +58,79 @@ const getUpcomingAnniversary = (dateStr) => {
 
 const normalizeDate = (val) => {
   if (!val) return '';
-  const parts = val.split('-');
+  let s = val.toString().trim();
+  if (!s) return '';
+
+  // 1. Try YYYY-MM-DD or YYYY/MM/DD
+  let match = s.match(/^(\d{4})[-\/](\d{1,2})[-\/](\d{1,2})$/);
+  if (match) {
+    let year = parseInt(match[1], 10);
+    let month = match[2].padStart(2, '0');
+    let day = match[3].padStart(2, '0');
+    if (year > 2400) year -= 543;
+    return `${year}-${month}-${day}`;
+  }
+
+  // 2. Try DD/MM/YYYY or DD-MM-YYYY
+  match = s.match(/^(\d{1,2})[-\/](\d{1,2})[-\/](\d{4})$/);
+  if (match) {
+    let day = match[1].padStart(2, '0');
+    let month = match[2].padStart(2, '0');
+    let year = parseInt(match[3], 10);
+    if (year > 2400) year -= 543;
+    return `${year}-${month}-${day}`;
+  }
+
+  // 3. Try DD/MM/YY or DD-MM-YY (e.g. 15/12/66)
+  match = s.match(/^(\d{1,2})[-\/](\d{1,2})[-\/](\d{2})$/);
+  if (match) {
+    let day = match[1].padStart(2, '0');
+    let month = match[2].padStart(2, '0');
+    let yy = parseInt(match[3], 10);
+    let year = yy + 2500; // Assume BE first, e.g. 66 -> 2566
+    if (year > 2400) year -= 543;
+    return `${year}-${month}-${day}`;
+  }
+
+  // Fallback: If it contains Thai month names (e.g., "15 ม.ค. 2566" or "15 มกราคม 2566")
+  const thMonths = {
+    'ม.ค.': '01', 'มกราคม': '01',
+    'ก.พ.': '02', 'กุมภาพันธ์': '02',
+    'มี.ค.': '03', 'มีนาคม': '03',
+    'เม.ย.': '04', 'เมษายน': '04',
+    'พ.ค.': '05', 'พฤษภาคม': '05',
+    'มิ.ย.': '06', 'มิถุนายน': '06',
+    'ก.ค.': '07', 'กรกฎาคม': '07',
+    'ส.ค.': '08', 'สิงหาคม': '08',
+    'ก.ย.': '09', 'กันยายน': '09',
+    'ต.ค.': '10', 'ตุลาคม': '10',
+    'พ.ย.': '11', 'พฤศจิกายน': '11',
+    'ธ.ค.': '12', 'ธันวาคม': '12'
+  };
+  
+  for (const [key, value] of Object.entries(thMonths)) {
+    if (s.includes(key)) {
+      const dayMatch = s.match(/^(\d{1,2})/);
+      const yearMatch = s.match(/(\d{4})/);
+      if (dayMatch && yearMatch) {
+        let day = dayMatch[1].padStart(2, '0');
+        let year = parseInt(yearMatch[1], 10);
+        if (year > 2400) year -= 543;
+        return `${year}-${value}-${day}`;
+      }
+    }
+  }
+
+  // If it's already in YYYY-MM-DD check if it's BE
+  const parts = s.split('-');
   if (parts.length === 3) {
     let year = parseInt(parts[0], 10);
     if (year > 2400) {
       year -= 543;
-      return `${year}-${parts[1]}-${parts[2]}`;
+      return `${year}-${parts[1].padStart(2, '0')}-${parts[2].padStart(2, '0')}`;
     }
   }
+
   return val;
 };
 
@@ -197,6 +262,89 @@ const findMatchingVehicleType = (extractedType, vehicleTypesList) => {
   if (foundSub) return foundSub.value;
 
   return extractedType;
+};
+
+const findMatchingColor = (extractedColor) => {
+  if (!extractedColor) return '';
+  const clean = extractedColor.replace(/\s+/g, '').replace(/สี/g, '').trim();
+  const standardColors = ['ขาว', 'ดำ', 'เทา', 'บรอนซ์เงิน', 'บรอนซ์ทอง', 'แดง', 'น้ำเงิน', 'ฟ้า', 'น้ำตาล', 'เขียว', 'เหลือง', 'ส้ม', 'ชมพู'];
+  
+  // 1. Exact match
+  let found = standardColors.find(c => c === clean);
+  if (found) return found;
+
+  // 2. Keyword match
+  if (clean.includes('ขาว')) return 'ขาว';
+  if (clean.includes('ดำ')) return 'ดำ';
+  if (clean.includes('เทา')) return 'เทา';
+  if (clean.includes('บรอนซ์เงิน') || clean.includes('เงิน') || clean.includes('บรอนส์เงิน') || clean.includes('บรอนเงิน')) return 'บรอนซ์เงิน';
+  if (clean.includes('บรอนซ์ทอง') || clean.includes('ทอง') || clean.includes('บรอนส์ทอง') || clean.includes('บรอนทอง')) return 'บรอนซ์ทอง';
+  if (clean.includes('บรอนซ์') || clean.includes('บรอนส์')) return 'บรอนซ์เงิน'; // default fallback for bronze is silver
+  if (clean.includes('แดง')) return 'แดง';
+  if (clean.includes('น้ำเงิน')) return 'น้ำเงิน';
+  if (clean.includes('ฟ้า')) return 'ฟ้า';
+  if (clean.includes('น้ำตาล')) return 'น้ำตาล';
+  if (clean.includes('เขียว')) return 'เขียว';
+  if (clean.includes('เหลือง')) return 'เหลือง';
+  if (clean.includes('ส้ม')) return 'ส้ม';
+  if (clean.includes('ชมพู')) return 'ชมพู';
+  
+  return 'อื่นๆ';
+};
+
+const cleanAndExtractAddressFields = (customerObj) => {
+  if (!customerObj) return customerObj;
+  let { address, moo, soi, road } = customerObj;
+  
+  address = address || '';
+  moo = moo || '';
+  soi = soi || '';
+  road = road || '';
+
+  // 1. If moo is empty but address contains "หมู่" or "ม.", try to extract it
+  if (!moo && address) {
+    const mooMatch = address.match(/หมู่ที่\s*(\d+|[ก-ฮ]+)/) || address.match(/หมู่\s*(\d+|[ก-ฮ]+)/) || address.match(/ม\.\s*(\d+|[ก-ฮ]+)/);
+    if (mooMatch) {
+      moo = mooMatch[1];
+    }
+  }
+
+  // 2. If soi is empty but address contains "ซอย" or "ซ.", try to extract it
+  if (!soi && address) {
+    const soiMatch = address.match(/ซอย\s*([ก-ฮa-zA-Z0-9\s]+)/) || address.match(/ซ\.\s*([ก-ฮa-zA-Z0-9\s]+)/);
+    if (soiMatch) {
+      soi = soiMatch[1].split(' ')[0]; // take first word
+    }
+  }
+
+  // 3. Clean address of "หมู่", "ซอย", "ถนน"
+  if (address) {
+    // Remove หมู่ที่ X, หมู่ X, ม. X
+    address = address.replace(/หมู่ที่\s*\d+/g, '')
+                     .replace(/หมู่\s*\d+/g, '')
+                     .replace(/ม\.\s*\d+/g, '')
+                     .replace(/หมู่ที่\s*[ก-ฮ]+/g, '')
+                     .replace(/หมู่\s*[ก-ฮ]+/g, '')
+                     .replace(/ม\.\s*[ก-ฮ]+/g, '');
+    
+    // Remove ซอย X, ซ. X
+    address = address.replace(/ซอย\s*[ก-ฮa-zA-Z0-9]+/g, '')
+                     .replace(/ซ\.\s*[ก-ฮa-zA-Z0-9]+/g, '');
+                     
+    // Remove ถนน X, ถ. X
+    address = address.replace(/ถนน\s*[ก-ฮa-zA-Z0-9]+/g, '')
+                     .replace(/ถ\.\s*[ก-ฮa-zA-Z0-9]+/g, '');
+
+    // Clean up spaces, commas, slashes at the end
+    address = address.replace(/[,.\-\s]+$/, '').replace(/^\s+/, '').replace(/\s+/g, ' ').trim();
+  }
+
+  // 4. Clean moo string to only have the number or keyword (e.g. if it is "หมู่ที่ 5" or "หมู่ 5" -> "5")
+  if (moo) {
+    moo = moo.replace(/หมู่ที่/g, '').replace(/หมู่/g, '').replace(/ม\./g, '').trim();
+  }
+
+  return { ...customerObj, address, moo, soi, road };
 };
 
 const compressImage = (file, maxWidth = 1600, maxHeight = 1600, quality = 0.8) => {
@@ -338,9 +486,9 @@ const IssuePolicyForm = () => {
 
     setOcrLoading(true);
     try {
-      // Compress images in parallel before sending to backend to speed up upload & processing
+      // Compress images with higher resolution to preserve sharp Thai text for Gemini OCR
       const compressedFiles = await Promise.all(
-        rawFiles.map(file => compressImage(file, 1000, 1000, 0.5))
+        rawFiles.map(file => compressImage(file, 2000, 2000, 0.75))
       );
 
       const formData = new FormData();
@@ -376,9 +524,11 @@ const IssuePolicyForm = () => {
             calculatedAge--;
           }
         }
+
+        const cleanedCustomer = cleanAndExtractAddressFields(data.customer);
         setCustomer(prev => ({ 
           ...prev, 
-          ...data.customer,
+          ...cleanedCustomer,
           age: calculatedAge || prev.age
         }));
       }
@@ -387,6 +537,7 @@ const IssuePolicyForm = () => {
         const matchedBrand = data.vehicle.brand ? findMatchingBrand(data.vehicle.brand, carBrands) : '';
         const matchedModel = data.vehicle.model ? findMatchingModel(data.vehicle.model, matchedBrand, carModels) : '';
         const matchedVehicleType = data.vehicle.vehicle_type ? findMatchingVehicleType(data.vehicle.vehicle_type, vehicleTypes) : '';
+        const matchedColor = data.vehicle.color ? findMatchingColor(data.vehicle.color) : '';
 
         setVehicle(prev => ({ 
           ...prev, 
@@ -394,6 +545,7 @@ const IssuePolicyForm = () => {
           brand: matchedBrand || data.vehicle.brand || prev.brand,
           model: matchedModel || data.vehicle.model || prev.model,
           vehicle_type: matchedVehicleType || data.vehicle.vehicle_type || prev.vehicle_type,
+          color: matchedColor || data.vehicle.color || prev.color,
           registration_date: data.vehicle.registration_date || prev.registration_date,
           sum_insured: data.vehicle.sum_insured || data.policy?.sum_insured || prev.sum_insured
         }));
