@@ -576,10 +576,10 @@ const IssuePolicyForm = () => {
           return prev;
         });
         setPolicy(prev => {
-          if (prev.prb_start_date !== nextAnniversary) {
-            return { ...prev, prb_start_date: nextAnniversary };
-          }
-          return prev;
+          let updates = {};
+          if (prev.prb_start_date !== nextAnniversary) updates.prb_start_date = nextAnniversary;
+          if (!prev.start_date || prev.start_date !== nextAnniversary) updates.start_date = nextAnniversary;
+          return Object.keys(updates).length > 0 ? { ...prev, ...updates } : prev;
         });
       }
     }
@@ -695,30 +695,6 @@ const IssuePolicyForm = () => {
     }
   };
   
-  const setDateToday = (isPrb) => {
-    const today = new Date();
-    const start = today.toISOString().split('T')[0];
-    const endObj = new Date(today.setFullYear(today.getFullYear() + 1));
-    const end = endObj.toISOString().split('T')[0];
-    if (isPrb) {
-      setPolicy({...policy, prb_start_date: start, prb_expiry_date: end});
-    } else {
-      setPolicy({...policy, start_date: start, expiry_date: end});
-    }
-  };
-
-  const setDateTomorrow = (isPrb) => {
-    const tmr = new Date();
-    tmr.setDate(tmr.getDate() + 1);
-    const start = tmr.toISOString().split('T')[0];
-    const endObj = new Date(tmr.setFullYear(tmr.getFullYear() + 1));
-    const end = endObj.toISOString().split('T')[0];
-    if (isPrb) {
-      setPolicy({...policy, prb_start_date: start, prb_expiry_date: end});
-    } else {
-      setPolicy({...policy, start_date: start, expiry_date: end});
-    }
-  };
 
   const onDrop = (acceptedFiles) => {
     const newFiles = acceptedFiles.map(file => ({
@@ -1133,13 +1109,7 @@ const IssuePolicyForm = () => {
                     <Form.Control type="date" value={vehicle.tax_expiry} onChange={e => setVehicle({...vehicle, tax_expiry: normalizeDate(e.target.value)})} />
                   </Col>
                   <Col md={3}>
-                    <div className="d-flex justify-content-between align-items-center mb-1">
-                      <Form.Label className="mb-0">วันเริ่มคุ้มครอง พ.ร.บ.</Form.Label>
-                      <div>
-                        <Button variant="outline-primary" size="sm" className="me-1 py-0" style={{fontSize:'0.75rem'}} onClick={() => setDateToday(true)}>วันนี้</Button>
-                        <Button variant="outline-secondary" size="sm" className="py-0" style={{fontSize:'0.75rem'}} onClick={() => setDateTomorrow(true)}>พรุ่งนี้</Button>
-                      </div>
-                    </div>
+                    <div className="mb-1"><Form.Label className="mb-0">วันเริ่มคุ้มครอง พ.ร.บ.</Form.Label></div>
                     <Form.Control type="date" value={policy.prb_start_date || ''} onChange={e => {
                       const start = normalizeDate(e.target.value);
                       let end = policy.prb_expiry_date;
@@ -1223,13 +1193,7 @@ const IssuePolicyForm = () => {
                 )}
 
                 <Col md={6}>
-                  <div className="d-flex justify-content-between align-items-center mb-1">
-                    <Form.Label className="mb-0">วันเริ่มคุ้มครอง</Form.Label>
-                    <div>
-                      <Button variant="outline-primary" size="sm" className="me-1 py-0" style={{fontSize:'0.75rem'}} onClick={() => setDateToday(false)}>วันนี้</Button>
-                      <Button variant="outline-secondary" size="sm" className="py-0" style={{fontSize:'0.75rem'}} onClick={() => setDateTomorrow(false)}>พรุ่งนี้</Button>
-                    </div>
-                  </div>
+                  <div className="mb-1"><Form.Label className="mb-0">วันเริ่มคุ้มครอง</Form.Label></div>
                   <Form.Control type="date" value={policy.start_date} onChange={e => {
                       const start = normalizeDate(e.target.value);
                       let end = policy.expiry_date;
