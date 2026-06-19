@@ -99,8 +99,8 @@ router.post('/extract', authenticateToken, upload.array('images', 10), async (re
     }));
 
     const modelsToTry = [
-      { name: 'gemini-3.5-flash', timeout: 20000 }, // 20 seconds for the premium model
-      { name: 'gemini-2.5-flash', timeout: 8000 }   // 8 seconds for the fallback
+      { name: 'gemini-3.5-flash', timeout: 25000 }, // 25 seconds for the premium model to give it maximum chance
+      { name: 'gemini-2.5-flash', timeout: 4000 }   // 4 seconds for the fallback
     ];
 
     let lastError = null;
