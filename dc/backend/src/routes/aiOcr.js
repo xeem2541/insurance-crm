@@ -107,9 +107,10 @@ router.post('/extract', authenticateToken, upload.array('images', 10), async (re
     }));
 
     const modelsToTry = [
-      { name: 'gemini-3.1-flash-lite', timeout: 12000 }, // Ultra-fast model (normally ~1s)
-      { name: 'gemini-2.5-flash-lite', timeout: 10000 }, // Fast fallback (normally ~4s)
-      { name: 'gemini-3.5-flash', timeout: 6000 }        // Final fallback (slower)
+      { name: 'gemini-2.5-pro', timeout: 12000 },        // Maximum reasoning & accuracy (normally ~4-8s)
+      { name: 'gemini-3.5-flash', timeout: 8000 },        // Fast fallback with very high accuracy & quota (normally ~3s)
+      { name: 'gemini-3.1-flash-lite', timeout: 6000 },   // High quota fallback (normally ~1s)
+      { name: 'gemini-2.5-flash-lite', timeout: 4000 }    // Final speed-focused fallback
     ];
 
     let lastError = null;
