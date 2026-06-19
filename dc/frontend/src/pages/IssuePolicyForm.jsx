@@ -565,28 +565,64 @@ const IssuePolicyForm = () => {
         <h2 className="fw-bold"><i className="bi bi-file-earmark-plus-fill text-primary"></i> เพิ่มลูกค้าใหม่ / ออกกรมธรรม์ใหม่ (Single Page Form)</h2>
       </div>
 
-      <div className="card border-0 shadow-sm mb-4 bg-gradient" style={{ background: 'linear-gradient(135deg, #e0c3fc 0%, #8ec5fc 100%)' }}>
-        <div className="card-body text-center py-4">
-          <h4 className="fw-bold text-dark mb-3">✨ สแกนรูปด้วย AI แม่นยำ 100%</h4>
-          <div className="mb-3">
-            <small className="text-muted">
-              (ขับเคลื่อนโดย Groq AI) 
-              <button className="btn btn-link btn-sm text-decoration-none" onClick={() => {
-                const key = window.prompt('กรุณาใส่ Groq API Key ใหม่ (ขอรับฟรีได้ที่ console.groq.com):', localStorage.getItem('groqApiKey') || '');
-                if(key) localStorage.setItem('groqApiKey', key);
-              }}>⚙️ ตั้งค่า API Key</button>
-            </small>
+      <div className="card border-0 mb-4 overflow-hidden position-relative" style={{ 
+        background: 'linear-gradient(135deg, #0f2027 0%, #203a43 50%, #2c5364 100%)',
+        boxShadow: '0 15px 35px rgba(0,0,0,0.2)',
+        borderRadius: '20px'
+      }}>
+        {/* Decorative glowing orb */}
+        <div style={{
+          position: 'absolute', top: '-50px', right: '-50px', width: '200px', height: '200px',
+          background: 'radial-gradient(circle, rgba(0, 255, 136, 0.15) 0%, rgba(0,0,0,0) 70%)',
+          borderRadius: '50%', zIndex: 0
+        }}></div>
+        
+        <div className="card-body text-center py-5 position-relative" style={{ zIndex: 1 }}>
+          <h3 className="fw-bold mb-3" style={{ color: '#00ff88', textShadow: '0 0 15px rgba(0,255,136,0.4)', letterSpacing: '0.5px' }}>
+            <i className="bi bi-magic me-2"></i> สแกนรูปด้วย AI แม่นยำ 100%
+          </h3>
+          
+          <div className="mb-4 d-flex justify-content-center align-items-center gap-2">
+            <span className="badge rounded-pill px-3 py-2 shadow-sm" style={{ 
+              background: 'linear-gradient(45deg, #FFD700, #FDB931)', 
+              color: '#333',
+              border: '1px solid rgba(255,215,0,0.5)'
+            }}>
+              <i className="bi bi-cpu-fill me-1"></i> ขับเคลื่อนโดย Groq AI
+            </span>
+            <button className="btn btn-sm btn-outline-light rounded-pill px-3 opacity-75 hover-opacity-100" onClick={() => {
+              const key = window.prompt('กรุณาใส่ Groq API Key ใหม่ (ขอรับฟรีได้ที่ console.groq.com):', localStorage.getItem('groqApiKey') || '');
+              if(key) localStorage.setItem('groqApiKey', key);
+            }}>
+              <i className="bi bi-gear-fill me-1"></i> ตั้งค่า API Key
+            </button>
           </div>
+
           {ocrLoading ? (
-            <div className="d-flex align-items-center justify-content-center text-primary fw-bold">
-              <span className="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
-              กำลังใช้ Groq AI อ่านเอกสาร... (อาจใช้เวลา 10-20 วินาที)
+            <div className="d-flex flex-column align-items-center justify-content-center fw-bold mt-4" style={{ color: '#00ff88' }}>
+              <div className="spinner-border mb-3" role="status" style={{ width: '3rem', height: '3rem', borderWidth: '0.25em' }}>
+                <span className="visually-hidden">Loading...</span>
+              </div>
+              <span className="fs-5 tracking-wide">กำลังประมวลผลเอกสาร... (10-20 วินาที)</span>
             </div>
           ) : (
-            <label className="btn btn-dark btn-lg fw-bold px-5 rounded-pill shadow-sm">
-              <i className="bi bi-camera-fill me-2"></i> ถ่ายรูป / อัปโหลดตารางกรมธรรม์ (เลือกได้หลายรูป)
-              <input type="file" accept="image/*" capture="environment" className="d-none" multiple onChange={handleAIExtract} />
-            </label>
+            <div className="mt-4">
+              <label className="btn btn-lg fw-bold px-5 py-3 rounded-pill shadow-lg" style={{ 
+                background: 'linear-gradient(45deg, #00b09b, #96c93d)', 
+                color: '#fff', 
+                border: 'none',
+                cursor: 'pointer',
+                transform: 'scale(1)',
+                transition: 'all 0.3s ease'
+              }}
+              onMouseOver={(e) => { e.currentTarget.style.transform = 'scale(1.05)'; e.currentTarget.style.boxShadow = '0 10px 25px rgba(0, 176, 155, 0.4)'; }}
+              onMouseOut={(e) => { e.currentTarget.style.transform = 'scale(1)'; e.currentTarget.style.boxShadow = '0 1rem 3rem rgba(0,0,0,.175)'; }}
+              >
+                <i className="bi bi-camera-fill me-2 fs-4 align-middle"></i> 
+                <span className="align-middle">อัปโหลดตารางกรมธรรม์ (ดึงข้อมูลอัตโนมัติ)</span>
+                <input type="file" accept="image/*" capture="environment" className="d-none" multiple onChange={handleAIExtract} />
+              </label>
+            </div>
           )}
         </div>
       </div>
