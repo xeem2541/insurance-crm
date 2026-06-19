@@ -13,9 +13,9 @@ router.post('/extract', authenticateToken, upload.array('images', 10), async (re
       return res.status(400).json({ error: 'No images provided' });
     }
 
-    const apiKey = process.env.GEMINI_API_KEY;
+    const apiKey = req.headers['x-gemini-api-key'] || process.env.GEMINI_API_KEY;
     if (!apiKey) {
-      return res.status(500).json({ error: 'GEMINI_API_KEY is not configured in backend.' });
+      return res.status(401).json({ error: 'GEMINI_API_KEY_REQUIRED' });
     }
 
     const genAI = new GoogleGenerativeAI(apiKey);
