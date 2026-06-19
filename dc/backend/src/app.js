@@ -50,8 +50,23 @@ async function initDb() {
     const connection = await pool.getConnection();
     console.log('Database connected successfully');
     
-    // Auto-drop removed columns to fix Duplicate Entry errors on id_card_no
-    const dropColumns = ['id_card_no', 'email', 'occupation'];
+    // Ensure id_card_no column exists and is not unique (drop UNIQUE index if exists)
+    try {
+      await connection.query(`ALTER TABLE customers DROP INDEX id_card_no`);
+      console.log('Dropped UNIQUE index id_card_no from customers');
+    } catch (e) {
+      // index might not exist, ignore
+    }
+
+    try {
+      await connection.query(`ALTER TABLE customers ADD COLUMN id_card_no VARCHAR(20) NULL`);
+      console.log('Added column id_card_no to customers');
+    } catch (e) {
+      // column already exists, ignore
+    }
+
+    // Auto-drop other unused columns if needed (email, occupation)
+    const dropColumns = ['email', 'occupation'];
     for (const col of dropColumns) {
       try {
         await connection.query(`ALTER TABLE customers DROP COLUMN ${col}`);
@@ -117,6 +132,20 @@ async function initDb() {
       )
     `);
     console.log('Document tables verified');
+
+    await connection.query(`
+      CREATE TABLE IF NOT EXISTS ai_usage_logs (
+        id INT PRIMARY KEY AUTO_INCREMENT,
+        document_type VARCHAR(100),
+        is_success BOOLEAN DEFAULT FALSE,
+        has_warning BOOLEAN DEFAULT FALSE,
+        warning_message TEXT,
+        model_used VARCHAR(100),
+        processing_time_ms INT,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      )
+    `);
+    console.log('AI usage logs table verified');
 
     // Auto-migrate non-motor tables
     await connection.query(`
@@ -459,7 +488,21 @@ app.get('/api/fix-db', async (req, res) => {
     const connection = await pool.getConnection();
     let results = [];
     
-    const dropColumns = ['id_card_no', 'email', 'occupation'];
+    // Keep id_card_no, just drop unique index and ensure it exists
+    try {
+      await connection.query(`ALTER TABLE customers DROP INDEX id_card_no`);
+      results.push(`Dropped index id_card_no`);
+    } catch (e) {
+      results.push(`Index id_card_no error: ${e.message}`);
+    }
+    try {
+      await connection.query(`ALTER TABLE customers ADD COLUMN id_card_no VARCHAR(20) NULL`);
+      results.push(`Added column id_card_no`);
+    } catch (e) {
+      results.push(`Column id_card_no exists or error: ${e.message}`);
+    }
+
+    const dropColumns = ['email', 'occupation'];
     for (const col of dropColumns) {
       try {
         await connection.query(`ALTER TABLE customers DROP INDEX ${col}`);
