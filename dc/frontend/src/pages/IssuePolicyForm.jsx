@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import api from '../services/api';
 import { Form, Button, Row, Col, Accordion, Card, Badge, Modal } from 'react-bootstrap';
 import Select from 'react-select';
@@ -554,6 +554,9 @@ const IssuePolicyForm = () => {
   const [rotation, setRotation] = useState(0);
   const [previewModalUrl, setPreviewModalUrl] = useState(null);
 
+  const fileInputRef = useRef(null);
+  const cameraInputRef = useRef(null);
+
   const handleAIExtract = async (e) => {
     const rawFiles = Array.from(e.target.files);
     if (!rawFiles.length) return;
@@ -720,6 +723,13 @@ const IssuePolicyForm = () => {
       
       alert('ดึงข้อมูลจากรูปภาพสำเร็จ! กรุณาตรวจสอบความถูกต้องก่อนบันทึกอีกครั้งนะครับ');
     } catch (err) {
+      setFiles(prev => {
+        const reverted = prev.slice(0, currentLength);
+        for (let i = currentLength; i < prev.length; i++) {
+          if (prev[i].preview) URL.revokeObjectURL(prev[i].preview);
+        }
+        return reverted;
+      });
       if (err.response?.data?.error === 'GEMINI_API_KEY_REQUIRED' || err.response?.data?.error === 'OPENAI_API_KEY_REQUIRED') {
         alert('API Key ของ Gemini ไม่ถูกต้องหรือหมดอายุ กรุณาตั้งค่าใหม่ครับ');
         localStorage.removeItem('geminiApiKey');
@@ -1057,6 +1067,36 @@ const IssuePolicyForm = () => {
     }
     newFiles.splice(index, 1);
     setFiles(newFiles);
+
+    if (newFiles.length === 0) {
+      setCustomer({
+        id: null, prefix: 'นาย', first_name: '', last_name: '', id_card_no: '', dob: '', age: '',
+        phone: '', alt_phone: '', email: '', line_id: '', facebook: '', occupation: '',
+        address: '', moo: '', soi: '', road: '', sub_district: '', district: '', province: '', zipcode: '', note: ''
+      });
+      setVehicle({
+        vehicle_type: '', brand: '', model: '', year: '', color: '', 
+        plate_no: '', plate_province: '', vin: '', engine_no: '', sum_insured: '', tax_expiry: '',
+        registration_date: ''
+      });
+      setPolicy({
+        category: 'motor',
+        company: '', type: '', policy_no: '', sum_insured: '', 
+        net_premium: '', stamp_duty: '', vat: '', total_premium: '',
+        prb_start_date: '', prb_expiry_date: '', start_date: '', expiry_date: '',
+        non_motor_type_id: '', additional_data: {}, insured_name: '', status: 'รอดำเนินการ'
+      });
+      setPayment({
+        payment_method: 'เงินสด',
+        installments: 1,
+        pay_date: '',
+        status: 'รอชำระ'
+      });
+      setFollowUp({
+        status: 'รอดำเนินการ', next_date: '', note: ''
+      });
+      setAiWarning('');
+    }
   };
 
   const updateFileData = (index, field, value) => {
@@ -1171,7 +1211,7 @@ const IssuePolicyForm = () => {
             </div>
           ) : (
             <div className="mt-4">
-              <label className="btn btn-lg fw-bold px-5 py-3 rounded-pill shadow-lg" style={{ 
+              <Button className="btn btn-lg fw-bold px-5 py-3 rounded-pill shadow-lg" style={{ 
                 background: 'linear-gradient(45deg, #00b09b, #96c93d)', 
                 color: '#fff', 
                 border: 'none',
@@ -1181,11 +1221,12 @@ const IssuePolicyForm = () => {
               }}
               onMouseOver={(e) => { e.currentTarget.style.transform = 'scale(1.05)'; e.currentTarget.style.boxShadow = '0 10px 25px rgba(0, 176, 155, 0.4)'; }}
               onMouseOut={(e) => { e.currentTarget.style.transform = 'scale(1)'; e.currentTarget.style.boxShadow = '0 1rem 3rem rgba(0,0,0,.175)'; }}
+              onClick={() => fileInputRef.current && fileInputRef.current.click()}
               >
                 <i className="bi bi-camera-fill me-2 fs-4 align-middle"></i> 
                 <span className="align-middle">อัปโหลดตารางกรมธรรม์ (ดึงข้อมูลอัตโนมัติ)</span>
-                <input type="file" accept="image/*" className="d-none" multiple onChange={handleAIExtract} />
-              </label>
+              </Button>
+              <input type="file" ref={fileInputRef} accept="image/*" className="d-none" multiple onChange={handleAIExtract} />
             </div>
           )}
         </div>
@@ -1738,13 +1779,13 @@ const IssuePolicyForm = () => {
                 <p className="mb-0 opacity-75 small">รองรับไฟล์: PDF, JPG, PNG</p>
               </div>
               <div className="text-center mb-4">
-                <label className="btn btn-outline-primary fw-bold px-4 rounded-pill">
+                <Button variant="outline-primary" className="fw-bold px-4 rounded-pill" onClick={() => cameraInputRef.current && cameraInputRef.current.click()}>
                   <i className="bi bi-camera-fill me-2"></i> เปิดกล้องถ่ายรูป
-                  <input type="file" accept="image/*" capture="environment" className="d-none" multiple onChange={(e) => {
-                    const selected = Array.from(e.target.files);
-                    if(selected.length > 0) onDrop(selected);
-                  }} />
-                </label>
+                </Button>
+                <input type="file" ref={cameraInputRef} accept="image/*" capture="environment" className="d-none" multiple onChange={(e) => {
+                  const selected = Array.from(e.target.files);
+                  if(selected.length > 0) onDrop(selected);
+                }} />
               </div>
 
               {files.length > 0 && (
@@ -1865,6 +1906,14 @@ const IssuePolicyForm = () => {
                       {imageFiles[validActiveIdx]?.file.name}
                     </span>
                     <div className="btn-group">
+                      <Button variant="danger" size="sm" title="ลบรูปภาพนี้" onClick={() => {
+                        const actualIdx = files.findIndex(f => f === imageFiles[validActiveIdx]);
+                        if (actualIdx !== -1) {
+                          removeFile(actualIdx);
+                        }
+                      }}>
+                        <i className="bi bi-trash"></i> ลบรูป
+                      </Button>
                       <Button variant="outline-secondary" size="sm" title="ซูมเข้า" onClick={() => setZoomLevel(z => Math.min(3, z + 0.25))}>
                         <i className="bi bi-zoom-in"></i>
                       </Button>
