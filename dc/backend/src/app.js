@@ -388,6 +388,46 @@ async function initDb() {
     } catch (e) {
       console.error('Error migrating company names:', e);
     }
+
+    // Auto-update VehicleType values to formal names
+    try {
+      const vehicleTypeMap = {
+        'รถมอเตอร์ไซค์': 'รถจักรยานยนต์',
+        'รถกระบะ': 'รถยนต์บรรทุกส่วนบุคคล (กระบะตอนเดียว/แค็บ)',
+        'รถเก๋ง': 'รถยนต์นั่งส่วนบุคคลไม่เกิน 7 คน',
+        'รถกระบะ 4 ประตู': 'รถยนต์บรรทุกส่วนบุคคล (ดับเบิลแค็บ 4 ประตู)',
+        'รถโดยสาร': 'รถยนต์โดยสาร',
+        'รถ 6 ล้อ': 'รถบรรทุก 6 ล้อ หรือ รถยนต์บรรทุก',
+        'รถ 10 ล้อ': 'รถบรรทุก 10 ล้อ หรือ รถยนต์บรรทุก',
+        'รถพ่วง': 'รถลากจูงและรถกึ่งพ่วง / รถพ่วง',
+        'รถเพื่อการเกษตร': 'รถเพื่อการเกษตร (เช่น รถไถนา รถเกี่ยวข้าว รถตัดอ้อย)'
+      };
+
+      for (const [oldVal, newVal] of Object.entries(vehicleTypeMap)) {
+        // Update master_data table
+        await connection.query(
+          "UPDATE master_data SET value = ? WHERE category = 'VehicleType' AND value = ?",
+          [newVal, oldVal]
+        );
+        // Update vehicles table
+        await connection.query(
+          "UPDATE vehicles SET vehicle_type = ? WHERE vehicle_type = ?",
+          [newVal, oldVal]
+        );
+      }
+      
+      // Ensure all new VehicleType values are in master_data
+      const [existingTypes] = await connection.query("SELECT value FROM master_data WHERE category = 'VehicleType'");
+      const existingTypeNames = existingTypes.map(t => t.value);
+      for (const newVal of Object.values(vehicleTypeMap)) {
+        if (!existingTypeNames.includes(newVal)) {
+          await connection.query("INSERT INTO master_data (category, value) VALUES ('VehicleType', ?)", [newVal]);
+          console.log(`Seeded formal vehicle type: ${newVal}`);
+        }
+      }
+    } catch (e) {
+      console.error('Error migrating vehicle types:', e);
+    }
     
     connection.release();
     
