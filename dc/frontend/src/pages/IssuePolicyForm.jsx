@@ -160,14 +160,14 @@ const IssuePolicyForm = () => {
     const files = Array.from(e.target.files);
     if (!files.length) return;
 
-    let groqApiKey = localStorage.getItem('groqApiKey');
-    if (!groqApiKey) {
-      groqApiKey = window.prompt('ระบบจำเป็นต้องใช้ Groq API Key ในการอ่านรูปภาพ (ฟรี 100%)\\nกรุณาใส่ API Key ของคุณที่ได้จาก console.groq.com:');
-      if (!groqApiKey) {
+    let geminiApiKey = localStorage.getItem('geminiApiKey');
+    if (!geminiApiKey) {
+      geminiApiKey = window.prompt('ระบบจำเป็นต้องใช้ Gemini API Key ในการอ่านรูปภาพ (ฟรี 100%)\\nกรุณาใส่ API Key ของคุณที่ได้จาก Google AI Studio:');
+      if (!geminiApiKey) {
         e.target.value = null;
         return;
       }
-      localStorage.setItem('groqApiKey', groqApiKey);
+      localStorage.setItem('geminiApiKey', geminiApiKey);
     }
 
     const formData = new FormData();
@@ -178,7 +178,7 @@ const IssuePolicyForm = () => {
     setOcrLoading(true);
     try {
       const res = await api.post('/ai-ocr/extract', formData, {
-        headers: { 'x-gemini-api-key': groqApiKey } // Kept header name same for backend compatibility
+        headers: { 'x-gemini-api-key': geminiApiKey } 
       });
       const data = res.data;
       
@@ -188,9 +188,9 @@ const IssuePolicyForm = () => {
       
       alert('ดึงข้อมูลจากรูปภาพสำเร็จ! กรุณาตรวจสอบความถูกต้องก่อนบันทึกอีกครั้งนะครับ');
     } catch (err) {
-      if (err.response?.data?.error === 'OPENAI_API_KEY_REQUIRED') {
-        alert('API Key ของ Groq ไม่ถูกต้องหรือหมดอายุ กรุณาตั้งค่าใหม่ครับ');
-        localStorage.removeItem('groqApiKey');
+      if (err.response?.data?.error === 'GEMINI_API_KEY_REQUIRED' || err.response?.data?.error === 'OPENAI_API_KEY_REQUIRED') {
+        alert('API Key ของ Gemini ไม่ถูกต้องหรือหมดอายุ กรุณาตั้งค่าใหม่ครับ');
+        localStorage.removeItem('geminiApiKey');
       } else {
         const errorMsg = err.response?.data?.error || err.message || JSON.stringify(err.response?.data);
         alert(`เกิดข้อผิดพลาดในการดึงข้อมูลด้วย AI: ${errorMsg}`);
@@ -588,11 +588,11 @@ const IssuePolicyForm = () => {
               color: '#333',
               border: '1px solid rgba(255,215,0,0.5)'
             }}>
-              <i className="bi bi-cpu-fill me-1"></i> ขับเคลื่อนโดย Groq AI
+              <i className="bi bi-cpu-fill me-1"></i> ขับเคลื่อนโดย Gemini AI
             </span>
             <button className="btn btn-sm btn-outline-light rounded-pill px-3 opacity-75 hover-opacity-100" onClick={() => {
-              const key = window.prompt('กรุณาใส่ Groq API Key ใหม่ (ขอรับฟรีได้ที่ console.groq.com):', localStorage.getItem('groqApiKey') || '');
-              if(key) localStorage.setItem('groqApiKey', key);
+              const key = window.prompt('กรุณาใส่ Gemini API Key ใหม่ (ขอรับฟรีได้ที่ aistudio.google.com):', localStorage.getItem('geminiApiKey') || '');
+              if(key) localStorage.setItem('geminiApiKey', key);
             }}>
               <i className="bi bi-gear-fill me-1"></i> ตั้งค่า API Key
             </button>
@@ -603,7 +603,7 @@ const IssuePolicyForm = () => {
               <div className="spinner-border mb-3" role="status" style={{ width: '3rem', height: '3rem', borderWidth: '0.25em' }}>
                 <span className="visually-hidden">Loading...</span>
               </div>
-              <span className="fs-5 tracking-wide">กำลังประมวลผลเอกสาร... (10-20 วินาที)</span>
+              <span className="fs-5 tracking-wide">กำลังประมวลผลด้วย Gemini AI... (10-20 วินาที)</span>
             </div>
           ) : (
             <div className="mt-4">
