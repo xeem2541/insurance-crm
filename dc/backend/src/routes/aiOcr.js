@@ -19,8 +19,8 @@ router.post('/extract', authenticateToken, upload.array('images', 10), async (re
     }
 
     const genAI = new GoogleGenerativeAI(apiKey);
-    // Use gemini-1.5-flash exactly as written in Google's documentation
-    const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
+    // Use gemini-1.5-flash-8b which is the smallest and most likely to have free tier enabled
+    const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash-8b' });
 
     const prompt = `คุณคือผู้เชี่ยวชาญด้านการดึงข้อมูลจากตารางกรมธรรม์ประกันภัยของประเทศไทย (Insurance Policy Schedule)
 จงอ่านรูปภาพที่แนบมา และดึงข้อมูลให้แม่นยำที่สุด 100% โดยให้ผลลัพธ์เป็น JSON Object เท่านั้น ห้ามมีคำอธิบายอื่นใด ห้ามมี Markdown (\`\`\`) ครอบ
