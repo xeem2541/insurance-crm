@@ -338,6 +338,27 @@ async function initDb() {
       }
       console.log('Successfully auto-seeded mock data!');
     }
+
+    // Auto-seed missing insurance companies in master_data
+    try {
+      const [existingCompanies] = await connection.query("SELECT value FROM master_data WHERE category = 'InsuranceCompany'");
+      const existingNames = existingCompanies.map(c => c.value);
+      const targetCompanies = [
+        'วิริยะประกันภัย', 'กรุงเทพประกันภัย', 'ธนชาตประกันภัย', 'ทิพยประกันภัย',
+        'คุ้มภัยโตเกียวมารีน', 'ไทยวิวัฒน์ประกันภัย', 'เมืองไทยประกันภัย', 'แอกซ่าประกันภัย',
+        'MSIG ประกันภัย', 'แอลเอ็มจีประกันภัย', 'ซับบ์สามัคคีประกันภัย', 'นวกิจประกันภัย',
+        'เออร์โก้ประกันภัย', 'ไอโออิกรุงเทพประกันภัย', 'อลิอันซ์ประกันภัย', 'เทเวศประกันภัย',
+        'อินทรประกันภัย', 'มิตรแท้ประกันภัย'
+      ];
+      for (const name of targetCompanies) {
+        if (!existingNames.includes(name)) {
+          await connection.query("INSERT INTO master_data (category, value) VALUES ('InsuranceCompany', ?)", [name]);
+          console.log(`Seeded missing company: ${name}`);
+        }
+      }
+    } catch (e) {
+      console.error('Error seeding companies:', e);
+    }
     
     connection.release();
     
