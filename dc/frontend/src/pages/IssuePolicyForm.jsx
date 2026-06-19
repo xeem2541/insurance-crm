@@ -192,7 +192,8 @@ const IssuePolicyForm = () => {
         alert('API Key ของ OpenAI ไม่ถูกต้องหรือหมดอายุ กรุณาตั้งค่าใหม่ครับ');
         localStorage.removeItem('openaiApiKey');
       } else {
-        alert(err.response?.data?.error || 'เกิดข้อผิดพลาดในการดึงข้อมูลด้วย AI');
+        const errorMsg = err.response?.data?.error || err.message || JSON.stringify(err.response?.data);
+        alert(`เกิดข้อผิดพลาดในการดึงข้อมูลด้วย AI: ${errorMsg}`);
       }
     } finally {
       setOcrLoading(false);
