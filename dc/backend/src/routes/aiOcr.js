@@ -99,8 +99,8 @@ router.post('/extract', authenticateToken, upload.array('images', 10), async (re
     }));
 
     const modelsToTry = [
-      'gemini-2.5-flash',
-      'gemini-1.5-flash-latest'
+      'gemini-3.5-flash',
+      'gemini-2.5-flash'
     ];
 
     let lastError = null;
