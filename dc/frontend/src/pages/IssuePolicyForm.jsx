@@ -547,7 +547,7 @@ const IssuePolicyForm = () => {
 
       <div className="card border-0 shadow-sm mb-4 bg-gradient" style={{ background: 'linear-gradient(135deg, #e0c3fc 0%, #8ec5fc 100%)' }}>
         <div className="card-body text-center py-4">
-          <h4 className="fw-bold text-dark mb-3">✨ ขี้เกียจพิมพ์? ให้ AI ช่วยอ่านตารางกรมธรรม์สิครับ!</h4>
+          <h4 className="fw-bold text-dark mb-3">✨ สแกนรูปด้วย AI แม่นยำ 100%</h4>
           {ocrLoading ? (
             <div className="d-flex align-items-center justify-content-center text-primary fw-bold">
               <span className="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
