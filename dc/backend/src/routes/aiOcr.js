@@ -2,7 +2,7 @@ const express = require('express');
 const router = express.Router();
 const multer = require('multer');
 const { authenticateToken } = require('../middlewares/auth');
-const { GoogleGenerativeAI } = require('@google/generative-ai');
+const axios = require('axios');
 
 // Use memory storage for quick processing without saving to disk permanently
 const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 10 * 1024 * 1024 } }); // 10MB max
@@ -13,14 +13,12 @@ router.post('/extract', authenticateToken, upload.array('images', 10), async (re
       return res.status(400).json({ error: 'No images provided' });
     }
 
-    const apiKey = req.headers['x-gemini-api-key'] || process.env.GEMINI_API_KEY;
+    const apiKey = req.headers['x-gemini-api-key'] || process.env.OPENAI_API_KEY;
     if (!apiKey) {
-      return res.status(401).json({ error: 'GEMINI_API_KEY_REQUIRED' });
+      return res.status(401).json({ error: 'OPENAI_API_KEY_REQUIRED' });
     }
 
-    const genAI = new GoogleGenerativeAI(apiKey);
-    // Use gemini-1.5-flash-8b which is the smallest and most likely to have free tier enabled
-    const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash-8b' });
+    // No need to initialize OpenAI client, we will use axios
 
     const prompt = `คุณคือผู้เชี่ยวชาญด้านการดึงข้อมูลจากตารางกรมธรรม์ประกันภัยของประเทศไทย (Insurance Policy Schedule)
 จงอ่านรูปภาพที่แนบมา และดึงข้อมูลให้แม่นยำที่สุด 100% โดยให้ผลลัพธ์เป็น JSON Object เท่านั้น ห้ามมีคำอธิบายอื่นใด ห้ามมี Markdown (\`\`\`) ครอบ
@@ -72,14 +70,36 @@ router.post('/extract', authenticateToken, upload.array('images', 10), async (re
 }`;
 
     const imageParts = req.files.map(file => ({
-      inlineData: {
-        data: file.buffer.toString('base64'),
-        mimeType: file.mimetype
+      type: "image_url",
+      image_url: {
+        url: `data:${file.mimetype};base64,${file.buffer.toString('base64')}`
       }
     }));
 
-    const result = await model.generateContent([prompt, ...imageParts]);
-    const responseText = result.response.text();
+    const response = await axios.post(
+      'https://api.openai.com/v1/chat/completions',
+      {
+        model: "gpt-4o-mini",
+        messages: [
+          {
+            role: "user",
+            content: [
+              { type: "text", text: prompt },
+              ...imageParts
+            ]
+          }
+        ],
+        response_format: { type: "json_object" }
+      },
+      {
+        headers: {
+          'Authorization': `Bearer ${apiKey}`,
+          'Content-Type': 'application/json'
+        }
+      }
+    );
+
+    const responseText = response.data.choices[0].message.content;
     
     // Clean up markdown syntax if Gemini returns it despite instructions
     let jsonText = responseText.trim();
