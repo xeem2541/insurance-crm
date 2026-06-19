@@ -61,6 +61,9 @@ const normalizeDate = (val) => {
   let s = val.toString().trim();
   if (!s) return '';
 
+  // Clean prefix like "วันที่" or "เมื่อวันที่" or "เวลา"
+  s = s.replace(/^(วันที่|เมื่อวันที่|เวลา)\s*/, '').trim();
+
   // 1. Try YYYY-MM-DD or YYYY/MM/DD
   let match = s.match(/^(\d{4})[-/](\d{1,2})[-/](\d{1,2})$/);
   if (match) {
@@ -401,6 +404,39 @@ const sanitizeAIResponse = (data) => {
     } else {
       sanitized.customer.id_card_no = '';
     }
+
+    // Address fields validation
+    if (sanitized.customer.sub_district) {
+      sanitized.customer.sub_district = sanitized.customer.sub_district
+        .replace(/ตำบล|แขวง|ต\.|ข\./g, '')
+        .trim();
+    }
+    if (sanitized.customer.district) {
+      sanitized.customer.district = sanitized.customer.district
+        .replace(/อำเภอ|เขต|อ\.|ข\./g, '')
+        .trim();
+    }
+    if (sanitized.customer.province) {
+      sanitized.customer.province = sanitized.customer.province
+        .replace(/จังหวัด|จ\./g, '')
+        .trim();
+      if (sanitized.customer.province.includes('กรุงเทพ') || sanitized.customer.province.includes('กทม')) {
+        sanitized.customer.province = 'กรุงเทพมหานคร';
+      }
+    }
+    if (sanitized.customer.zipcode) {
+      sanitized.customer.zipcode = sanitized.customer.zipcode.replace(/\D/g, '').slice(0, 5);
+    }
+  }
+
+  // 3. Sanitize Vehicle fields (VIN, Engine No)
+  if (sanitized.vehicle) {
+    if (sanitized.vehicle.vin) {
+      sanitized.vehicle.vin = sanitized.vehicle.vin.replace(/[^a-zA-Z0-9]/g, '').toUpperCase();
+    }
+    if (sanitized.vehicle.engine_no) {
+      sanitized.vehicle.engine_no = sanitized.vehicle.engine_no.replace(/[^a-zA-Z0-9]/g, '').toUpperCase();
+    }
   }
   
   return sanitized;
@@ -662,6 +698,17 @@ const IssuePolicyForm = () => {
             company: matchedCompany || data.policy.company || prev.company,
             sum_insured: data.policy.sum_insured || data.vehicle?.sum_insured || prev.sum_insured
           };
+          
+          if (data.document_type === 'prb_policy') {
+            newPolicy.prb_start_date = data.policy.start_date || '';
+            newPolicy.prb_expiry_date = data.policy.expiry_date || '';
+            newPolicy.start_date = '';
+            newPolicy.expiry_date = '';
+          } else {
+            newPolicy.start_date = data.policy.start_date || '';
+            newPolicy.expiry_date = data.policy.expiry_date || '';
+          }
+
           if (matchedTypeInfo) {
             newPolicy.category = matchedTypeInfo.category;
             newPolicy.type = matchedTypeInfo.type;
