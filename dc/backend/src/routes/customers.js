@@ -18,9 +18,9 @@ router.get('/', authenticateToken, async (req, res) => {
   let params = [];
   
   if (search) {
-    conditions.push(`(c.first_name LIKE ? OR c.last_name LIKE ? OR c.phone LIKE ? OR c.customer_code LIKE ?)`);
+    conditions.push(`(c.first_name LIKE ? OR c.last_name LIKE ? OR c.phone LIKE ? OR c.customer_code LIKE ? OR c.id_card_no LIKE ?)`);
     const searchParam = `%${search}%`;
-    params.push(searchParam, searchParam, searchParam, searchParam);
+    params.push(searchParam, searchParam, searchParam, searchParam, searchParam);
   }
   
   if (month) {
@@ -59,19 +59,19 @@ router.post('/', authenticateToken, async (req, res) => {
   const { 
     customer_code, prefix, first_name, last_name, phone, line_id, facebook, 
     dob, age, address, province, zipcode, secondary_contact, 
-    customer_status, lead_status, source, note 
+    customer_status, lead_status, source, note, id_card_no
   } = req.body;
   
   try {
     const [result] = await req.db.query(
       `INSERT INTO customers (
         customer_code, prefix, first_name, last_name, phone, alt_phone, line_id, facebook, 
-        dob, age, address, province, zipcode, secondary_contact, 
+        dob, age, id_card_no, address, province, zipcode, secondary_contact, 
         customer_status, lead_status, source, note, created_by
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         customer_code, prefix, first_name, last_name, phone, req.body.alt_phone || null, line_id, facebook, 
-        dob || null, age || null, address, province, zipcode, secondary_contact, 
+        dob || null, age || null, id_card_no || null, address, province, zipcode, secondary_contact, 
         customer_status || 'ลูกค้าใหม่', lead_status || 'สนใจ', source, note, req.user.id
       ]
     );
@@ -94,19 +94,19 @@ router.put('/:id', authenticateToken, async (req, res) => {
   const { 
     prefix, first_name, last_name, phone, line_id, facebook, 
     dob, age, address, province, zipcode, secondary_contact, 
-    customer_status, lead_status, source, note 
+    customer_status, lead_status, source, note, id_card_no
   } = req.body;
   
   try {
     await req.db.query(
       `UPDATE customers SET 
         prefix=?, first_name=?, last_name=?, phone=?, alt_phone=?, line_id=?, facebook=?, 
-        dob=?, age=?, address=?, province=?, zipcode=?, secondary_contact=?, 
+        dob=?, age=?, id_card_no=?, address=?, province=?, zipcode=?, secondary_contact=?, 
         customer_status=?, lead_status=?, source=?, note=? 
        WHERE id=?`,
       [
         prefix, first_name, last_name, phone, req.body.alt_phone || null, line_id, facebook, 
-        dob || null, age || null, address, province, zipcode, secondary_contact, 
+        dob || null, age || null, id_card_no || null, address, province, zipcode, secondary_contact, 
         customer_status || 'ลูกค้าใหม่', lead_status || 'สนใจ', source, note, req.params.id
       ]
     );

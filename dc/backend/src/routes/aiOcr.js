@@ -8,7 +8,9 @@ const axios = require('axios');
 const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 10 * 1024 * 1024 } }); // 10MB max
 
 router.post('/extract', authenticateToken, upload.array('images', 10), async (req, res) => {
+  let startTime;
   try {
+    startTime = Date.now();
     if (!req.files || req.files.length === 0) {
       return res.status(400).json({ error: 'No images provided' });
     }
@@ -42,7 +44,7 @@ router.post('/extract', authenticateToken, upload.array('images', 10), async (re
        - district: อำเภอ หรือ เขต (ดึงเฉพาะชื่อ เช่น "บางกะปิ" ตัด อ. หรือ อำเภอ หรือ เขต ออก)
        - province: จังหวัด (ดึงเฉพาะชื่อ เช่น "กรุงเทพมหานคร" ตัด จ. หรือ จังหวัด ออก)
        - zipcode: รหัสไปรษณีย์ 5 หลักเท่านั้น
-       - address: **บ้านเลขที่เท่านั้น** (เฉพาะบ้านเลขที่ เช่น "12/34" หรือ "99/1" ห้ามใส่ หมู่, ซอย, ถนน หรืออาคาร เข้ามารวมในฟิลด์นี้เด็ดขาด)
+       - address: **บ้านเลขที่เท่านั้น** (เฉพาะบ้านเลขที่ เช่น "12/34" หรือ "99/1" ห้ามใส่ หมู่, ซอย, ถนน หรืออาคาร เข้ามารวมในฟิลด์นี้เด็ดขาด) และตัดคำว่า "เลขที่" หรือ "บ้านเลขที่" ออกให้เหลือแต่เลขบ้านเลขที่จริงเท่านั้น
        - moo: **หมู่ หรือ หมู่ที่** ของผู้เอาประกันภัย (ดึงเฉพาะตัวเลขหรือข้อความหมู่ เช่น "5" หรือ "หมู่ที่ 5" หากไม่มีให้ใส่ "") **ห้ามเอาคำว่าหมู่ไปรวมในฟิลด์ address**
        - soi: **ซอย** (เช่น "สุขุมวิท 3" หรือ "ซอย 3" หากไม่มีให้ใส่ "") **ห้ามเอาซอยไปรวมในฟิลด์ address**
        - road: **ถนน** (เช่น "สุขุมวิท" หรือ "ถนนสุขุมวิท" หากไม่มีให้ใส่ "") **ห้ามเอาถนนไปรวมในฟิลด์ address**
@@ -51,8 +53,9 @@ router.post('/extract', authenticateToken, upload.array('images', 10), async (re
        - แปลงปี พ.ศ. เป็น ค.ศ. เสมอ (ปี พ.ศ. ลบด้วย 543)
        - start_date (วันเริ่มต้นคุ้มครอง): ให้ดึงจากหัวข้อ 'ระยะเวลาเอาประกันภัย' หรือ 'ระยะเวลาประกันภัย' -> 'เริ่มต้นวันที่' หรือ 'จากวันที่' เท่านั้น **ห้ามดึงวันจดทะเบียนรถ หรือวันออกเอกสาร หรือวันคุ้มครองของ พ.ร.บ. มาใส่ปนเด็ดขาด**
        - expiry_date (วันสิ้นสุดคุ้มครอง): ให้ดึงจากหัวข้อ 'ระยะเวลาเอาประกันภัย' หรือ 'ระยะเวลาประกันภัย' -> 'สิ้นสุดวันที่' หรือ 'ถึงวันที่' เท่านั้น **ห้ามดึงวันภาษีสิ้นสุด หรือวันจดทะเบียนรถ หรือวันคุ้มครองของ พ.ร.บ. มาใส่ปนเด็ดขาด**
-    6. ข้อมูลเบี้ยประกันภัย (Financial Figures):
+    6. ข้อมูลตัวเลขและการเงิน (Financial & Number Figures):
        - ให้นำลูกน้ำ (,) เครื่องหมายเงิน (฿) หรือช่องว่างออกให้หมด ให้เหลือเฉพาะตัวเลขทศนิยมเพียวๆ เช่น "15,500.00" -> "15500.00"
+       - ตัวเลขทั้งหมดในระบบต้องใช้เลขอารบิกเท่านั้น ห้ามส่งเลขไทย (เช่น ๑, ๒, ๓) กลับมาโดยเด็ดขาด
     7. ข้อมูลรถยนต์ (Vehicle Info):
        - vehicle_type: ประเภทรถ เช่น รถเก๋ง, รถกระบะ, รถจักรยานยนต์, รถกระบะ 4 ประตู, รถโดยสาร, รถ 6 ล้อ, รถ 10 ล้อ, รถพ่วง, รถเพื่อการเกษตร
        - sum_insured: **ทุนประกันภัยของตัวรถยนต์** (ดึงจากหมวด "ความเสียหายต่อรถยนต์" หรือ "รถยนต์สูญหาย/ไฟไหม้" เท่านั้น **ห้ามดึงค่าความรับผิดต่อบุคคลภายนอก 500,000 หรือ 1,000,000 เด็ดขาด** หากเป็นประกันชั้น 3 หรือเอกสาร พ.ร.บ. ให้ระบุเป็น 0)
@@ -60,6 +63,9 @@ router.post('/extract', authenticateToken, upload.array('images', 10), async (re
     8. สลิปโอนเงิน (Bank Transfer Slip Data):
        - ดึงเฉพาะเมื่อเอกสารคือสลิปโอนเงินธนาคาร เพื่อกรอกลงใน "payment_slip_data"
        - ดึงยอดเงิน วันที่และเวลาโอน ชื่อผู้โอน ธนาคารต้นทาง และปลายทาง
+    9. กฎความถูกต้องและการกรองขยะ (Strict Sanitization Rules):
+       - หากไม่พบข้อมูลในฟิลด์ใดๆ ให้ส่งกลับเป็นสตริงว่าง "" เสมอ ห้ามใส่คำว่า "ไม่มี", "ไม่ระบุ", "N/A", หรือเครื่องหมายขีด "-" หรือช่องว่างเด็ดขาด
+       - สำหรับเบอร์โทรศัพท์ (phone) และเลขบัตรประชาชน (id_card_no) ต้องประกอบด้วยตัวเลขอารบิกเท่านั้น ห้ามใส่เครื่องหมายลบ (-), ช่องว่าง, วงเล็บ หรือตัวอักษรใดๆ ปะปน
 
     โครงสร้าง JSON ที่ต้องการส่งกลับ (ห้ามเปลี่ยนชื่อ Key เด็ดขาด):
     {
@@ -81,9 +87,10 @@ router.post('/extract', authenticateToken, upload.array('images', 10), async (re
         "prefix": "คำนำหน้า",
         "first_name": "ชื่อจริง หรือ ชื่อบริษัท",
         "last_name": "นามสกุล (ถ้าเป็นบริษัทให้เว้นว่าง)",
-        "phone": "เบอร์โทรศัพท์ของผู้เอาประกันภัย/ลูกค้า (**เน้นย้ำ: ห้ามดึงเบอร์บริษัทประกันภัย เช่น 1557, 1484 หรือเบอร์ตัวแทน/นายหน้ามาใส่เด็ดขาด หากหาจากข้อมูลผู้เอาประกันภัยไม่ได้ ให้ใส่เป็นสตริงว่าง \"\"**)",
+        "phone": "เบอร์โทรศัพท์ของผู้เอาประกันภัย/ลูกค้า (**เน้นย้ำ: ให้กรอกเฉพาะตัวเลขล้วน ไม่มีขีดหรือช่องว่าง ห้ามดึงเบอร์บริษัทประกันภัย เช่น 1557, 1484 หรือเบอร์ตัวแทน/นายหน้ามาใส่เด็ดขาด หากหาจากข้อมูลผู้เอาประกันภัยไม่ได้ ให้ใส่เป็นสตริงว่าง \"\"**)",
+        "id_card_no": "เลขบัตรประจำตัวประชาชน 13 หลักของผู้เอาประกันภัย (**เน้นย้ำ: ส่งเฉพาะตัวเลขล้วน 13 หลักเท่านั้น ไม่มีขีดหรือช่องว่าง หากหาไม่พบให้ส่งเป็นสตริงว่าง \"\"**)",
         "dob": "วันเดือนปีเกิด (YYYY-MM-DD)",
-        "address": "บ้านเลขที่ (เฉพาะบ้านเลขที่เท่านั้น ห้ามมีคำว่า หมู่ หรือซอย ถนน ปนอยู่)",
+        "address": "บ้านเลขที่ (เฉพาะบ้านเลขที่เท่านั้น ห้ามมีคำว่า หมู่ หรือซอย ถนน ปนอยู่ และตัดคำว่า เลขที่ หรือ บ้านเลขที่ ออก)",
         "moo": "หมู่ หรือ หมู่ที่ (เช่น 5 หรือ หมู่ที่ 5)",
         "soi": "ซอย",
         "road": "ถนน",
@@ -135,6 +142,7 @@ router.post('/extract', authenticateToken, upload.array('images', 10), async (re
 
     let lastError = null;
     let responseText = null;
+    let usedModelName = 'unknown';
 
     for (const modelConfig of modelsToTry) {
       try {
@@ -166,6 +174,7 @@ router.post('/extract', authenticateToken, upload.array('images', 10), async (re
         
         if (response.data?.candidates?.[0]?.content?.parts?.[0]?.text) {
           responseText = response.data.candidates[0].content.parts[0].text;
+          usedModelName = modelConfig.name;
           console.log(`Successfully processed with model: ${modelConfig.name}`);
           break; // Success! Exit the loop
         }
@@ -204,7 +213,7 @@ router.post('/extract', authenticateToken, upload.array('images', 10), async (re
     }
 
     // Verify Premium Math Formula: net_premium + stamp_duty + vat = total_premium
-    if (parsedData.policy) {
+    if (parsedData && parsedData.policy) {
       let net = parseFloat(parsedData.policy.net_premium || 0);
       let stamp = parseFloat(parsedData.policy.stamp_duty || 0);
       let vat = parseFloat(parsedData.policy.vat || 0);
@@ -242,11 +251,51 @@ router.post('/extract', authenticateToken, upload.array('images', 10), async (re
       }
     }
 
+    // Check if ID card is present but invalid in length
+    if (parsedData?.customer?.id_card_no) {
+      const cleanId = parsedData.customer.id_card_no.replace(/\D/g, '');
+      if (cleanId.length > 0 && cleanId.length !== 13) {
+        if (!parsedData.validation) {
+          parsedData.validation = { is_clear: true, warning_message: '', is_expired: false };
+        }
+        const idMsg = `เลขบัตรประชาชนที่สแกนได้มี ${cleanId.length} หลัก (ไม่ครบ 13 หลัก)`;
+        parsedData.validation.warning_message = parsedData.validation.warning_message 
+          ? `${parsedData.validation.warning_message} * ${idMsg}`
+          : idMsg;
+      }
+    }
+
+    const processingTimeMs = Date.now() - startTime;
+    let hasWarning = false;
+    let warningMsg = '';
+    let docType = parsedData?.document_type || 'unknown';
+    
+    if (parsedData?.validation?.warning_message) {
+      hasWarning = true;
+      warningMsg = parsedData.validation.warning_message;
+    }
+
+    if (req.db) {
+      req.db.query(
+        'INSERT INTO ai_usage_logs (document_type, is_success, has_warning, warning_message, model_used, processing_time_ms) VALUES (?, ?, ?, ?, ?, ?)',
+        [docType, true, hasWarning, warningMsg, usedModelName, processingTimeMs]
+      ).catch(err => console.error("Error logging AI usage:", err));
+    }
+
     res.json(parsedData);
 
   } catch (error) {
+    const processingTimeMs = startTime ? (Date.now() - startTime) : 0;
     const apiError = error.response?.data?.error?.message || error.message;
     console.error('OCR Error Details:', error.response?.data || error);
+    
+    if (req.db) {
+      req.db.query(
+        'INSERT INTO ai_usage_logs (document_type, is_success, has_warning, warning_message, model_used, processing_time_ms) VALUES (?, ?, ?, ?, ?, ?)',
+        ['unknown', false, false, apiError, 'unknown', processingTimeMs]
+      ).catch(err => console.error("Error logging failed AI usage:", err));
+    }
+
     res.status(500).json({ error: apiError });
   }
 });
