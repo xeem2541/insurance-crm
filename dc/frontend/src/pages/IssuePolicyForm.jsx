@@ -570,15 +570,15 @@ const IssuePolicyForm = () => {
       const nextAnniversary = getUpcomingAnniversary(vehicle.registration_date);
       if (nextAnniversary) {
         setVehicle(prev => {
-          if (prev.tax_expiry !== nextAnniversary) {
+          if (!prev.tax_expiry) {
             return { ...prev, tax_expiry: nextAnniversary };
           }
           return prev;
         });
         setPolicy(prev => {
           let updates = {};
-          if (prev.prb_start_date !== nextAnniversary) updates.prb_start_date = nextAnniversary;
-          if (!prev.start_date || prev.start_date !== nextAnniversary) updates.start_date = nextAnniversary;
+          if (!prev.prb_start_date) updates.prb_start_date = nextAnniversary;
+          if (!prev.start_date) updates.start_date = nextAnniversary;
           return Object.keys(updates).length > 0 ? { ...prev, ...updates } : prev;
         });
       }
