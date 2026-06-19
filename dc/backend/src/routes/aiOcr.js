@@ -98,31 +98,66 @@ router.post('/extract', authenticateToken, upload.array('images', 10), async (re
       }
     }));
 
-    const response = await axios.post(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash:generateContent`,
-      {
-        contents: [
+    const modelsToTry = [
+      'gemini-1.5-flash',
+      'gemini-2.0-flash',
+      'gemini-2.5-flash',
+      'gemini-3.5-flash'
+    ];
+
+    let lastError = null;
+    let responseText = null;
+
+    for (const modelName of modelsToTry) {
+      try {
+        console.log(`Trying Gemini model: ${modelName}`);
+        const response = await axios.post(
+          `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent`,
           {
-            parts: [
-              { text: prompt },
-              ...imageParts // Support multiple images seamlessly
-            ]
+            contents: [
+              {
+                parts: [
+                  { text: prompt },
+                  ...imageParts // Support multiple images seamlessly
+                ]
+              }
+            ],
+            generationConfig: {
+              responseMimeType: "application/json",
+              temperature: 0.1
+            }
+          },
+          {
+            headers: {
+              'x-goog-api-key': apiKey,
+              'Content-Type': 'application/json'
+            },
+            timeout: 25000 // 25 seconds timeout per model attempt
           }
-        ],
-        generationConfig: {
-          responseMimeType: "application/json",
-          temperature: 0.1
+        );
+        
+        if (response.data?.candidates?.[0]?.content?.parts?.[0]?.text) {
+          responseText = response.data.candidates[0].content.parts[0].text;
+          console.log(`Successfully processed with model: ${modelName}`);
+          break; // Success! Exit the loop
         }
-      },
-      {
-        headers: {
-          'x-goog-api-key': apiKey,
-          'Content-Type': 'application/json'
+      } catch (error) {
+        lastError = error;
+        const status = error.response?.status;
+        const msg = error.response?.data?.error?.message || error.message;
+        console.warn(`Failed with model ${modelName}:`, msg);
+        
+        // If it's a key/auth issue (400 Bad Request (often invalid key), 401 Unauthorized, 403 Forbidden), 
+        // fail immediately since other models will also fail
+        if (status === 400 || status === 401 || status === 403) {
+          throw error;
         }
       }
-    );
+    }
 
-    const responseText = response.data.candidates[0].content.parts[0].text;
+    if (!responseText) {
+      throw lastError || new Error('ทุกโมเดลของ Gemini เกิดข้อผิดพลาดในการประมวลผล กรุณาลองใหม่อีกครั้ง');
+    }
     
     // Clean up markdown syntax if Gemini returns it despite instructions
     let jsonText = responseText.trim();
