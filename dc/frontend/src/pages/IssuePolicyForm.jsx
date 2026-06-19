@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import api from '../services/api';
-import { Form, Button, Row, Col, Accordion, Card, Badge } from 'react-bootstrap';
+import { Form, Button, Row, Col, Accordion, Card, Badge, Modal } from 'react-bootstrap';
 import Select from 'react-select';
 import AsyncSelect from 'react-select/async';
 import CreatableSelect from 'react-select/creatable';
@@ -264,6 +264,10 @@ const IssuePolicyForm = () => {
 
   const [files, setFiles] = useState([]);
   const [ocrLoading, setOcrLoading] = useState(false);
+  const [activePreviewIdx, setActivePreviewIdx] = useState(0);
+  const [zoomLevel, setZoomLevel] = useState(1);
+  const [rotation, setRotation] = useState(0);
+  const [previewModalUrl, setPreviewModalUrl] = useState(null);
 
   const handleAIExtract = async (e) => {
     const rawFiles = Array.from(e.target.files);
@@ -271,13 +275,25 @@ const IssuePolicyForm = () => {
 
     let geminiApiKey = localStorage.getItem('geminiApiKey');
     if (!geminiApiKey) {
-      geminiApiKey = window.prompt('ระบบจำเป็นต้องใช้ Gemini API Key ในการอ่านรูปภาพ (ฟรี 100%)\\nกรุณาใส่ API Key ของคุณที่ได้จาก Google AI Studio:');
+      geminiApiKey = window.prompt('ระบบจำเป็นต้องใช้ Gemini API Key ในการอ่านรูปภาพ (ฟรี 100%)\nกรุณาใส่ API Key ของคุณที่ได้จาก Google AI Studio:');
       if (!geminiApiKey) {
         e.target.value = null;
         return;
       }
       localStorage.setItem('geminiApiKey', geminiApiKey);
     }
+
+    // Auto-add AI scanned files to attachments state
+    const newFiles = rawFiles.map(file => ({
+      file,
+      type_id: 1, // default "ตารางกรมธรรม์"
+      note: 'สแกนด้วย AI',
+      preview: URL.createObjectURL(file)
+    }));
+    
+    const currentLength = files.length;
+    setFiles(prev => [...prev, ...newFiles]);
+    setActivePreviewIdx(currentLength);
 
     setOcrLoading(true);
     try {
@@ -786,6 +802,9 @@ const IssuePolicyForm = () => {
     }
   };
 
+  const imageFiles = files.filter(f => f.file.type.startsWith('image/'));
+  const validActiveIdx = activePreviewIdx >= imageFiles.length ? 0 : activePreviewIdx;
+
   return (
     <div className="container-fluid pb-5 mobile-pb">
       <div className="d-flex justify-content-between align-items-center mb-4">
@@ -873,7 +892,9 @@ const IssuePolicyForm = () => {
       )}
 
       <Form onSubmit={handleSubmit}>
-        <Accordion defaultActiveKey={['0', '1', '2', '3', '4', '5']} alwaysOpen>
+        <Row>
+          <Col lg={imageFiles.length > 0 ? 8 : 12} style={{ transition: 'all 0.3s ease' }}>
+            <Accordion defaultActiveKey={['0', '1', '2', '3', '4', '5']} alwaysOpen>
           
           {/* Section 1: Customer */}
           <Accordion.Item eventKey="0" className="mb-3 border-0 shadow-sm rounded">
@@ -1074,8 +1095,22 @@ const IssuePolicyForm = () => {
                 <h6 className="text-primary fw-bold border-bottom pb-2 mb-3">ข้อมูลทางเทคนิค</h6>
                 <Row className="g-3 mb-4">
                   <Col md={4}>
-                    <Form.Label>เลขตัวถัง (VIN / Chassis No)</Form.Label>
-                    <Form.Control type="text" value={vehicle.vin} onChange={e => setVehicle({...vehicle, vin: e.target.value})} />
+                    <Form.Label>
+                      เลขตัวถัง (VIN / Chassis No)
+                      {vehicle.vin && vehicle.vin.replace(/\s+/g, '').length !== 17 && (
+                        <span className="text-warning ms-2 fw-bold animate-pulse" style={{ fontSize: '0.8rem' }}>
+                          <i className="bi bi-exclamation-triangle-fill me-1"></i>
+                          ควรมี 17 หลัก (ระบุ {vehicle.vin.replace(/\s+/g, '').length} หลัก)
+                        </span>
+                      )}
+                    </Form.Label>
+                    <Form.Control 
+                      type="text" 
+                      className={`text-uppercase ${vehicle.vin && vehicle.vin.replace(/\s+/g, '').length !== 17 ? 'border-warning shadow-sm bg-warning-subtle' : ''}`}
+                      style={{ transition: 'all 0.3s' }}
+                      value={vehicle.vin} 
+                      onChange={e => setVehicle({...vehicle, vin: e.target.value.toUpperCase()})} 
+                    />
                   </Col>
                   <Col md={4}>
                     <Form.Label>เลขเครื่องยนต์</Form.Label>
@@ -1410,7 +1445,13 @@ const IssuePolicyForm = () => {
                           <td>
                             <div className="d-flex align-items-center">
                               {f.file.type.includes('image') ? (
-                                <img src={f.preview} alt="preview" style={{ width: '40px', height: '40px', objectFit: 'cover', borderRadius: '4px', marginRight: '10px' }} />
+                                <img 
+                                  src={f.preview} 
+                                  alt="preview" 
+                                  title="คลิกเพื่อดูรูปขนาดใหญ่"
+                                  style={{ width: '40px', height: '40px', objectFit: 'cover', borderRadius: '4px', marginRight: '10px', cursor: 'pointer' }} 
+                                  onClick={() => setPreviewModalUrl(f.preview)}
+                                />
                               ) : (
                                 <i className="bi bi-file-earmark-pdf-fill text-danger me-2" style={{ fontSize: '1.5rem' }}></i>
                               )}
@@ -1455,8 +1496,88 @@ const IssuePolicyForm = () => {
             </div>
           </div>
         </div>
-
+          </Col>
+          
+          {imageFiles.length > 0 && (
+            <Col lg={4} className="d-none d-lg-block">
+              <div className="sticky-top" style={{ top: '20px', zIndex: 1000 }}>
+                <Card className="border-0 shadow rounded-3">
+                  <Card.Header className="bg-primary text-white d-flex justify-content-between align-items-center py-2">
+                    <h6 className="mb-0 fw-bold"><i className="bi bi-eye-fill me-1"></i> พรีวิวเอกสารแนบ</h6>
+                    <div className="d-flex align-items-center gap-2">
+                      {imageFiles.length > 1 && (
+                        <div className="btn-group btn-group-sm">
+                          <Button variant="light" size="sm" className="py-0 px-2" disabled={validActiveIdx === 0} onClick={() => {
+                            setActivePreviewIdx(prev => Math.max(0, prev - 1));
+                            setZoomLevel(1);
+                            setRotation(0);
+                          }}><i className="bi bi-chevron-left"></i></Button>
+                          <Button variant="light" size="sm" className="py-0 px-2" disabled={validActiveIdx === imageFiles.length - 1} onClick={() => {
+                            setActivePreviewIdx(prev => Math.min(imageFiles.length - 1, prev + 1));
+                            setZoomLevel(1);
+                            setRotation(0);
+                          }}><i className="bi bi-chevron-right"></i></Button>
+                        </div>
+                      )}
+                      <span className="badge bg-light text-primary">
+                        {validActiveIdx + 1} / {imageFiles.length}
+                      </span>
+                    </div>
+                  </Card.Header>
+                  <Card.Body className="p-2 bg-dark text-center rounded-bottom overflow-hidden position-relative d-flex flex-column align-items-center justify-content-center" style={{ minHeight: '350px' }}>
+                    {imageFiles[validActiveIdx] && (
+                      <div className="overflow-auto w-100 d-flex align-items-center justify-content-center" style={{ maxHeight: '480px', minHeight: '300px' }}>
+                        <img 
+                          src={imageFiles[validActiveIdx].preview} 
+                          alt="Document Preview" 
+                          style={{
+                            transform: `scale(${zoomLevel}) rotate(${rotation}deg)`,
+                            transition: 'transform 0.2s ease-in-out',
+                            maxWidth: '100%',
+                            maxHeight: '400px',
+                            objectFit: 'contain'
+                          }} 
+                        />
+                      </div>
+                    )}
+                  </Card.Body>
+                  <Card.Footer className="bg-light d-flex justify-content-between align-items-center py-2">
+                    <span className="small text-muted text-truncate" style={{ maxWidth: '150px' }}>
+                      {imageFiles[validActiveIdx]?.file.name}
+                    </span>
+                    <div className="btn-group">
+                      <Button variant="outline-secondary" size="sm" title="ซูมเข้า" onClick={() => setZoomLevel(z => Math.min(3, z + 0.25))}>
+                        <i className="bi bi-zoom-in"></i>
+                      </Button>
+                      <Button variant="outline-secondary" size="sm" title="ซูมออก" onClick={() => setZoomLevel(z => Math.max(0.5, z - 0.25))}>
+                        <i className="bi bi-zoom-out"></i>
+                      </Button>
+                      <Button variant="outline-secondary" size="sm" title="หมุนรูป" onClick={() => setRotation(r => (r + 90) % 360)}>
+                        <i className="bi bi-arrow-clockwise"></i>
+                      </Button>
+                      <Button variant="outline-danger" size="sm" title="รีเซ็ต" onClick={() => { setZoomLevel(1); setRotation(0); }}>
+                        <i className="bi bi-arrow-counterclockwise"></i>
+                      </Button>
+                    </div>
+                  </Card.Footer>
+                </Card>
+              </div>
+            </Col>
+          )}
+        </Row>
       </Form>
+
+      {/* Modal Preview for images */}
+      <Modal show={previewModalUrl !== null} onHide={() => setPreviewModalUrl(null)} size="lg" centered>
+        <Modal.Header closeButton className="py-2">
+          <Modal.Title className="fs-6 fw-bold"><i className="bi bi-image me-1"></i> พรีวิวเอกสารแนบ</Modal.Title>
+        </Modal.Header>
+        <Modal.Body className="p-0 bg-dark text-center overflow-auto" style={{ maxHeight: '80vh' }}>
+          {previewModalUrl && (
+            <img src={previewModalUrl} alt="Preview Modal" style={{ maxWidth: '100%', maxHeight: '75vh', objectFit: 'contain' }} />
+          )}
+        </Modal.Body>
+      </Modal>
     </div>
   );
 };
