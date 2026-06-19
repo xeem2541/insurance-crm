@@ -571,157 +571,185 @@ const IssuePolicyForm = () => {
       localStorage.setItem('geminiApiKey', geminiApiKey);
     }
 
-    // Auto-add AI scanned files to attachments state
+    const currentLength = files.length;
+
+    // Auto-add AI scanned files to attachments state with temporary status note
     const newFiles = rawFiles.map(file => ({
       file,
       type_id: 1, // default "ตารางกรมธรรม์"
-      note: 'สแกนด้วย AI',
+      note: 'กำลังรอการสแกนด้วย AI...',
       preview: URL.createObjectURL(file)
     }));
     
-    const currentLength = files.length;
     setFiles(prev => [...prev, ...newFiles]);
     setActivePreviewIdx(currentLength);
 
     setOcrLoading(true);
+
     try {
-      // Compress images with higher resolution to preserve sharp Thai text for Gemini OCR
-      const compressedFiles = await Promise.all(
-        rawFiles.map(file => compressImage(file, 2000, 2000, 0.75))
-      );
+      // Loop through each file sequentially to ensure 100% accuracy and prevent mixed data
+      for (let idx = 0; idx < rawFiles.length; idx++) {
+        const file = rawFiles[idx];
+        const fileIndex = currentLength + idx;
 
-      const formData = new FormData();
-      compressedFiles.forEach(file => {
-        formData.append('images', file);
-      });
+        // Update active preview index to highlight the current file being scanned
+        setActivePreviewIdx(fileIndex);
 
-      const res = await api.post('/ai-ocr/extract', formData, {
-        headers: { 'x-gemini-api-key': geminiApiKey } 
-      });
-      const data = sanitizeAIResponse(res.data);
-
-      // Auto-set document warnings if any
-      if (data.validation && data.validation.warning_message) {
-        setAiWarning(data.validation.warning_message);
-      }
-
-      // Handle payment slip auto-population
-      if (data.document_type === 'payment_slip' && data.payment_slip_data) {
-        const slip = data.payment_slip_data;
-        setPayment(prev => ({
-          ...prev,
-          payment_method: 'เงินสด', // Mark as cash (one-time)
-          pay_date: slip.transfer_date_time ? normalizeDate(slip.transfer_date_time) : prev.pay_date,
-          status: 'ชำระครบแล้ว'
-        }));
-        
-        let bankText = '';
-        if (slip.bank_sender || slip.bank_receiver) {
-          bankText = ` (${slip.bank_sender || ''} -> ${slip.bank_receiver || ''})`;
-        }
-        let slipNotice = `ตรวจพบสลิปโอนเงิน ยอดโอน: ฿${parseFloat(slip.amount || 0).toLocaleString()}${bankText} วันที่โอน: ${slip.transfer_date_time || ''}`;
-        setAiWarning(prev => prev ? `${prev} | ${slipNotice}` : slipNotice);
-      }
-
-      // Auto-set the document type in the files state for the newly added files
-      let detectedTypeId = 1; // default to policy
-      if (data.document_type === 'vehicle_book') detectedTypeId = 4;
-      else if (data.document_type === 'payment_slip') detectedTypeId = 2;
-      
-      setFiles(prev => {
-        const updated = [...prev];
-        for (let i = currentLength; i < updated.length; i++) {
-          updated[i] = {
-            ...updated[i],
-            type_id: detectedTypeId,
-            note: `สแกนด้วย AI: ${data.document_type === 'payment_slip' ? 'สลิปโอนเงิน' : data.document_type === 'vehicle_book' ? 'ทะเบียนรถ' : 'กรมธรรม์'}`
-          };
-        }
-        return updated;
-      });
-      
-      // Auto-normalize any extracted dates (e.g. converting BE to AD)
-      if (data.customer && data.customer.dob) {
-        data.customer.dob = normalizeDate(data.customer.dob);
-      }
-      if (data.vehicle && data.vehicle.registration_date) {
-        data.vehicle.registration_date = normalizeDate(data.vehicle.registration_date);
-      }
-      if (data.policy) {
-        if (data.policy.start_date) data.policy.start_date = normalizeDate(data.policy.start_date);
-        if (data.policy.expiry_date) data.policy.expiry_date = normalizeDate(data.policy.expiry_date);
-      }
-      
-      if (data.customer) {
-        let calculatedAge = data.customer.age;
-        if (data.customer.dob) {
-          const birthDate = new Date(data.customer.dob);
-          const today = new Date();
-          calculatedAge = today.getFullYear() - birthDate.getFullYear();
-          const m = today.getMonth() - birthDate.getMonth();
-          if (m < 0 || (m === 0 && today.getDate() < birthDate.getDate())) {
-            calculatedAge--;
+        // Update status note for the currently scanning file
+        setFiles(prev => {
+          const updated = [...prev];
+          if (updated[fileIndex]) {
+            updated[fileIndex].note = 'กำลังอ่านข้อมูลด้วย AI...';
           }
-        }
-
-        const cleanedCustomer = cleanAndExtractAddressFields(data.customer);
-        setCustomer(prev => ({ 
-          ...prev, 
-          ...cleanedCustomer,
-          age: calculatedAge || prev.age
-        }));
-      }
-
-      if (data.vehicle) {
-        const matchedBrand = data.vehicle.brand ? findMatchingBrand(data.vehicle.brand, carBrands) : '';
-        const matchedModel = data.vehicle.model ? findMatchingModel(data.vehicle.model, matchedBrand, carModels) : '';
-        const matchedVehicleType = data.vehicle.vehicle_type ? findMatchingVehicleType(data.vehicle.vehicle_type, vehicleTypes) : '';
-        const matchedColor = data.vehicle.color ? findMatchingColor(data.vehicle.color) : '';
-
-        setVehicle(prev => ({ 
-          ...prev, 
-          ...data.vehicle,
-          brand: matchedBrand || data.vehicle.brand || prev.brand,
-          model: matchedModel || data.vehicle.model || prev.model,
-          vehicle_type: matchedVehicleType || data.vehicle.vehicle_type || prev.vehicle_type,
-          color: matchedColor || data.vehicle.color || prev.color,
-          registration_date: data.vehicle.registration_date || prev.registration_date,
-          sum_insured: data.vehicle.sum_insured || data.policy?.sum_insured || prev.sum_insured
-        }));
-      }
-
-      if (data.policy) {
-        const matchedCompany = data.policy.company ? findMatchingCompany(data.policy.company, companies) : '';
-        const matchedTypeInfo = data.policy.type ? findMatchingType(data.policy.type, policyTypes, nonMotorTypes) : null;
-
-        setPolicy(prev => {
-          const newPolicy = { 
-            ...prev, 
-            ...data.policy,
-            company: matchedCompany || data.policy.company || prev.company,
-            sum_insured: data.policy.sum_insured || data.vehicle?.sum_insured || prev.sum_insured
-          };
-          
-          if (data.document_type === 'prb_policy') {
-            newPolicy.prb_start_date = data.policy.start_date || '';
-            newPolicy.prb_expiry_date = data.policy.expiry_date || '';
-            newPolicy.start_date = '';
-            newPolicy.expiry_date = '';
-          } else {
-            newPolicy.start_date = data.policy.start_date || '';
-            newPolicy.expiry_date = data.policy.expiry_date || '';
-          }
-
-          if (matchedTypeInfo) {
-            newPolicy.category = matchedTypeInfo.category;
-            newPolicy.type = matchedTypeInfo.type;
-            newPolicy.non_motor_type_id = matchedTypeInfo.non_motor_type_id;
-          }
-          return newPolicy;
+          return updated;
         });
+
+        const compressedFile = await compressImage(file, 2000, 2000, 0.75);
+
+        const formData = new FormData();
+        formData.append('images', compressedFile); // Send exactly 1 image
+
+        const res = await api.post('/ai-ocr/extract', formData, {
+          headers: { 'x-gemini-api-key': geminiApiKey } 
+        });
+
+        const data = sanitizeAIResponse(res.data);
+
+        // Append warnings if any
+        if (data.validation && data.validation.warning_message) {
+          setAiWarning(prev => prev ? `${prev} | ${data.validation.warning_message}` : data.validation.warning_message);
+        }
+
+        // Handle payment slip auto-population
+        if (data.document_type === 'payment_slip' && data.payment_slip_data) {
+          const slip = data.payment_slip_data;
+          setPayment(prev => ({
+            ...prev,
+            payment_method: 'เงินสด',
+            pay_date: slip.transfer_date_time ? normalizeDate(slip.transfer_date_time) : prev.pay_date,
+            status: 'ชำระครบแล้ว'
+          }));
+          
+          let bankText = '';
+          if (slip.bank_sender || slip.bank_receiver) {
+            bankText = ` (${slip.bank_sender || ''} -> ${slip.bank_receiver || ''})`;
+          }
+          let slipNotice = `ตรวจพบสลิปโอนเงิน ยอดโอน: ฿${parseFloat(slip.amount || 0).toLocaleString()}${bankText} วันที่โอน: ${slip.transfer_date_time || ''}`;
+          setAiWarning(prev => prev ? `${prev} | ${slipNotice}` : slipNotice);
+        }
+
+        // Auto-set the document type in the files state for this specific file
+        let detectedTypeId = 1; // default to policy
+        if (data.document_type === 'vehicle_book') detectedTypeId = 4;
+        else if (data.document_type === 'payment_slip') detectedTypeId = 2;
+        
+        setFiles(prev => {
+          const updated = [...prev];
+          if (updated[fileIndex]) {
+            updated[fileIndex] = {
+              ...updated[fileIndex],
+              type_id: detectedTypeId,
+              note: `สแกนด้วย AI: ${data.document_type === 'payment_slip' ? 'สลิปโอนเงิน' : data.document_type === 'vehicle_book' ? 'ทะเบียนรถ' : 'กรมธรรม์'}`
+            };
+          }
+          return updated;
+        });
+        
+        // Auto-normalize any extracted dates (e.g. converting BE to AD)
+        if (data.customer && data.customer.dob) {
+          data.customer.dob = normalizeDate(data.customer.dob);
+        }
+        if (data.vehicle && data.vehicle.registration_date) {
+          data.vehicle.registration_date = normalizeDate(data.vehicle.registration_date);
+        }
+        if (data.policy) {
+          if (data.policy.start_date) data.policy.start_date = normalizeDate(data.policy.start_date);
+          if (data.policy.expiry_date) data.policy.expiry_date = normalizeDate(data.policy.expiry_date);
+        }
+        
+        if (data.customer) {
+          let calculatedAge = data.customer.age;
+          if (data.customer.dob) {
+            const birthDate = new Date(data.customer.dob);
+            const today = new Date();
+            calculatedAge = today.getFullYear() - birthDate.getFullYear();
+            const m = today.getMonth() - birthDate.getMonth();
+            if (m < 0 || (m === 0 && today.getDate() < birthDate.getDate())) {
+              calculatedAge--;
+            }
+          }
+
+          const cleanedCustomer = cleanAndExtractAddressFields(data.customer);
+          setCustomer(prev => {
+            const merged = { ...prev };
+            Object.keys(cleanedCustomer).forEach(key => {
+              const val = cleanedCustomer[key];
+              if (val !== '' && val !== null && val !== undefined) {
+                merged[key] = val;
+              }
+            });
+            if (calculatedAge) merged.age = calculatedAge;
+            return merged;
+          });
+        }
+
+        if (data.vehicle) {
+          const matchedBrand = data.vehicle.brand ? findMatchingBrand(data.vehicle.brand, carBrands) : '';
+          const matchedModel = data.vehicle.model ? findMatchingModel(data.vehicle.model, matchedBrand, carModels) : '';
+          const matchedVehicleType = data.vehicle.vehicle_type ? findMatchingVehicleType(data.vehicle.vehicle_type, vehicleTypes) : '';
+          const matchedColor = data.vehicle.color ? findMatchingColor(data.vehicle.color) : '';
+
+          setVehicle(prev => {
+            const merged = { ...prev };
+            const rawVehicle = data.vehicle;
+            Object.keys(rawVehicle).forEach(key => {
+              const val = rawVehicle[key];
+              if (val !== '' && val !== null && val !== undefined) {
+                merged[key] = val;
+              }
+            });
+            if (matchedBrand) merged.brand = matchedBrand;
+            if (matchedModel) merged.model = matchedModel;
+            if (matchedVehicleType) merged.vehicle_type = matchedVehicleType;
+            if (matchedColor) merged.color = matchedColor;
+            return merged;
+          });
+        }
+
+        if (data.policy) {
+          const matchedCompany = data.policy.company ? findMatchingCompany(data.policy.company, companies) : '';
+          const matchedTypeInfo = data.policy.type ? findMatchingType(data.policy.type, policyTypes, nonMotorTypes) : null;
+
+          setPolicy(prev => {
+            const merged = { ...prev };
+            const rawPolicy = data.policy;
+            Object.keys(rawPolicy).forEach(key => {
+              const val = rawPolicy[key];
+              if (val !== '' && val !== null && val !== undefined) {
+                merged[key] = val;
+              }
+            });
+            if (matchedCompany) merged.company = matchedCompany;
+            
+            if (data.document_type === 'prb_policy') {
+              merged.prb_start_date = data.policy.start_date || merged.prb_start_date || '';
+              merged.prb_expiry_date = data.policy.expiry_date || merged.prb_expiry_date || '';
+            } else {
+              merged.start_date = data.policy.start_date || merged.start_date || '';
+              merged.expiry_date = data.policy.expiry_date || merged.expiry_date || '';
+            }
+
+            if (matchedTypeInfo) {
+              merged.category = matchedTypeInfo.category;
+              merged.type = matchedTypeInfo.type;
+              merged.non_motor_type_id = matchedTypeInfo.non_motor_type_id;
+            }
+            return merged;
+          });
+        }
       }
       
-      alert('ดึงข้อมูลจากรูปภาพสำเร็จ! กรุณาตรวจสอบความถูกต้องก่อนบันทึกอีกครั้งนะครับ');
+      alert('ดึงข้อมูลจากรูปภาพทั้งหมดสำเร็จ! กรุณาตรวจสอบความถูกต้องก่อนบันทึกอีกครั้งนะครับ');
     } catch (err) {
       setFiles(prev => {
         const reverted = prev.slice(0, currentLength);
