@@ -109,6 +109,61 @@ const findMatchingType = (extractedType, motorTypes, nonMotorTypesList) => {
   return null;
 };
 
+const compressImage = (file, maxWidth = 1600, maxHeight = 1600, quality = 0.8) => {
+  return new Promise((resolve) => {
+    if (!file.type.startsWith('image/')) {
+      return resolve(file);
+    }
+
+    const reader = new FileReader();
+    reader.readAsDataURL(file);
+    reader.onload = (event) => {
+      const img = new Image();
+      img.src = event.target.result;
+      img.onload = () => {
+        let width = img.width;
+        let height = img.height;
+
+        if (width > height) {
+          if (width > maxWidth) {
+            height = Math.round((height * maxWidth) / width);
+            width = maxWidth;
+          }
+        } else {
+          if (height > maxHeight) {
+            width = Math.round((width * maxHeight) / height);
+            height = maxHeight;
+          }
+        }
+
+        const canvas = document.createElement('canvas');
+        canvas.width = width;
+        canvas.height = height;
+
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(img, 0, 0, width, height);
+
+        canvas.toBlob(
+          (blob) => {
+            if (!blob) {
+              return resolve(file);
+            }
+            const compressedFile = new File([blob], file.name, {
+              type: 'image/jpeg',
+              lastModified: Date.now()
+            });
+            resolve(compressedFile);
+          },
+          'image/jpeg',
+          quality
+        );
+      };
+      img.onerror = () => resolve(file);
+    };
+    reader.onerror = () => resolve(file);
+  });
+};
+
 const IssuePolicyForm = () => {
   const [loading, setLoading] = useState(false);
   const [successMsg, setSuccessMsg] = useState(null);
@@ -162,8 +217,8 @@ const IssuePolicyForm = () => {
   const [ocrLoading, setOcrLoading] = useState(false);
 
   const handleAIExtract = async (e) => {
-    const files = Array.from(e.target.files);
-    if (!files.length) return;
+    const rawFiles = Array.from(e.target.files);
+    if (!rawFiles.length) return;
 
     let geminiApiKey = localStorage.getItem('geminiApiKey');
     if (!geminiApiKey) {
@@ -175,13 +230,18 @@ const IssuePolicyForm = () => {
       localStorage.setItem('geminiApiKey', geminiApiKey);
     }
 
-    const formData = new FormData();
-    files.forEach(file => {
-      formData.append('images', file);
-    });
-
     setOcrLoading(true);
     try {
+      // Compress images in parallel before sending to backend to speed up upload & processing
+      const compressedFiles = await Promise.all(
+        rawFiles.map(file => compressImage(file))
+      );
+
+      const formData = new FormData();
+      compressedFiles.forEach(file => {
+        formData.append('images', file);
+      });
+
       const res = await api.post('/ai-ocr/extract', formData, {
         headers: { 'x-gemini-api-key': geminiApiKey } 
       });
