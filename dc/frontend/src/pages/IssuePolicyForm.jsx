@@ -337,6 +337,9 @@ const cleanAndExtractAddressFields = (customerObj) => {
     address = address.replace(/ถนน\s*[ก-ฮa-zA-Z0-9]+/g, '')
                      .replace(/ถ\.\s*[ก-ฮa-zA-Z0-9]+/g, '');
 
+    // Remove "บ้านเลขที่" and "เลขที่"
+    address = address.replace(/บ้านเลขที่\s*/g, '').replace(/เลขที่\s*/g, '');
+
     // Clean up spaces, commas, slashes at the end
     address = address.replace(/[,.\-\s]+$/, '').replace(/^\s+/, '').replace(/\s+/g, ' ').trim();
   }
@@ -347,6 +350,60 @@ const cleanAndExtractAddressFields = (customerObj) => {
   }
 
   return { ...customerObj, address, moo, soi, road };
+};
+
+const translateThaiNumerals = (obj) => {
+  if (obj === null || obj === undefined) return obj;
+  if (typeof obj === 'string') {
+    const thNums = ['๐', '๑', '๒', '๓', '๔', '๕', '๖', '๗', '๘', '๙'];
+    return obj.replace(/[๐-๙]/g, (m) => thNums.indexOf(m));
+  }
+  if (Array.isArray(obj)) {
+    return obj.map(item => translateThaiNumerals(item));
+  }
+  if (typeof obj === 'object') {
+    const cleaned = {};
+    for (const key in obj) {
+      cleaned[key] = translateThaiNumerals(obj[key]);
+    }
+    return cleaned;
+  }
+  return obj;
+};
+
+const sanitizeAIResponse = (data) => {
+  if (!data) return data;
+  
+  // 1. Convert all Thai numerals to Arabic numerals
+  let sanitized = translateThaiNumerals(data);
+  
+  // 2. Sanitize Customer fields
+  if (sanitized.customer) {
+    // Phone validation
+    if (sanitized.customer.phone) {
+      const cleaned = sanitized.customer.phone.replace(/\D/g, '');
+      sanitized.customer.phone = (cleaned.length === 9 || cleaned.length === 10) ? cleaned : '';
+    } else {
+      sanitized.customer.phone = '';
+    }
+    
+    if (sanitized.customer.alt_phone) {
+      const cleaned = sanitized.customer.alt_phone.replace(/\D/g, '');
+      sanitized.customer.alt_phone = (cleaned.length === 9 || cleaned.length === 10) ? cleaned : '';
+    } else {
+      sanitized.customer.alt_phone = '';
+    }
+    
+    // ID Card validation
+    if (sanitized.customer.id_card_no) {
+      const cleaned = sanitized.customer.id_card_no.replace(/\D/g, '');
+      sanitized.customer.id_card_no = (cleaned.length === 13) ? cleaned : '';
+    } else {
+      sanitized.customer.id_card_no = '';
+    }
+  }
+  
+  return sanitized;
 };
 
 const compressImage = (file, maxWidth = 1600, maxHeight = 1600, quality = 0.8) => {
@@ -502,7 +559,7 @@ const IssuePolicyForm = () => {
       const res = await api.post('/ai-ocr/extract', formData, {
         headers: { 'x-gemini-api-key': geminiApiKey } 
       });
-      const data = res.data;
+      const data = sanitizeAIResponse(res.data);
 
       // Auto-set document warnings if any
       if (data.validation && data.validation.warning_message) {
@@ -1178,6 +1235,10 @@ const IssuePolicyForm = () => {
                 <Col md={1}>
                   <Form.Label>อายุ</Form.Label>
                   <Form.Control type="number" value={customer.age || ''} onChange={e => setCustomer({...customer, age: e.target.value})} />
+                </Col>
+                <Col md={3}>
+                  <Form.Label>เลขบัตรประชาชน</Form.Label>
+                  <Form.Control type="text" inputMode="numeric" value={formatIdCard(customer.id_card_no)} onChange={e => setCustomer({...customer, id_card_no: e.target.value.replace(/\D/g, '')})} maxLength={17} />
                 </Col>
                 <Col md={3}>
                   <Form.Label>เบอร์โทรศัพท์ <span className="text-danger">*</span></Form.Label>

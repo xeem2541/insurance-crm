@@ -83,7 +83,7 @@ const Customers = () => {
   };
 
   const [formData, setFormData] = useState({
-    customer_code: '', prefix: '', first_name: '', last_name: '', phone: '', alt_phone: '', 
+    customer_code: '', prefix: '', first_name: '', last_name: '', id_card_no: '', phone: '', alt_phone: '', 
     line_id: '', facebook: '', dob: '', age: '', address: '', sub_district: '', district: '', province: '', zipcode: '',
     secondary_contact: '', customer_status: 'ลูกค้าใหม่', lead_status: 'สนใจ', source: '', note: ''
   });
@@ -304,6 +304,10 @@ const Customers = () => {
 
 
               <h5 className="text-primary border-bottom pb-2 mt-4">ข้อมูลติดต่อ</h5>
+              <div className="col-md-3">
+                <Form.Label>เลขบัตรประชาชน</Form.Label>
+                <Form.Control type="text" value={formatIdCard(formData.id_card_no || '')} onChange={e => setFormData({...formData, id_card_no: e.target.value.replace(/\D/g, '')})} maxLength={17} placeholder="x-xxxx-xxxxx-xx-x" />
+              </div>
               <div className="col-md-3">
                 <Form.Label>เบอร์โทรศัพท์ <span className="text-danger">*</span></Form.Label>
                 <Form.Control required type="text" value={formData.phone || ''} onChange={e => setFormData({...formData, phone: formatPhone(e.target.value)})} maxLength={12} />
