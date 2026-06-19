@@ -154,6 +154,32 @@ const IssuePolicyForm = () => {
   });
 
   const [files, setFiles] = useState([]);
+  const [ocrLoading, setOcrLoading] = useState(false);
+
+  const handleAIExtract = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    const formData = new FormData();
+    formData.append('image', file);
+
+    setOcrLoading(true);
+    try {
+      const res = await api.post('/ai-ocr/extract', formData);
+      const data = res.data;
+      
+      if (data.customer) setCustomer(prev => ({ ...prev, ...data.customer }));
+      if (data.vehicle) setVehicle(prev => ({ ...prev, ...data.vehicle }));
+      if (data.policy) setPolicy(prev => ({ ...prev, ...data.policy }));
+      
+      alert('ดึงข้อมูลจากรูปภาพสำเร็จ! กรุณาตรวจสอบความถูกต้องก่อนบันทึกอีกครั้งนะครับ');
+    } catch (err) {
+      alert(err.response?.data?.error || 'เกิดข้อผิดพลาดในการดึงข้อมูลด้วย AI');
+    } finally {
+      setOcrLoading(false);
+      e.target.value = null;
+    }
+  };
 
   useEffect(() => {
     fetchMasterData();
@@ -517,6 +543,23 @@ const IssuePolicyForm = () => {
     <div className="container-fluid pb-5 mobile-pb">
       <div className="d-flex justify-content-between align-items-center mb-4">
         <h2 className="fw-bold"><i className="bi bi-file-earmark-plus-fill text-primary"></i> เพิ่มลูกค้าใหม่ / ออกกรมธรรม์ใหม่ (Single Page Form)</h2>
+      </div>
+
+      <div className="card border-0 shadow-sm mb-4 bg-gradient" style={{ background: 'linear-gradient(135deg, #e0c3fc 0%, #8ec5fc 100%)' }}>
+        <div className="card-body text-center py-4">
+          <h4 className="fw-bold text-dark mb-3">✨ ขี้เกียจพิมพ์? ให้ AI ช่วยอ่านตารางกรมธรรม์สิครับ!</h4>
+          {ocrLoading ? (
+            <div className="d-flex align-items-center justify-content-center text-primary fw-bold">
+              <span className="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
+              กำลังใช้ Gemini AI อ่านเอกสาร... (อาจใช้เวลา 10-20 วินาที)
+            </div>
+          ) : (
+            <label className="btn btn-dark btn-lg fw-bold px-5 rounded-pill shadow-sm">
+              <i className="bi bi-camera-fill me-2"></i> ถ่ายรูป / อัปโหลดตารางกรมธรรม์
+              <input type="file" accept="image/*" capture="environment" className="d-none" onChange={handleAIExtract} />
+            </label>
+          )}
+        </div>
       </div>
 
       {successMsg && (
