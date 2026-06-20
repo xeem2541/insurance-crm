@@ -7,7 +7,11 @@ ChartJS.register(CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend,
 
 const Dashboard = () => {
   const currentDate = new Date();
-  const [filterMonth, setFilterMonth] = useState(() => Number(sessionStorage.getItem('dashboardMonth')) || (currentDate.getMonth() + 1));
+  const [filterMonth, setFilterMonth] = useState(() => {
+    const val = sessionStorage.getItem('dashboardMonth');
+    if (val === 'all') return 'all';
+    return val ? Number(val) : (currentDate.getMonth() + 1);
+  });
   const [filterYear, setFilterYear] = useState(() => Number(sessionStorage.getItem('dashboardYear')) || currentDate.getFullYear());
   
   const [stats, setStats] = useState({
