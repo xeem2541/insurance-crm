@@ -188,10 +188,24 @@ const findMatchingType = (extractedType, motorTypes, nonMotorTypesList) => {
     if (found) return { category: 'motor', type: found.value, non_motor_type_id: '' };
   }
 
+  // Pre-normalize common Thai policy type spellings to match the new 'ประกันภัยรถยนต์ประเภท X' naming convention
+  let lookupType = cleanExtracted;
+  if (cleanExtracted.includes('ชั้น1') || cleanExtracted.includes('ประเภท1') || cleanExtracted === '1') {
+    lookupType = 'ประเภท1';
+  } else if (cleanExtracted.includes('2+') || cleanExtracted.includes('2พลัส') || cleanExtracted.includes('ชั้น2+') || cleanExtracted.includes('ประเภท2+')) {
+    lookupType = 'ประเภท2พลัส';
+  } else if (cleanExtracted.includes('3+') || cleanExtracted.includes('3พลัส') || cleanExtracted.includes('ชั้น3+') || cleanExtracted.includes('ประเภท3+')) {
+    lookupType = 'ประเภท3พลัส';
+  } else if (cleanExtracted.includes('ชั้น2') || cleanExtracted.includes('ประเภท2') || cleanExtracted === '2') {
+    lookupType = 'ประเภท2';
+  } else if (cleanExtracted.includes('ชั้น3') || cleanExtracted.includes('ประเภท3') || cleanExtracted === '3') {
+    lookupType = 'ประเภท3';
+  }
+
   // 1. Search in Motor Types
   for (const t of motorTypes) {
     const cleanVal = t.value.toString().replace(/\s+/g, '').replace(/[.+]/g, '').toLowerCase();
-    if (cleanExtracted.includes(cleanVal) || cleanVal.includes(cleanExtracted)) {
+    if (lookupType.includes(cleanVal) || cleanVal.includes(lookupType)) {
       return { category: 'motor', type: t.value, non_motor_type_id: '' };
     }
   }
@@ -778,13 +792,18 @@ const IssuePolicyForm = () => {
         if (data.document_type === 'vehicle_book') detectedTypeId = 4;
         else if (data.document_type === 'payment_slip') detectedTypeId = 2;
         
+        let docLabel = 'กรมธรรม์';
+        if (data.document_type === 'payment_slip') docLabel = 'สลิปโอนเงิน';
+        else if (data.document_type === 'vehicle_book') docLabel = 'ทะเบียนรถ';
+        else if (data.document_type === 'non_motor_policy') docLabel = 'กรมธรรม์ Non-Motor';
+        
         setFiles(prev => {
           const updated = [...prev];
           if (updated[fileIndex]) {
             updated[fileIndex] = {
               ...updated[fileIndex],
               type_id: detectedTypeId,
-              note: `สแกนด้วย AI: ${data.document_type === 'payment_slip' ? 'สลิปโอนเงิน' : data.document_type === 'vehicle_book' ? 'ทะเบียนรถ' : 'กรมธรรม์'}`
+              note: `สแกนด้วย AI: ${docLabel}`
             };
           }
           return updated;
@@ -878,6 +897,30 @@ const IssuePolicyForm = () => {
               merged.category = matchedTypeInfo.category;
               merged.type = matchedTypeInfo.type;
               merged.non_motor_type_id = matchedTypeInfo.non_motor_type_id;
+            } else {
+              // Fallback mapping for non-motor policy types
+              if (data.document_type === 'non_motor_policy') {
+                merged.category = 'non-motor';
+              }
+              
+              if (merged.category === 'non-motor' && !merged.non_motor_type_id && rawPolicy.type) {
+                const cleanType = rawPolicy.type.toString().toLowerCase();
+                const found = nonMotorTypes.find(t => {
+                  const cleanLabel = t.label.toLowerCase();
+                  return cleanLabel.includes(cleanType) || cleanType.includes(cleanLabel) || 
+                         (cleanType.includes('pa') && cleanLabel.includes('pa')) ||
+                         (cleanType.includes('อุบัติเหตุ') && cleanLabel.includes('อุบัติเหตุ')) ||
+                         (cleanType.includes('สุขภาพ') && cleanLabel.includes('สุขภาพ')) ||
+                         (cleanType.includes('อัคคีภัย') && cleanLabel.includes('อัคคีภัย')) ||
+                         (cleanType.includes('ไฟไหม้') && cleanLabel.includes('ไฟไหม้')) ||
+                         (cleanType.includes('ขนส่ง') && cleanLabel.includes('ขนส่ง')) ||
+                         (cleanType.includes('ชีวิต') && cleanLabel.includes('life'));
+                });
+                if (found) {
+                  merged.non_motor_type_id = found.value;
+                  merged.type = found.label;
+                }
+              }
             }
             return merged;
           });
