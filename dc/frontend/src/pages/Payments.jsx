@@ -3,6 +3,16 @@ import api from '../services/api';
 import { Modal, Button, Form, Badge, Row, Col } from 'react-bootstrap';
 import * as XLSX from 'xlsx';
 
+const formatThaiDate = (dateString) => {
+  if (!dateString) return '-';
+  const date = new Date(dateString);
+  if (isNaN(date.getTime())) return '-';
+  const day = String(date.getDate()).padStart(2, '0');
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const year = date.getFullYear() + 543; // convert to Buddhist Era
+  return `${day}/${month}/${year}`;
+};
+
 const Payments = () => {
   const [payments, setPayments] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -168,7 +178,7 @@ const Payments = () => {
                 ) : (
                   filteredData.map(p => (
                     <tr key={p.id}>
-                      <td>{new Date(p.created_at).toLocaleDateString('th-TH')}</td>
+                      <td>{formatThaiDate(p.created_at)}</td>
                       <td className="fw-bold text-primary">{p.policy_no || '-'}</td>
                       <td>{p.first_name} {p.last_name}</td>
                       <td className="fw-bold">฿{(Number(p.total_premium)||0).toLocaleString()}</td>
@@ -244,10 +254,10 @@ const Payments = () => {
                   {installments.map(inst => (
                     <tr key={inst.id} className={inst.status === 'ชำระแล้ว' ? 'table-success opacity-75' : ''}>
                       <td><Badge bg="secondary" className="fs-6 px-3">{inst.installment_no}</Badge></td>
-                      <td className="text-danger fw-bold">{new Date(inst.due_date).toLocaleDateString('th-TH')}</td>
+                      <td className="text-danger fw-bold">{formatThaiDate(inst.due_date)}</td>
                       <td className="fw-bold">฿{Number(inst.amount).toLocaleString()}</td>
                       <td className="text-success fw-bold">{inst.paid_amount > 0 ? `฿${Number(inst.paid_amount).toLocaleString()}` : '-'}</td>
-                      <td>{inst.payment_date ? new Date(inst.payment_date).toLocaleDateString('th-TH') : '-'}</td>
+                      <td>{inst.payment_date ? formatThaiDate(inst.payment_date) : '-'}</td>
                       <td>{getStatusBadge(inst.status)}</td>
                       <td>
                         {inst.status !== 'ชำระแล้ว' ? (

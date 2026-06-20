@@ -4,6 +4,16 @@ import { Modal, Button, Form } from 'react-bootstrap';
 import Select from 'react-select';
 import * as XLSX from 'xlsx';
 
+const formatThaiDate = (dateString) => {
+  if (!dateString) return '-';
+  const date = new Date(dateString);
+  if (isNaN(date.getTime())) return '-';
+  const day = String(date.getDate()).padStart(2, '0');
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const year = date.getFullYear() + 543; // convert to Buddhist Era
+  return `${day}/${month}/${year}`;
+};
+
 const NonMotorPolicies = () => {
   const [policies, setPolicies] = useState([]);
   const [customers, setCustomers] = useState([]);
@@ -269,7 +279,7 @@ const NonMotorPolicies = () => {
                   <td>{new Intl.NumberFormat('th-TH', { style: 'currency', currency: 'THB' }).format(p.sum_insured)}</td>
                   <td>{new Intl.NumberFormat('th-TH', { style: 'currency', currency: 'THB' }).format(p.total_premium)}</td>
                   <td>{new Intl.NumberFormat('th-TH', { style: 'currency', currency: 'THB' }).format(p.commission_baht)}</td>
-                  <td>{new Date(p.start_date).toLocaleDateString('th-TH')} - {new Date(p.expiry_date).toLocaleDateString('th-TH')}</td>
+                  <td>{formatThaiDate(p.start_date)} - {formatThaiDate(p.expiry_date)}</td>
                   <td>{getStatusBadge(p.status)}</td>
                   <td>
                     <button className="btn btn-sm btn-outline-primary me-2" onClick={() => handleOpenModal(p)} title="แก้ไข">

@@ -4,6 +4,16 @@ import { Modal, Button, Form } from 'react-bootstrap';
 import Select from 'react-select';
 import { carBrands, carModels } from '../data/carData';
 
+const formatThaiDate = (dateString) => {
+  if (!dateString) return '-';
+  const date = new Date(dateString);
+  if (isNaN(date.getTime())) return '-';
+  const day = String(date.getDate()).padStart(2, '0');
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const year = date.getFullYear() + 543; // convert to Buddhist Era
+  return `${day}/${month}/${year}`;
+};
+
 const provincesList = [
   'กรุงเทพมหานคร', 'กระบี่', 'กาญจนบุรี', 'กาฬสินธุ์', 'กำแพงเพชร', 'ขอนแก่น', 'จันทบุรี', 'ฉะเชิงเทรา', 'ชลบุรี', 'ชัยนาท', 
   'ชัยภูมิ', 'ชุมพร', 'เชียงราย', 'เชียงใหม่', 'ตรัง', 'ตราด', 'ตาก', 'นครนายก', 'นครปฐม', 'นครพนม', 'นครราชสีมา', 
@@ -135,7 +145,7 @@ const Vehicles = () => {
                   <td>{v.first_name} {v.last_name}</td>
                   <td>{v.brand} {v.model} ({v.year})</td>
                   <td>{v.vehicle_type}</td>
-                  <td>{v.tax_expiry ? new Date(v.tax_expiry).toLocaleDateString('th-TH') : '-'}</td>
+                  <td>{v.tax_expiry ? formatThaiDate(v.tax_expiry) : '-'}</td>
                   <td>
                     <button className="btn btn-sm btn-outline-primary me-2" onClick={() => handleOpenModal(v)}>
                       <i className="bi bi-pencil"></i>

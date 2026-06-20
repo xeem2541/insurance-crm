@@ -5,6 +5,16 @@ import { Bar, Pie } from 'react-chartjs-2';
 
 ChartJS.register(CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend, ArcElement);
 
+const formatThaiDate = (dateString) => {
+  if (!dateString) return '-';
+  const date = new Date(dateString);
+  if (isNaN(date.getTime())) return '-';
+  const day = String(date.getDate()).padStart(2, '0');
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const year = date.getFullYear() + 543; // convert to Buddhist Era
+  return `${day}/${month}/${year}`;
+};
+
 const Dashboard = () => {
   const currentDate = new Date();
   const [filterMonth, setFilterMonth] = useState(() => {
@@ -476,9 +486,9 @@ const Dashboard = () => {
                         <td>{cust.phone}</td>
                         <td>{cust.policy_no || '-'}</td>
                         <td><span className={`badge ${cust.policy_type === 'Motor' ? 'bg-primary' : 'bg-info'}`}>{cust.policy_type}</span></td>
-                        <td>{new Date(cust.created_at).toLocaleDateString('th-TH')}</td>
-                        <td>{new Date(cust.start_date).toLocaleDateString('th-TH')}</td>
-                        <td>{new Date(cust.expiry_date).toLocaleDateString('th-TH')}</td>
+                        <td>{formatThaiDate(cust.created_at)}</td>
+                        <td>{formatThaiDate(cust.start_date)}</td>
+                        <td>{formatThaiDate(cust.expiry_date)}</td>
                         <td className="text-end fw-bold text-success">{formatMoney(cust.total_premium)}</td>
                       </tr>
                     )) : (
