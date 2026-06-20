@@ -940,9 +940,9 @@ const IssuePolicyForm = () => {
                     id: matchedCustomer.id
                   };
                   
-                  // Show helpful AI warning/notice
-                  const notice = `ตรวจพบลูกค้าเก่าในระบบ: ${matchedCustomer.prefix || ''}${matchedCustomer.first_name} ${matchedCustomer.last_name || ''} (ระบบทำการเชื่อมโยงข้อมูลอัตโนมัติ)`;
-                  setAiWarning(prev => prev ? `${prev} | ${notice}` : notice);
+                  // Suppressed notice banner as per user request to keep UI clean, while keeping background auto-linking active
+                  // const notice = `ตรวจพบลูกค้าเก่าในระบบ: ${matchedCustomer.prefix || ''}${matchedCustomer.first_name} ${matchedCustomer.last_name || ''} (ระบบทำการเชื่อมโยงข้อมูลอัตโนมัติ)`;
+                  // setAiWarning(prev => prev ? `${prev} | ${notice}` : notice);
 
                   // Fetch their latest vehicle and merge into data.vehicle
                   try {
