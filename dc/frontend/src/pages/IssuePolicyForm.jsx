@@ -894,7 +894,8 @@ const IssuePolicyForm = () => {
           return updated;
         });
 
-        const compressedFile = await compressImage(file, 2000, 2000, 0.75);
+        // Increase image resolution and compression quality for sharper text details in AI OCR
+        const compressedFile = await compressImage(file, 3500, 3500, 0.92);
 
         const formData = new FormData();
         formData.append('images', compressedFile); // Send exactly 1 image
