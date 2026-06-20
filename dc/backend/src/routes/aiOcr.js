@@ -94,6 +94,11 @@ router.post('/extract', authenticateToken, upload.array('images', 10), async (re
          * "อินทร", "อินทรประกันภัย" ➡️ "บริษัท อินทรประกันภัย จำกัด (มหาชน)"
          * "มิตรแท้", "มิตรแท้ประกันภัย" ➡️ "บริษัท มิตรแท้ประกันภัย จำกัด (มหาชน)"
 
+    10. การเพิ่มความแม่นยำภาษาไทยและการสะกดคำ (Thai OCR Spellchecking & Accuracy Rule):
+        - โปรดสังเกตพยัญชนะ สระ และวรรณยุกต์ภาษาไทยอย่างละเอียดถ้วนถี่ (เช่น สระบน ิ ี ึ ื สระล่าง ุ ู และวรรณยุกต์ ่ ้ ๊ ๋) ห้ามอ่านข้ามหรือสะกดผิดเพี้ยน
+        - ตรวจสอบคำสะกดตามหลักภาษาไทย เช่น ชื่อบุคคล ชื่อจังหวัด ตำบล อำเภอ และชื่อเฉพาะอื่น ๆ ตัวอย่างเช่น "คลองจั่น" ไม่ใช่ "คลองจ้น", "วิริยะ" ไม่ใช่ "วิรยะ"
+        - หากชื่อบุคคลหรือหน่วยงานสะกดด้วยตัวอักษรที่ใกล้เคียงกัน (เช่น ถ กับ ภ, บ กับ ป, ร กับ ธ) โปรดพิจารณาความหมายในบริบทเพื่อให้ได้ข้อความที่ถูกต้องสมบูรณ์ที่สุด
+
     โครงสร้าง JSON ที่ต้องการส่งกลับ (ห้ามเปลี่ยนชื่อ Key เด็ดขาด):
     {
       "document_type": "voluntary_policy | prb_policy | non_motor_policy | vehicle_book | payment_slip | unknown",
@@ -181,14 +186,17 @@ router.post('/extract', authenticateToken, upload.array('images', 10), async (re
     }
 
     const preferredModels = [
+      'gemini-3.1-pro',
+      'gemini-1.5-pro',
+      'gemini-1.5-pro-latest',
+      'gemini-2.5-pro',
+      'gemini-3.5-flash', // Prioritize Gemini 3.5 Flash over 2.5 Flash for much higher accuracy
+      'gemini-3-flash',
       'gemini-2.5-flash',
-      'gemini-3.5-flash',
       'gemini-2.0-flash',
       'gemini-1.5-flash',
       'gemini-3.1-flash-lite',
-      'gemini-2.5-flash-lite',
-      'gemini-1.5-pro',
-      'gemini-1.5-pro-latest'
+      'gemini-2.5-flash-lite'
     ];
 
     let modelsToTry = preferredModels
@@ -197,8 +205,11 @@ router.post('/extract', authenticateToken, upload.array('images', 10), async (re
 
     if (modelsToTry.length === 0) {
       modelsToTry = [
-        { name: 'gemini-2.5-flash', timeout: 10000 },
+        { name: 'gemini-3.1-pro', timeout: 15000 },
+        { name: 'gemini-1.5-pro', timeout: 15000 },
         { name: 'gemini-3.5-flash', timeout: 10000 },
+        { name: 'gemini-3-flash', timeout: 10000 },
+        { name: 'gemini-2.5-flash', timeout: 10000 },
         { name: 'gemini-2.0-flash', timeout: 10000 },
         { name: 'gemini-1.5-flash', timeout: 10000 },
         { name: 'gemini-2.5-flash-lite', timeout: 10000 }
