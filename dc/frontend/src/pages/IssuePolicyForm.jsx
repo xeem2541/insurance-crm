@@ -891,6 +891,57 @@ const IssuePolicyForm = () => {
 
         const data = sanitizeAIResponse(res.data);
 
+        // Auto-link existing customer by checking phone number or ID card in background
+        if (data.customer && (data.customer.phone || data.customer.id_card_no)) {
+          const lookupVal = (data.customer.id_card_no || '').replace(/\D/g, '') || (data.customer.phone || '').replace(/\D/g, '');
+          if (lookupVal && lookupVal.length >= 9) {
+            try {
+              const checkRes = await api.get(`/customers?search=${lookupVal}`);
+              if (checkRes.data && checkRes.data.length > 0) {
+                const cleanLookup = lookupVal.replace(/\D/g, '');
+                const matchedCustomer = checkRes.data.find(c => {
+                  const cleanCustPhone = (c.phone || '').replace(/\D/g, '');
+                  const cleanCustId = (c.id_card_no || '').replace(/\D/g, '');
+                  return (cleanCustPhone && cleanCustPhone === cleanLookup) || 
+                         (cleanCustId && cleanCustId === cleanLookup);
+                });
+                if (matchedCustomer) {
+                  // Merge the existing customer ID, code, and details into the extracted data object
+                  data.customer = {
+                    ...data.customer,
+                    ...matchedCustomer,
+                    dob: matchedCustomer.dob ? matchedCustomer.dob.split('T')[0] : data.customer.dob,
+                    id: matchedCustomer.id
+                  };
+                  
+                  // Show helpful AI warning/notice
+                  const notice = `ตรวจพบลูกค้าเก่าในระบบ: ${matchedCustomer.prefix || ''}${matchedCustomer.first_name} ${matchedCustomer.last_name || ''} (ระบบทำการเชื่อมโยงข้อมูลอัตโนมัติ)`;
+                  setAiWarning(prev => prev ? `${prev} | ${notice}` : notice);
+
+                  // Fetch their latest vehicle and merge into data.vehicle
+                  try {
+                    const vehRes = await api.get(`/vehicles?customer_id=${matchedCustomer.id}`);
+                    if (vehRes.data && vehRes.data.length > 0) {
+                      const latestVehicle = vehRes.data[0];
+                      data.vehicle = {
+                        ...data.vehicle,
+                        ...latestVehicle,
+                        tax_expiry: latestVehicle.tax_expiry ? latestVehicle.tax_expiry.split('T')[0] : (data.vehicle ? data.vehicle.tax_expiry : ''),
+                        id: latestVehicle.id
+                      };
+                      setVehicleSearchText(latestVehicle.plate_no); // visually show it
+                    }
+                  } catch (vErr) {
+                    console.error('Error fetching auto-linked customer vehicle:', vErr);
+                  }
+                }
+              }
+            } catch (cErr) {
+              console.error('Error during customer auto-link check:', cErr);
+            }
+          }
+        }
+
         // Append warnings if any
         if (data.validation && data.validation.warning_message) {
           setAiWarning(prev => prev ? `${prev} | ${data.validation.warning_message}` : data.validation.warning_message);
@@ -1251,6 +1302,22 @@ const IssuePolicyForm = () => {
   }, [policy.start_date]);
 
   useEffect(() => {
+    if (policy.prb_start_date) {
+      const start = new Date(policy.prb_start_date);
+      if (!isNaN(start.getTime())) {
+        start.setFullYear(start.getFullYear() + 1);
+        const nextYearStr = start.toISOString().split('T')[0];
+        setPolicy(prev => {
+          if (prev.prb_expiry_date !== nextYearStr) {
+            return { ...prev, prb_expiry_date: nextYearStr };
+          }
+          return prev;
+        });
+      }
+    }
+  }, [policy.prb_start_date]);
+
+  useEffect(() => {
     if (vehicle.registration_date) {
       const nextAnniversary = getUpcomingAnniversary(vehicle.registration_date);
       if (nextAnniversary) {
@@ -1269,21 +1336,6 @@ const IssuePolicyForm = () => {
       }
     }
   }, [vehicle.registration_date]);
-
-  useEffect(() => {
-    if (policy.prb_start_date) {
-      const start = new Date(policy.prb_start_date);
-      start.setFullYear(start.getFullYear() + 1);
-      const nextYearStr = start.toISOString().split('T')[0];
-      
-      setPolicy(prev => {
-        if (prev.prb_expiry_date !== nextYearStr) {
-          return { ...prev, prb_expiry_date: nextYearStr };
-        }
-        return prev;
-      });
-    }
-  }, [policy.prb_start_date]);
 
   useEffect(() => {
     if (policy.category === 'motor' && vehicle.sum_insured && vehicle.sum_insured !== policy.sum_insured) {
