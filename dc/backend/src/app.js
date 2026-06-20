@@ -147,6 +147,27 @@ async function initDb() {
     `);
     console.log('AI usage logs table verified');
 
+    await connection.query(`
+      CREATE TABLE IF NOT EXISTS ai_correction_logs (
+        id INT PRIMARY KEY AUTO_INCREMENT,
+        policy_id INT NULL,
+        non_motor_policy_id INT NULL,
+        document_type VARCHAR(100),
+        ocr_raw_data JSON,
+        saved_data JSON,
+        discrepancies JSON,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      )
+    `);
+    console.log('AI OCR correction logs table verified');
+
+    try {
+      await connection.query(`ALTER TABLE ai_correction_logs ADD COLUMN non_motor_policy_id INT NULL AFTER policy_id`);
+      console.log('Added non_motor_policy_id to ai_correction_logs');
+    } catch (e) {
+      // ignore if already exists
+    }
+
     // Auto-migrate non-motor tables
     await connection.query(`
       CREATE TABLE IF NOT EXISTS non_motor_types (
