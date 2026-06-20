@@ -36,7 +36,7 @@ router.get('/', authenticateToken, async (req, res) => {
     query += ' WHERE ' + conditions.join(' AND ');
   }
   
-  query += ' ORDER BY p.created_at DESC';
+  query += ' ORDER BY p.start_date DESC, p.created_at DESC';
 
   try {
     const [policies] = await req.db.query(query, params);

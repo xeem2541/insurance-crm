@@ -25,7 +25,7 @@ router.get('/', authenticateToken, async (req, res) => {
       params.push(req.user.id);
     }
 
-    query += ` ORDER BY p.created_at DESC`;
+    query += ` ORDER BY p.start_date DESC, p.created_at DESC`;
     
     const [rows] = await req.db.query(query, params);
     res.json(rows);
