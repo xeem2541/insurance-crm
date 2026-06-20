@@ -57,6 +57,14 @@ const getUpcomingAnniversary = (dateStr) => {
   return anniversary.toISOString().split('T')[0];
 };
 
+const addOneYear = (dateStr) => {
+  if (!dateStr) return '';
+  const d = new Date(dateStr);
+  if (isNaN(d.getTime())) return '';
+  d.setFullYear(d.getFullYear() + 1);
+  return d.toISOString().split('T')[0];
+};
+
 const normalizeDate = (val) => {
   if (!val) return '';
   let s = val.toString().trim();
@@ -818,6 +826,10 @@ const IssuePolicyForm = () => {
 
   const [installmentSchedule, setInstallmentSchedule] = useState([]);
 
+  // Refs for tracking start dates to auto-calculate expiry dates (+1 year)
+  const prevStartDateRef = useRef(policy.start_date);
+  const prevPrbStartDateRef = useRef(policy.prb_start_date);
+
   const [followUp, setFollowUp] = useState({
     status: 'รอดำเนินการ', next_date: '', note: ''
   });
@@ -1327,6 +1339,36 @@ const IssuePolicyForm = () => {
       });
     }
   }, [policy.start_date, policy.prb_start_date]);
+
+  useEffect(() => {
+    if (policy.start_date && policy.start_date !== prevStartDateRef.current) {
+      prevStartDateRef.current = policy.start_date;
+      const nextYr = addOneYear(policy.start_date);
+      setPolicy(prev => {
+        if (prev.expiry_date !== nextYr) {
+          return { ...prev, expiry_date: nextYr };
+        }
+        return prev;
+      });
+    } else if (!policy.start_date) {
+      prevStartDateRef.current = '';
+    }
+  }, [policy.start_date]);
+
+  useEffect(() => {
+    if (policy.prb_start_date && policy.prb_start_date !== prevPrbStartDateRef.current) {
+      prevPrbStartDateRef.current = policy.prb_start_date;
+      const nextYr = addOneYear(policy.prb_start_date);
+      setPolicy(prev => {
+        if (prev.prb_expiry_date !== nextYr) {
+          return { ...prev, prb_expiry_date: nextYr };
+        }
+        return prev;
+      });
+    } else if (!policy.prb_start_date) {
+      prevPrbStartDateRef.current = '';
+    }
+  }, [policy.prb_start_date]);
 
   const loadCustomerOptions = (inputValue) => {
     return new Promise(resolve => {
