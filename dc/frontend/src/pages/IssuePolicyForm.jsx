@@ -917,7 +917,9 @@ const IssuePolicyForm = () => {
           policy: data.policy ? { ...data.policy } : null
         });
 
-        // Auto-link existing customer by checking phone number or ID card in background
+        // Auto-link existing customer checking is completely disabled as per user request
+        // to prevent overwriting scanned details with old values from database.
+        /*
         if (data.customer && (data.customer.phone || data.customer.id_card_no)) {
           const lookupVal = (data.customer.id_card_no || '').replace(/\D/g, '') || (data.customer.phone || '').replace(/\D/g, '');
           if (lookupVal && lookupVal.length >= 9) {
@@ -967,6 +969,7 @@ const IssuePolicyForm = () => {
             }
           }
         }
+        */
 
         // Append warnings if any
         if (data.validation && data.validation.warning_message) {
