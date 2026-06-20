@@ -694,25 +694,26 @@ const removeShadowsAndEnhance = (originalCanvas) => {
   for (let i = 0; i < origPixels.length; i += 4) {
     let origR = origPixels[i];
     let bgR = bgFullPixels[i];
-    origPixels[i] = Math.min(255, Math.floor((origR / (bgR || 1)) * 230));
+    // Use a stronger division factor (215 instead of 230) to push paper backgrounds to pure white
+    origPixels[i] = Math.min(255, Math.floor((origR / (bgR || 1)) * 215));
     
     let origG = origPixels[i + 1];
     let bgG = bgFullPixels[i + 1];
-    origPixels[i + 1] = Math.min(255, Math.floor((origG / (bgG || 1)) * 230));
+    origPixels[i + 1] = Math.min(255, Math.floor((origG / (bgG || 1)) * 215));
     
     let origB = origPixels[i + 2];
     let bgB = bgFullPixels[i + 2];
-    origPixels[i + 2] = Math.min(255, Math.floor((origB / (bgB || 1)) * 230));
+    origPixels[i + 2] = Math.min(255, Math.floor((origB / (bgB || 1)) * 215));
   }
   
   destCtx.putImageData(origData, 0, 0);
   
-  // 4. Boost overall contrast slightly to make text sharper
+  // 4. Boost overall contrast and sharpen text edges using GPU-accelerated canvas filter (contrast 1.45)
   const finalCanvas = document.createElement('canvas');
   finalCanvas.width = width;
   finalCanvas.height = height;
   const finalCtx = finalCanvas.getContext('2d');
-  finalCtx.filter = 'contrast(1.15) brightness(1.02)';
+  finalCtx.filter = 'contrast(1.45) brightness(1.00) saturate(1.05)';
   finalCtx.drawImage(destCanvas, 0, 0);
   
   return finalCanvas;
