@@ -826,6 +826,7 @@ const IssuePolicyForm = () => {
   const [ocrLoading, setOcrLoading] = useState(false);
   const [aiWarning, setAiWarning] = useState('');
   const [activePreviewIdx, setActivePreviewIdx] = useState(0);
+  const [rawAiData, setRawAiData] = useState(null);
   const [zoomLevel, setZoomLevel] = useState(1);
   const [rotation, setRotation] = useState(0);
   const [previewModalUrl, setPreviewModalUrl] = useState(null);
@@ -890,6 +891,14 @@ const IssuePolicyForm = () => {
         });
 
         const data = sanitizeAIResponse(res.data);
+
+        // Save the raw AI extraction for accuracy comparison
+        setRawAiData({
+          document_type: data.document_type,
+          customer: data.customer ? { ...data.customer } : null,
+          vehicle: data.vehicle ? { ...data.vehicle } : null,
+          policy: data.policy ? { ...data.policy } : null
+        });
 
         // Auto-link existing customer by checking phone number or ID card in background
         if (data.customer && (data.customer.phone || data.customer.id_card_no)) {
@@ -1488,7 +1497,8 @@ const IssuePolicyForm = () => {
         policy,
         payment,
         followUp,
-        installmentSchedule
+        installmentSchedule,
+        rawAiData
       };
       
       formData.append('data', JSON.stringify(payload));
