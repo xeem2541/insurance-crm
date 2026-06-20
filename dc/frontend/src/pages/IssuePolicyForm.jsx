@@ -1619,7 +1619,7 @@ const IssuePolicyForm = () => {
             <Accordion.Header><h5 className="mb-0 fw-bold"><i className="bi bi-person-lines-fill me-2"></i>ส่วนที่ 1 : ข้อมูลลูกค้า</h5></Accordion.Header>
             <Accordion.Body>
               <div className="mb-4 bg-light p-3 rounded border">
-                <Form.Label className="fw-bold text-primary"><i className="bi bi-search"></i> ค้นหาและดึงข้อมูลลูกค้าเก่าอัตโนมัติ (พิมพ์ชื่อ หรือ เบอร์โทร)</Form.Label>
+                <Form.Label className="fw-bold text-primary"><i className="bi bi-search"></i> ค้นหาและดึงข้อมูลลูกค้าเก่าอัตโนมัติ (พิมพ์ชื่อ, เบอร์โทร หรือทะเบียนรถ)</Form.Label>
                 <AsyncSelect 
                   cacheOptions 
                   loadOptions={loadCustomerOptions} 
@@ -1644,7 +1644,7 @@ const IssuePolicyForm = () => {
                       }
                     }
                   }}
-                  placeholder="พิมพ์เบอร์โทร, ชื่อ, นามสกุล หรือเลขบัตรประชาชน..."
+                  placeholder="พิมพ์เบอร์โทร, ชื่อ, นามสกุล, เลขบัตรประชาชน หรือทะเบียนรถ..."
                   noOptionsMessage={() => "ไม่พบข้อมูลลูกค้า (หรือพิมพ์อย่างน้อย 2 ตัวอักษร)"}
                   loadingMessage={() => "กำลังค้นหา..."}
                   isClearable

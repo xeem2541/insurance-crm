@@ -195,7 +195,7 @@ const Customers = () => {
           <input 
             type="text" 
             className="form-control form-control-lg flex-grow-1" 
-            placeholder="ค้นหาชื่อ, เบอร์โทร, เลขบัตรประชาชน..." 
+            placeholder="ค้นหาชื่อ, เบอร์โทร, เลขบัตรประชาชน, ทะเบียนรถ..." 
             value={search} 
             onChange={(e) => setSearch(e.target.value)} 
             style={{ minWidth: '200px' }}
