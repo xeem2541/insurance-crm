@@ -1,21 +1,12 @@
 const mysql = require('mysql2/promise');
 
 const masterData = [
-  // Policy Types
+  // Policy Types (Motor Only)
   { category: 'PolicyType', value: 'พ.ร.บ.' },
-  { category: 'PolicyType', value: 'ประกันภัยชั้น 1' },
-  { category: 'PolicyType', value: 'ประกันภัยชั้น 2+' },
-  { category: 'PolicyType', value: 'ประกันภัยชั้น 3+' },
-  { category: 'PolicyType', value: 'ประกันภัยชั้น 3' },
-  { category: 'PolicyType', value: 'ประกันภัยอุบัติเหตุ PA' },
-  { category: 'PolicyType', value: 'ประกันภัยขนส่งสินค้า' },
-  { category: 'PolicyType', value: 'ประกันภัยอัคคีภัย/ไฟไหม้' },
-  { category: 'PolicyType', value: 'ประกันภัยรับผิดบุคคลภายนอก' },
-  { category: 'PolicyType', value: 'ประกันภัยรับเหมา' },
-  { category: 'PolicyType', value: 'ประกันภัยวิชาชีพ' },
-  { category: 'PolicyType', value: 'ประกันภัยสุขภาพ' },
-  { category: 'PolicyType', value: 'ประกันภัยเงินออม' },
-  { category: 'PolicyType', value: 'ประกันภัย T Life' },
+  { category: 'PolicyType', value: 'ประกันภัยรถยนต์ประเภท 1' },
+  { category: 'PolicyType', value: 'ประกันภัยรถยนต์ประเภท 2 พลัส' },
+  { category: 'PolicyType', value: 'ประกันภัยรถยนต์ประเภท 3 พลัส' },
+  { category: 'PolicyType', value: 'ประกันภัยรถยนต์ประเภท 3' },
 
   // Insurance Companies
   { category: 'InsuranceCompany', value: 'วิริยะประกันภัย' },
