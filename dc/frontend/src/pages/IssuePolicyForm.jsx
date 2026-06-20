@@ -829,6 +829,7 @@ const IssuePolicyForm = () => {
   // Refs for tracking start dates to auto-calculate expiry dates (+1 year)
   const prevStartDateRef = useRef(policy.start_date);
   const prevPrbStartDateRef = useRef(policy.prb_start_date);
+  const prevExpiryDateRef = useRef(policy.expiry_date);
 
   const [followUp, setFollowUp] = useState({
     status: 'รอดำเนินการ', next_date: '', note: ''
@@ -1369,6 +1370,20 @@ const IssuePolicyForm = () => {
       prevPrbStartDateRef.current = '';
     }
   }, [policy.prb_start_date]);
+
+  useEffect(() => {
+    if (policy.expiry_date && policy.expiry_date !== prevExpiryDateRef.current) {
+      prevExpiryDateRef.current = policy.expiry_date;
+      setFollowUp(prev => {
+        if (prev.next_date !== policy.expiry_date) {
+          return { ...prev, next_date: policy.expiry_date };
+        }
+        return prev;
+      });
+    } else if (!policy.expiry_date) {
+      prevExpiryDateRef.current = '';
+    }
+  }, [policy.expiry_date]);
 
   const loadCustomerOptions = (inputValue) => {
     return new Promise(resolve => {
