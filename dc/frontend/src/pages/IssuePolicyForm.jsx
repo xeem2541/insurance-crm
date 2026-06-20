@@ -848,6 +848,7 @@ const IssuePolicyForm = () => {
 
   const fileInputRef = useRef(null);
   const cameraInputRef = useRef(null);
+  const cameraScanInputRef = useRef(null);
 
   const handleAIExtract = async (e) => {
     const rawFiles = Array.from(e.target.files);
@@ -897,7 +898,7 @@ const IssuePolicyForm = () => {
         });
 
         // Increase image resolution and compression quality for sharper text details in AI OCR
-        const compressedFile = await compressImage(file, 3500, 3500, 0.92);
+        const compressedFile = await compressImage(file, 4096, 4096, 0.95);
 
         const formData = new FormData();
         formData.append('images', compressedFile); // Send exactly 1 image
@@ -1646,22 +1647,38 @@ const IssuePolicyForm = () => {
               <span className="fs-5 tracking-wide">กำลังประมวลผลด้วย Gemini AI... (10-20 วินาที)</span>
             </div>
           ) : (
-            <div className="mt-4">
-              <Button className="btn btn-lg fw-bold px-5 py-3 rounded-pill shadow-lg" style={{ 
+            <div className="mt-4 d-flex flex-wrap justify-content-center gap-3">
+              <Button className="btn btn-lg fw-bold px-4 py-3 rounded-pill shadow-lg" style={{ 
                 background: 'linear-gradient(45deg, #00b09b, #96c93d)', 
                 color: '#fff', 
                 border: 'none',
                 cursor: 'pointer',
-                transform: 'scale(1)',
                 transition: 'all 0.3s ease'
               }}
               onMouseOver={(e) => { e.currentTarget.style.transform = 'scale(1.05)'; e.currentTarget.style.boxShadow = '0 10px 25px rgba(0, 176, 155, 0.4)'; }}
-              onMouseOut={(e) => { e.currentTarget.style.transform = 'scale(1)'; e.currentTarget.style.boxShadow = '0 1rem 3rem rgba(0,0,0,.175)'; }}
-              onClick={() => fileInputRef.current && fileInputRef.current.click()}
+              onMouseOut={(e) => { e.currentTarget.style.transform = 'scale(1)'; e.currentTarget.style.boxShadow = '0 10px 20px rgba(0,0,0,0.15)'; }}
+              onClick={() => cameraScanInputRef.current && cameraScanInputRef.current.click()}
               >
                 <i className="bi bi-camera-fill me-2 fs-4 align-middle"></i> 
-                <span className="align-middle">อัปโหลดตารางกรมธรรม์ (ดึงข้อมูลอัตโนมัติ)</span>
+                <span className="align-middle">เปิดกล้องถ่ายรูปสแกน</span>
               </Button>
+
+              <Button className="btn btn-lg fw-bold px-4 py-3 rounded-pill shadow-lg btn-outline-light" style={{ 
+                border: '2px solid rgba(255,255,255,0.4)',
+                background: 'transparent',
+                color: '#fff',
+                cursor: 'pointer',
+                transition: 'all 0.3s ease'
+              }}
+              onMouseOver={(e) => { e.currentTarget.style.transform = 'scale(1.05)'; e.currentTarget.style.background = 'rgba(255,255,255,0.1)'; }}
+              onMouseOut={(e) => { e.currentTarget.style.transform = 'scale(1)'; e.currentTarget.style.background = 'transparent'; }}
+              onClick={() => fileInputRef.current && fileInputRef.current.click()}
+              >
+                <i className="bi bi-folder-fill me-2 fs-4 align-middle"></i> 
+                <span className="align-middle">เลือกรูปภาพ/ไฟล์ในเครื่อง</span>
+              </Button>
+
+              <input type="file" ref={cameraScanInputRef} accept="image/*" capture="environment" className="d-none" onChange={handleAIExtract} />
               <input type="file" ref={fileInputRef} accept="image/*" className="d-none" multiple onChange={handleAIExtract} />
             </div>
           )}
@@ -2210,7 +2227,7 @@ const IssuePolicyForm = () => {
                 <Button variant="outline-primary" className="fw-bold px-4 rounded-pill" onClick={() => cameraInputRef.current && cameraInputRef.current.click()}>
                   <i className="bi bi-camera-fill me-2"></i> เปิดกล้องถ่ายรูป
                 </Button>
-                <input type="file" ref={cameraInputRef} accept="image/*" capture="environment" className="d-none" multiple onChange={(e) => {
+                <input type="file" ref={cameraInputRef} accept="image/*" capture="environment" className="d-none" onChange={(e) => {
                   const selected = Array.from(e.target.files);
                   if(selected.length > 0) onDrop(selected);
                 }} />
