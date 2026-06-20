@@ -389,6 +389,103 @@ const translateThaiNumerals = (obj) => {
   return obj;
 };
 
+const findBestAddressMatch = (extractedSub, extractedDist, extractedProv, extractedZip) => {
+  if (!thaiData || !Array.isArray(thaiData)) return null;
+
+  const cleanStr = (str) => {
+    if (!str) return '';
+    return str
+      .toString()
+      .replace(/ตำบล|แขวง|อำเภอ|เขต|จังหวัด|ต\.|อ\.|จ\.|ข\./g, '')
+      .replace(/^(ตำบล|แขวง|อำเภอ|เขต|จังหวัด|ต|อ|จ|ข)\s+/, '')
+      .replace(/\s+/g, '')
+      .trim();
+  };
+
+  const getJaccardSimilarity = (str1, str2) => {
+    const s1 = cleanStr(str1);
+    const s2 = cleanStr(str2);
+    if (!s1 || !s2) return 0;
+    if (s1 === s2) return 1.0;
+    const set1 = new Set(s1);
+    const set2 = new Set(s2);
+    const intersection = new Set([...set1].filter(x => set2.has(x)));
+    const union = new Set([...set1, ...set2]);
+    return intersection.size / union.size;
+  };
+
+  const sSub = cleanStr(extractedSub);
+  const sDist = cleanStr(extractedDist);
+  const sProv = cleanStr(extractedProv);
+  const sZip = extractedZip ? extractedZip.toString().replace(/\D/g, '').slice(0, 5) : '';
+
+  let targetProv = sProv;
+  if (sProv.includes('กรุงเทพ') || sProv.includes('กทม')) {
+    targetProv = 'กรุงเทพมหานคร';
+  }
+
+  let candidates = thaiData;
+
+  // Pass 1: Filter by exact zipcode if present
+  if (sZip && sZip.length === 5) {
+    const zipMatches = thaiData.filter(item => item.zipcode.toString() === sZip);
+    if (zipMatches.length > 0) {
+      candidates = zipMatches;
+    }
+  }
+
+  // Pass 2: Filter by province if targetProv is matched reasonably
+  if (targetProv) {
+    let bestProv = '';
+    let maxProvSim = 0;
+    const uniqueProvinces = [...new Set(thaiData.map(item => item.province))];
+    uniqueProvinces.forEach(p => {
+      const sim = getJaccardSimilarity(targetProv, p);
+      if (sim > maxProvSim) {
+        maxProvSim = sim;
+        bestProv = p;
+      }
+    });
+
+    if (maxProvSim > 0.4) {
+      candidates = candidates.filter(item => item.province === bestProv);
+    }
+  }
+
+  // Pass 3: Score remaining candidates
+  let bestMatch = null;
+  let maxScore = -1;
+
+  candidates.forEach(item => {
+    let score = 0;
+
+    if (targetProv) {
+      score += getJaccardSimilarity(targetProv, item.province) * 10;
+    } else {
+      score += 5;
+    }
+
+    if (sDist) {
+      score += getJaccardSimilarity(sDist, item.amphoe) * 15;
+    }
+
+    if (sSub) {
+      score += getJaccardSimilarity(sSub, item.district) * 20;
+    }
+
+    if (sZip && item.zipcode.toString() === sZip) {
+      score += 10;
+    }
+
+    if (score > maxScore) {
+      maxScore = score;
+      bestMatch = item;
+    }
+  });
+
+  return bestMatch;
+};
+
 const sanitizeAIResponse = (data) => {
   if (!data) return data;
   
@@ -420,38 +517,68 @@ const sanitizeAIResponse = (data) => {
       sanitized.customer.id_card_no = '';
     }
 
-    // Address fields validation
-    if (sanitized.customer.sub_district) {
-      sanitized.customer.sub_district = sanitized.customer.sub_district
-        .replace(/ตำบล|แขวง|ต\.|ข\./g, '')
-        .trim();
-    }
-    if (sanitized.customer.district) {
-      sanitized.customer.district = sanitized.customer.district
-        .replace(/อำเภอ|เขต|อ\.|ข\./g, '')
-        .trim();
-    }
-    if (sanitized.customer.province) {
-      sanitized.customer.province = sanitized.customer.province
-        .replace(/จังหวัด|จ\./g, '')
-        .trim();
-      if (sanitized.customer.province.includes('กรุงเทพ') || sanitized.customer.province.includes('กทม')) {
-        sanitized.customer.province = 'กรุงเทพมหานคร';
-      }
-    }
-    if (sanitized.customer.zipcode) {
-      sanitized.customer.zipcode = sanitized.customer.zipcode.replace(/\D/g, '').slice(0, 5);
-    }
+    // Address fields validation & Auto-correction using Jaccard Similarity and thaiData
+    const matchedAddress = findBestAddressMatch(
+      sanitized.customer.sub_district,
+      sanitized.customer.district,
+      sanitized.customer.province,
+      sanitized.customer.zipcode
+    );
 
-    // Auto-match/correct zipcode if province, district, and sub_district are resolved
-    if (sanitized.customer.province && sanitized.customer.district && sanitized.customer.sub_district) {
-      const match = thaiData.find(item => 
-        item.province === sanitized.customer.province && 
-        item.amphoe === sanitized.customer.district && 
-        item.district === sanitized.customer.sub_district
-      );
-      if (match) {
-        sanitized.customer.zipcode = match.zipcode.toString();
+    if (matchedAddress) {
+      // Always set province
+      sanitized.customer.province = matchedAddress.province;
+      
+      // Set district if we extracted it OR if the matched address uniquely has it
+      if (sanitized.customer.district) {
+        sanitized.customer.district = matchedAddress.amphoe;
+      } else {
+        const zipMatches = thaiData.filter(item => item.zipcode.toString() === matchedAddress.zipcode.toString());
+        const uniqueAmphoes = [...new Set(zipMatches.map(item => item.amphoe))];
+        if (uniqueAmphoes.length === 1) {
+          sanitized.customer.district = matchedAddress.amphoe;
+        } else {
+          sanitized.customer.district = '';
+        }
+      }
+
+      // Set sub_district if we extracted it OR if the matched address uniquely identifies it
+      if (sanitized.customer.sub_district) {
+        sanitized.customer.sub_district = matchedAddress.district;
+      } else {
+        const zipMatches = thaiData.filter(item => item.zipcode.toString() === matchedAddress.zipcode.toString());
+        const uniqueDistricts = [...new Set(zipMatches.map(item => item.district))];
+        if (uniqueDistricts.length === 1) {
+          sanitized.customer.sub_district = matchedAddress.district;
+        } else {
+          sanitized.customer.sub_district = '';
+        }
+      }
+
+      // Always set zipcode
+      sanitized.customer.zipcode = matchedAddress.zipcode.toString();
+    } else {
+      // Fallback
+      if (sanitized.customer.sub_district) {
+        sanitized.customer.sub_district = sanitized.customer.sub_district
+          .replace(/ตำบล|แขวง|ต\.|ข\./g, '')
+          .trim();
+      }
+      if (sanitized.customer.district) {
+        sanitized.customer.district = sanitized.customer.district
+          .replace(/อำเภอ|เขต|อ\.|ข\./g, '')
+          .trim();
+      }
+      if (sanitized.customer.province) {
+        sanitized.customer.province = sanitized.customer.province
+          .replace(/จังหวัด|จ\./g, '')
+          .trim();
+        if (sanitized.customer.province.includes('กรุงเทพ') || sanitized.customer.province.includes('กทม')) {
+          sanitized.customer.province = 'กรุงเทพมหานคร';
+        }
+      }
+      if (sanitized.customer.zipcode) {
+        sanitized.customer.zipcode = sanitized.customer.zipcode.replace(/\D/g, '').slice(0, 5);
       }
     }
   }
@@ -1184,7 +1311,7 @@ const IssuePolicyForm = () => {
         try {
           const res = await api.get(`/customers?search=${inputValue}`);
           resolve(res.data.map(c => ({
-            label: `${c.phone} - ${c.first_name} ${c.last_name}`,
+            label: `${c.phone} - ${c.first_name} ${c.last_name}${c.plate_no ? ` (ทะเบียน: ${c.plate_no})` : ''}`,
             value: c
           })));
         } catch (err) {
@@ -1208,14 +1335,31 @@ const IssuePolicyForm = () => {
       try {
         const res = await api.get(`/vehicles?customer_id=${c.id}`);
         if (res.data && res.data.length > 0) {
-          const v = res.data[0];
+          // Find the vehicle matching search text if possible
+          let matchedVehicle = res.data[0];
+          if (customerSearchText) {
+            const cleanSearchText = customerSearchText.replace(/[\s-]/g, '').toLowerCase();
+            const found = res.data.find(v => {
+              const cleanPlate = (v.plate_no || '').replace(/[\s-]/g, '').toLowerCase();
+              const cleanVin = (v.vin || '').replace(/[\s-]/g, '').toLowerCase();
+              const cleanEngine = (v.engine_no || '').replace(/[\s-]/g, '').toLowerCase();
+              return cleanPlate.includes(cleanSearchText) || 
+                     cleanSearchText.includes(cleanPlate) ||
+                     cleanVin.includes(cleanSearchText) ||
+                     cleanEngine.includes(cleanSearchText);
+            });
+            if (found) {
+              matchedVehicle = found;
+            }
+          }
+
           setVehicle({
             ...vehicle,
-            ...v,
-            tax_expiry: v.tax_expiry ? v.tax_expiry.split('T')[0] : '',
-            id: v.id
+            ...matchedVehicle,
+            tax_expiry: matchedVehicle.tax_expiry ? matchedVehicle.tax_expiry.split('T')[0] : '',
+            id: matchedVehicle.id
           });
-          setVehicleSearchText(v.plate_no); // visually show it
+          setVehicleSearchText(matchedVehicle.plate_no); // visually show it
         }
       } catch (err) {
         console.error('Error fetching customer vehicle:', err);
