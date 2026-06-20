@@ -235,6 +235,87 @@ router.post('/', authenticateToken, upload.array('files'), async (req, res) => {
       }
     }
 
+    // 6. Handle AI Correction Logging
+    const rawAiData = data.rawAiData;
+    if (rawAiData) {
+      const discrepancies = [];
+      
+      const cleanVal = (val) => {
+        if (val === null || val === undefined) return '';
+        return val.toString().toLowerCase().trim().replace(/[\s\-,.:]/g, '');
+      };
+
+      // Compare customer fields
+      const customerFields = ['prefix', 'first_name', 'last_name', 'phone', 'id_card_no', 'sub_district', 'district', 'province', 'zipcode'];
+      customerFields.forEach(field => {
+        const ocrVal = cleanVal(rawAiData.customer?.[field]);
+        const savedVal = cleanVal(customer?.[field]);
+        if (ocrVal !== savedVal) {
+          discrepancies.push({
+            section: 'customer',
+            field,
+            ocr_value: rawAiData.customer?.[field] || '',
+            saved_value: customer?.[field] || '',
+            type: ocrVal === '' ? 'missed' : 'incorrect'
+          });
+        }
+      });
+
+      // Compare vehicle fields (if motor)
+      if (isMotor && rawAiData.vehicle && vehicle) {
+        const vehicleFields = ['brand', 'model', 'year', 'color', 'plate_no', 'plate_province', 'vin', 'engine_no'];
+        vehicleFields.forEach(field => {
+          const ocrVal = cleanVal(rawAiData.vehicle?.[field]);
+          const savedVal = cleanVal(vehicle?.[field]);
+          if (ocrVal !== savedVal) {
+            discrepancies.push({
+              section: 'vehicle',
+              field,
+              ocr_value: rawAiData.vehicle?.[field] || '',
+              saved_value: vehicle?.[field] || '',
+              type: ocrVal === '' ? 'missed' : 'incorrect'
+            });
+          }
+        });
+      }
+
+      // Compare policy fields
+      if (rawAiData.policy && policy) {
+        const policyFields = ['company', 'type', 'policy_no', 'sum_insured', 'net_premium', 'total_premium'];
+        policyFields.forEach(field => {
+          const ocrVal = cleanVal(rawAiData.policy?.[field]);
+          const savedVal = cleanVal(policy?.[field]);
+          if (ocrVal !== savedVal) {
+            discrepancies.push({
+              section: 'policy',
+              field,
+              ocr_value: rawAiData.policy?.[field] || '',
+              saved_value: policy?.[field] || '',
+              type: ocrVal === '' ? 'missed' : 'incorrect'
+            });
+          }
+        });
+      }
+
+      if (discrepancies.length > 0) {
+        try {
+          await connection.query(
+            `INSERT INTO ai_correction_logs (policy_id, non_motor_policy_id, document_type, ocr_raw_data, saved_data, discrepancies) VALUES (?, ?, ?, ?, ?, ?)`,
+            [
+              policyId || null,
+              nonMotorPolicyId || null,
+              rawAiData.document_type || 'unknown',
+              JSON.stringify(rawAiData),
+              JSON.stringify({ customer, vehicle, policy }),
+              JSON.stringify(discrepancies)
+            ]
+          );
+        } catch (dbErr) {
+          console.error('Error saving AI correction log:', dbErr);
+        }
+      }
+    }
+
     await connection.commit();
     res.status(201).json({ message: 'บันทึกข้อมูลลูกค้าและกรมธรรม์สำเร็จ', customerId, policyId, nonMotorPolicyId });
 

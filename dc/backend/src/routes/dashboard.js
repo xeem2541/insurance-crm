@@ -110,7 +110,30 @@ router.get('/stats', authenticateToken, async (req, res) => {
         GROUP BY u.id, u.name 
         ORDER BY total_sales DESC 
         LIMIT 10
-      `, [targetYear])
+      `, [targetYear]),
+      
+      safeQuery(`
+        SELECT 
+          COUNT(*) as total_scans,
+          SUM(CASE WHEN is_success = 1 THEN 1 ELSE 0 END) as successful_scans,
+          SUM(CASE WHEN has_warning = 1 THEN 1 ELSE 0 END) as warning_scans,
+          AVG(processing_time_ms) as avg_processing_time
+        FROM ai_usage_logs
+        WHERE MONTH(created_at) = ? AND YEAR(created_at) = ?
+      `, [targetMonth, targetYear]),
+      
+      safeQuery(`
+        SELECT document_type, COUNT(*) as count 
+        FROM ai_usage_logs 
+        WHERE MONTH(created_at) = ? AND YEAR(created_at) = ? AND is_success = 1
+        GROUP BY document_type
+      `, [targetMonth, targetYear]),
+
+      safeQuery(`
+        SELECT discrepancies 
+        FROM ai_correction_logs 
+        WHERE MONTH(created_at) = ? AND YEAR(created_at) = ?
+      `, [targetMonth, targetYear])
     ];
 
     const [
@@ -118,7 +141,8 @@ router.get('/stats', authenticateToken, async (req, res) => {
       nmPolicies, nmSalesThisMonth, nmSalesThisYear, nmCommThisMonth, nmExpiringPolicies, nmMonthlySales,
       documents, newCustomers,
       cashRes, instRes, unpaidRes, collectedRes, overdueCustRes, upcomingInstallments,
-      monthlyCustomers, topCompanies, topSales
+      monthlyCustomers, topCompanies, topSales,
+      aiStatsRes, aiDocTypesRes, aiCorrectionsRes
     ] = await Promise.all(queries);
 
     let cashSalesTotal = parseFloat(cashRes?.[0]?.total) || 0;
@@ -163,7 +187,38 @@ router.get('/stats', authenticateToken, async (req, res) => {
       upcomingInstallments,
       monthlyCustomers,
       selectedMonth: targetMonth,
-      selectedYear: targetYear
+      selectedYear: targetYear,
+      aiStats: aiStatsRes[0] || { total_scans: 0, successful_scans: 0, warning_scans: 0, avg_processing_time: 0 },
+      aiDocTypes: aiDocTypesRes || [],
+      aiCorrectionStats: (() => {
+        const fieldCorrections = {};
+        let totalCorrectionsCount = 0;
+        const correctionScansCount = aiCorrectionsRes ? aiCorrectionsRes.length : 0;
+
+        if (aiCorrectionsRes && aiCorrectionsRes.length > 0) {
+          aiCorrectionsRes.forEach(row => {
+            let list = [];
+            try {
+              list = typeof row.discrepancies === 'string' ? JSON.parse(row.discrepancies) : row.discrepancies;
+            } catch (e) {
+              list = [];
+            }
+            if (Array.isArray(list)) {
+              list.forEach(item => {
+                const key = `${item.section}.${item.field}`;
+                fieldCorrections[key] = (fieldCorrections[key] || 0) + 1;
+                totalCorrectionsCount++;
+              });
+            }
+          });
+        }
+
+        return {
+          total_corrections: totalCorrectionsCount,
+          correction_scans: correctionScansCount,
+          field_corrections: fieldCorrections
+        };
+      })()
     });
   } catch (error) {
     console.error(error);
