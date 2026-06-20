@@ -241,7 +241,8 @@ const findMatchingBrand = (extractedBrand, brandsList) => {
 };
 
 const findMatchingModel = (extractedModel, brand, modelsMap) => {
-  if (!extractedModel || !brand || !modelsMap[brand]) return '';
+  if (!extractedModel) return '';
+  if (!brand || !modelsMap[brand]) return extractedModel.toString();
   const cleanExtracted = extractedModel.toString().replace(/\s+/g, '').toLowerCase();
   
   const found = modelsMap[brand].find(m => {
@@ -317,7 +318,7 @@ const findMatchingColor = (extractedColor) => {
   if (clean.includes('ส้ม')) return 'ส้ม';
   if (clean.includes('ชมพู')) return 'ชมพู';
   
-  return 'อื่นๆ';
+  return clean || extractedColor.toString();
 };
 
 const cleanAndExtractAddressFields = (customerObj) => {
@@ -1859,17 +1860,25 @@ const IssuePolicyForm = () => {
                   </Col>
                   <Col md={3}>
                     <Form.Label>ยี่ห้อรถ (Brand)</Form.Label>
-                    <Form.Select value={vehicle.brand} onChange={e => setVehicle({...vehicle, brand: e.target.value, model: ''})}>
-                      <option value="">เลือกยี่ห้อ...</option>
-                      {carBrands.map(b => <option key={b} value={b}>{b}</option>)}
-                    </Form.Select>
+                    <CreatableSelect
+                      options={carBrands.map(b => ({ value: b, label: b }))}
+                      value={vehicle.brand ? { value: vehicle.brand, label: vehicle.brand } : null}
+                      onChange={opt => setVehicle({...vehicle, brand: opt?.value || '', model: ''})}
+                      isClearable
+                      placeholder="เลือก หรือ พิมพ์ยี่ห้อ..."
+                      formatCreateLabel={(inputValue) => `ใช้ยี่ห้อ: "${inputValue}"`}
+                    />
                   </Col>
                   <Col md={3}>
                     <Form.Label>รุ่นรถ (Model)</Form.Label>
-                    <Form.Select value={vehicle.model} onChange={e => setVehicle({...vehicle, model: e.target.value})}>
-                      <option value="">เลือกรุ่น...</option>
-                      {(carModels[vehicle.brand] || []).map(m => <option key={m} value={m}>{m}</option>)}
-                    </Form.Select>
+                    <CreatableSelect
+                      options={(carModels[vehicle.brand] || []).map(m => ({ value: m, label: m }))}
+                      value={vehicle.model ? { value: vehicle.model, label: vehicle.model } : null}
+                      onChange={opt => setVehicle({...vehicle, model: opt?.value || ''})}
+                      isClearable
+                      placeholder="เลือก หรือ พิมพ์รุ่น..."
+                      formatCreateLabel={(inputValue) => `ใช้รุ่น: "${inputValue}"`}
+                    />
                   </Col>
                   <Col md={2}>
                     <Form.Label>ปีรถ</Form.Label>
@@ -1882,12 +1891,14 @@ const IssuePolicyForm = () => {
                   </Col>
                   <Col md={2}>
                     <Form.Label>สีรถ</Form.Label>
-                    <Form.Select value={vehicle.color} onChange={e => setVehicle({...vehicle, color: e.target.value})}>
-                      <option value="">สี...</option>
-                      {['ขาว', 'ดำ', 'เทา', 'บรอนซ์เงิน', 'บรอนซ์ทอง', 'แดง', 'น้ำเงิน', 'ฟ้า', 'น้ำตาล', 'เขียว', 'เหลือง', 'ส้ม', 'ชมพู', 'อื่นๆ'].map(c => (
-                        <option key={c} value={c}>{c}</option>
-                      ))}
-                    </Form.Select>
+                    <CreatableSelect
+                      options={['ขาว', 'ดำ', 'เทา', 'บรอนซ์เงิน', 'บรอนซ์ทอง', 'แดง', 'น้ำเงิน', 'ฟ้า', 'น้ำตาล', 'เขียว', 'เหลือง', 'ส้ม', 'ชมพู'].map(c => ({ value: c, label: c }))}
+                      value={vehicle.color ? { value: vehicle.color, label: vehicle.color } : null}
+                      onChange={opt => setVehicle({...vehicle, color: opt?.value || ''})}
+                      isClearable
+                      placeholder="เลือก หรือ พิมพ์สี..."
+                      formatCreateLabel={(inputValue) => `ใช้สี: "${inputValue}"`}
+                    />
                   </Col>
                   <Col md={3}>
                     <Form.Label>เลขทะเบียน <span className="text-danger">*</span></Form.Label>
