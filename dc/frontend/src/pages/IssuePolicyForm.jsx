@@ -1279,43 +1279,7 @@ const IssuePolicyForm = () => {
     }
   }, [payment.payment_method, payment.installments, payment.pay_date, policy.total_premium]);
 
-  useEffect(() => {
-    if (policy.start_date) {
-      const start = new Date(policy.start_date);
-      start.setFullYear(start.getFullYear() + 1);
-      const nextYearStr = start.toISOString().split('T')[0];
-      
-      setPolicy(prev => {
-        if (prev.expiry_date !== nextYearStr) {
-          return { ...prev, expiry_date: nextYearStr };
-        }
-        return prev;
-      });
 
-      setFollowUp(prev => {
-        if (prev.next_date !== nextYearStr) {
-          return { ...prev, next_date: nextYearStr };
-        }
-        return prev;
-      });
-    }
-  }, [policy.start_date]);
-
-  useEffect(() => {
-    if (policy.prb_start_date) {
-      const start = new Date(policy.prb_start_date);
-      if (!isNaN(start.getTime())) {
-        start.setFullYear(start.getFullYear() + 1);
-        const nextYearStr = start.toISOString().split('T')[0];
-        setPolicy(prev => {
-          if (prev.prb_expiry_date !== nextYearStr) {
-            return { ...prev, prb_expiry_date: nextYearStr };
-          }
-          return prev;
-        });
-      }
-    }
-  }, [policy.prb_start_date]);
 
   useEffect(() => {
     if (vehicle.registration_date) {
@@ -1908,16 +1872,7 @@ const IssuePolicyForm = () => {
                   </Col>
                   <Col md={3}>
                     <div className="mb-1"><Form.Label className="mb-0">วันเริ่มคุ้มครอง พ.ร.บ.</Form.Label></div>
-                    <Form.Control type="date" value={policy.prb_start_date || ''} onChange={e => {
-                      const start = normalizeDate(e.target.value);
-                      let end = policy.prb_expiry_date;
-                      if (start) {
-                        const d = new Date(start);
-                        d.setFullYear(d.getFullYear() + 1);
-                        end = d.toISOString().split('T')[0];
-                      }
-                      setPolicy({...policy, prb_start_date: start, prb_expiry_date: end});
-                    }} />
+                    <Form.Control type="date" value={policy.prb_start_date || ''} onChange={e => setPolicy({...policy, prb_start_date: normalizeDate(e.target.value)})} />
                   </Col>
                   <Col md={3}>
                     <Form.Label>วันสิ้นสุดคุ้มครอง พ.ร.บ.</Form.Label>
@@ -1992,16 +1947,7 @@ const IssuePolicyForm = () => {
 
                 <Col md={6}>
                   <div className="mb-1"><Form.Label className="mb-0">วันเริ่มคุ้มครอง</Form.Label></div>
-                  <Form.Control type="date" value={policy.start_date} onChange={e => {
-                      const start = normalizeDate(e.target.value);
-                      let end = policy.expiry_date;
-                      if (start) {
-                        const d = new Date(start);
-                        d.setFullYear(d.getFullYear() + 1);
-                        end = d.toISOString().split('T')[0];
-                      }
-                      setPolicy({...policy, start_date: start, expiry_date: end});
-                    }} />
+                  <Form.Control type="date" value={policy.start_date} onChange={e => setPolicy({...policy, start_date: normalizeDate(e.target.value)})} />
                 </Col>
                 <Col md={6}>
                   <div className="mb-1"><Form.Label className="mb-0">วันสิ้นสุดคุ้มครอง</Form.Label></div>
