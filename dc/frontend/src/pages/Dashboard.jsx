@@ -94,6 +94,7 @@ const Dashboard = () => {
   };
 
   const months = [
+    { value: 'all', label: 'ทุกเดือน' },
     { value: 1, label: 'มกราคม' }, { value: 2, label: 'กุมภาพันธ์' }, { value: 3, label: 'มีนาคม' },
     { value: 4, label: 'เมษายน' }, { value: 5, label: 'พฤษภาคม' }, { value: 6, label: 'มิถุนายน' },
     { value: 7, label: 'กรกฎาคม' }, { value: 8, label: 'สิงหาคม' }, { value: 9, label: 'กันยายน' },
@@ -149,7 +150,7 @@ const Dashboard = () => {
           <div className="card stat-card shadow-sm h-100 border-0">
             <i className="bi bi-cash-stack stat-icon text-success"></i>
             <div className="stat-value text-success">{formatMoney((parseFloat(stats.salesThisMonth) || 0) + (parseFloat(stats.nmSalesThisMonth) || 0))}</div>
-            <div className="stat-label mb-2">ยอดขาย (เดือนที่เลือก)</div>
+            <div className="stat-label mb-2">ยอดขาย {filterMonth === 'all' ? '(ทั้งปี)' : '(เดือนที่เลือก)'}</div>
             <div className="d-flex justify-content-between small text-muted">
               <span>M: {formatMoney(stats.salesThisMonth)}</span>
               <span>NM: {formatMoney(stats.nmSalesThisMonth)}</span>
@@ -162,7 +163,7 @@ const Dashboard = () => {
           <div className="card stat-card shadow-sm h-100 border-0">
             <i className="bi bi-percent stat-icon text-warning"></i>
             <div className="stat-value text-warning">{formatMoney((parseFloat(stats.commThisMonth) || 0) + (parseFloat(stats.nmCommThisMonth) || 0))}</div>
-            <div className="stat-label mb-2">คอมมิชชัน (เดือนที่เลือก)</div>
+            <div className="stat-label mb-2">คอมมิชชัน {filterMonth === 'all' ? '(ทั้งปี)' : '(เดือนที่เลือก)'}</div>
             <div className="d-flex justify-content-between small text-muted">
               <span>M: {formatMoney(stats.commThisMonth)}</span>
               <span>NM: {formatMoney(stats.nmCommThisMonth)}</span>
@@ -175,7 +176,7 @@ const Dashboard = () => {
           <div className="card stat-card shadow-sm h-100 border-0">
             <i className="bi bi-people-fill stat-icon text-info"></i>
             <div className="stat-value text-info">{stats.newCustomersThisMonth}</div>
-            <div className="stat-label mb-2">ลูกค้าใหม่ (เดือนที่เลือก)</div>
+            <div className="stat-label mb-2">ลูกค้าใหม่ {filterMonth === 'all' ? '(ทั้งปี)' : '(เดือนที่เลือก)'}</div>
             <div className="small text-muted">ลูกค้าในระบบทั้งหมด: {stats.totalCustomers} ราย</div>
           </div>
         </div>
@@ -215,7 +216,7 @@ const Dashboard = () => {
           <div className="card stat-card shadow-sm h-100 border-0">
             <i className="bi bi-check-circle-fill stat-icon text-success"></i>
             <div className="stat-value text-success">{formatMoney(stats.collectedThisMonth || 0)}</div>
-            <div className="stat-label mb-2">ยอดเก็บค่างวด (เดือนที่เลือก)</div>
+            <div className="stat-label mb-2">ยอดเก็บค่างวด {filterMonth === 'all' ? '(ทั้งปี)' : '(เดือนที่เลือก)'}</div>
           </div>
         </div>
       </div>
@@ -297,7 +298,7 @@ const Dashboard = () => {
             <div className="card-header bg-dark text-white border-bottom py-3 d-flex justify-content-between align-items-center">
               <h5 className="mb-0 fw-bold">
                 <i className="bi bi-robot me-2 text-info"></i> 
-                สถิติการใช้งาน AI OCR ประจำเดือน {months.find(m => m.value == filterMonth)?.label} ปี {filterYear}
+                สถิติการใช้งาน AI OCR {filterMonth === 'all' ? `ประจำปี ${filterYear}` : `ประจำเดือน ${months.find(m => m.value == filterMonth)?.label} ปี ${filterYear}`}
               </h5>
             </div>
             <div className="card-body">
@@ -443,7 +444,7 @@ const Dashboard = () => {
             <div className="card-header bg-primary text-white border-bottom py-3 d-flex justify-content-between align-items-center">
               <h5 className="mb-0 fw-bold">
                 <i className="bi bi-people-fill me-2"></i> 
-                รายชื่อลูกค้าประจำเดือน {months.find(m => m.value == filterMonth)?.label} ปี {filterYear}
+                รายชื่อลูกค้า{filterMonth === 'all' ? `ประจำปี ${filterYear}` : `ประจำเดือน ${months.find(m => m.value == filterMonth)?.label} ปี ${filterYear}`}
               </h5>
               <span className="badge bg-light text-primary">{stats.monthlyCustomers?.length || 0} รายการ</span>
             </div>
