@@ -4,7 +4,7 @@ const { authenticateToken } = require('../middlewares/auth');
 
 router.get('/stats', authenticateToken, async (req, res) => {
   try {
-    const targetMonth = req.query.month ? parseInt(req.query.month) : new Date().getMonth() + 1;
+    const targetMonth = req.query.month === 'all' ? 'all' : (req.query.month ? parseInt(req.query.month) : new Date().getMonth() + 1);
     const targetYear = req.query.year ? parseInt(req.query.year) : new Date().getFullYear();
 
     const safeQuery = async (query, params = []) => {
@@ -16,12 +16,32 @@ router.get('/stats', authenticateToken, async (req, res) => {
       }
     };
 
+    const monthFilter = (col) => {
+      if (targetMonth === 'all') {
+        return { sql: `YEAR(${col}) = ?`, params: [targetYear] };
+      } else {
+        return { sql: `MONTH(${col}) = ? AND YEAR(${col}) = ?`, params: [targetMonth, targetYear] };
+      }
+    };
+
+    const q_motorSales = monthFilter('start_date');
+    const q_motorComm = monthFilter('start_date');
+    const q_nonMotorSales = monthFilter('start_date');
+    const q_nonMotorComm = monthFilter('start_date');
+    const q_newCustomers = monthFilter('created_at');
+    const q_installments = monthFilter('payment_date');
+    const q_monthlyCustomers_m = monthFilter('p.start_date');
+    const q_monthlyCustomers_nm = monthFilter('np.start_date');
+    const q_aiStats = monthFilter('created_at');
+    const q_aiDocTypes = monthFilter('created_at');
+    const q_aiCorrections = monthFilter('created_at');
+
     const queries = [
       safeQuery('SELECT COUNT(*) as count FROM customers'),
       safeQuery('SELECT COUNT(*) as count FROM policies'),
-      safeQuery(`SELECT SUM(total_premium) as total FROM policies WHERE status = 'สำเร็จ' AND MONTH(start_date) = ? AND YEAR(start_date) = ?`, [targetMonth, targetYear]),
+      safeQuery(`SELECT SUM(total_premium) as total FROM policies WHERE status = 'สำเร็จ' AND ${q_motorSales.sql}`, q_motorSales.params),
       safeQuery(`SELECT SUM(total_premium) as total FROM policies WHERE status = 'สำเร็จ' AND YEAR(start_date) = ?`, [targetYear]),
-      safeQuery(`SELECT SUM(commission_baht) as total FROM policies WHERE status = 'สำเร็จ' AND MONTH(start_date) = ? AND YEAR(start_date) = ?`, [targetMonth, targetYear]),
+      safeQuery(`SELECT SUM(commission_baht) as total FROM policies WHERE status = 'สำเร็จ' AND ${q_motorComm.sql}`, q_motorComm.params),
       safeQuery(`
         SELECT p.*, c.first_name, c.last_name, v.plate_no, DATEDIFF(p.expiry_date, CURRENT_DATE()) as days_left, 'Motor' as category
         FROM policies p 
@@ -33,9 +53,9 @@ router.get('/stats', authenticateToken, async (req, res) => {
       
       // non-motor
       safeQuery('SELECT COUNT(*) as count FROM non_motor_policies'),
-      safeQuery(`SELECT SUM(total_premium) as total FROM non_motor_policies WHERE status = 'สำเร็จ' AND MONTH(start_date) = ? AND YEAR(start_date) = ?`, [targetMonth, targetYear]),
+      safeQuery(`SELECT SUM(total_premium) as total FROM non_motor_policies WHERE status = 'สำเร็จ' AND ${q_nonMotorSales.sql}`, q_nonMotorSales.params),
       safeQuery(`SELECT SUM(total_premium) as total FROM non_motor_policies WHERE status = 'สำเร็จ' AND YEAR(start_date) = ?`, [targetYear]),
-      safeQuery(`SELECT SUM(commission_baht) as total FROM non_motor_policies WHERE status = 'สำเร็จ' AND MONTH(start_date) = ? AND YEAR(start_date) = ?`, [targetMonth, targetYear]),
+      safeQuery(`SELECT SUM(commission_baht) as total FROM non_motor_policies WHERE status = 'สำเร็จ' AND ${q_nonMotorComm.sql}`, q_nonMotorComm.params),
       safeQuery(`
         SELECT p.*, c.first_name, c.last_name, NULL as plate_no, DATEDIFF(p.expiry_date, CURRENT_DATE()) as days_left, 'Non-Motor' as category, t.name as type_name
         FROM non_motor_policies p 
@@ -47,7 +67,7 @@ router.get('/stats', authenticateToken, async (req, res) => {
       
       // other
       safeQuery('SELECT COUNT(*) as count FROM documents WHERE deleted_at IS NULL'),
-      safeQuery(`SELECT COUNT(*) as count FROM customers WHERE MONTH(created_at) = ? AND YEAR(created_at) = ?`, [targetMonth, targetYear]),
+      safeQuery(`SELECT COUNT(*) as count FROM customers WHERE ${q_newCustomers.sql}`, q_newCustomers.params),
       
       // installments / payments
       safeQuery(`
@@ -65,7 +85,7 @@ router.get('/stats', authenticateToken, async (req, res) => {
         WHERE pm.payment_method = 'เงินผ่อน' AND (p.id IS NOT NULL OR np.id IS NOT NULL)
       `),
       safeQuery("SELECT SUM(balance_amount) as total FROM installments WHERE status IN ('รอชำระ', 'ค้างชำระ')"),
-      safeQuery("SELECT SUM(paid_amount) as total FROM installments WHERE status IN ('ชำระแล้ว', 'ชำระบางส่วน') AND MONTH(payment_date) = ? AND YEAR(payment_date) = ?", [targetMonth, targetYear]),
+      safeQuery(`SELECT SUM(paid_amount) as total FROM installments WHERE status IN ('ชำระแล้ว', 'ชำระบางส่วน') AND ${q_installments.sql}`, q_installments.params),
       safeQuery("SELECT COUNT(DISTINCT IFNULL(pm.policy_id, pm.non_motor_policy_id)) as count FROM installments i JOIN payments pm ON i.payment_id = pm.id WHERE i.status = 'ค้างชำระ' OR (i.status = 'รอชำระ' AND i.due_date < CURRENT_DATE())"),
       safeQuery(`
         SELECT i.*, IFNULL(p.policy_no, np.policy_no) as policy_no, c.first_name, c.last_name, c.phone
@@ -83,15 +103,15 @@ router.get('/stats', authenticateToken, async (req, res) => {
           c.first_name, c.last_name, c.phone,
           p.policy_no, p.start_date, p.expiry_date, p.created_at, p.total_premium, 'Motor' as policy_type
         FROM policies p JOIN customers c ON p.customer_id = c.id 
-        WHERE MONTH(p.start_date) = ? AND YEAR(p.start_date) = ? AND p.status IN ('สำเร็จ', 'ชำระครบแล้ว')
+        WHERE ${q_monthlyCustomers_m.sql} AND p.status IN ('สำเร็จ', 'ชำระครบแล้ว')
         UNION ALL
         SELECT 
           c.first_name, c.last_name, c.phone,
           np.policy_no, np.start_date, np.expiry_date, np.created_at, np.total_premium, 'Non-Motor' as policy_type
         FROM non_motor_policies np JOIN customers c ON np.customer_id = c.id 
-        WHERE MONTH(np.start_date) = ? AND YEAR(np.start_date) = ? AND np.status IN ('สำเร็จ', 'ชำระครบแล้ว')
+        WHERE ${q_monthlyCustomers_nm.sql} AND np.status IN ('สำเร็จ', 'ชำระครบแล้ว')
         ORDER BY start_date DESC
-      `, [targetMonth, targetYear, targetMonth, targetYear]),
+      `, [...q_monthlyCustomers_m.params, ...q_monthlyCustomers_nm.params]),
       
       safeQuery(`
         SELECT company, SUM(total_premium) as total_sales, COUNT(*) as policy_count 
@@ -119,21 +139,21 @@ router.get('/stats', authenticateToken, async (req, res) => {
           SUM(CASE WHEN has_warning = 1 THEN 1 ELSE 0 END) as warning_scans,
           AVG(processing_time_ms) as avg_processing_time
         FROM ai_usage_logs
-        WHERE MONTH(created_at) = ? AND YEAR(created_at) = ?
-      `, [targetMonth, targetYear]),
+        WHERE ${q_aiStats.sql}
+      `, q_aiStats.params),
       
       safeQuery(`
         SELECT document_type, COUNT(*) as count 
         FROM ai_usage_logs 
-        WHERE MONTH(created_at) = ? AND YEAR(created_at) = ? AND is_success = 1
+        WHERE ${q_aiDocTypes.sql} AND is_success = 1
         GROUP BY document_type
-      `, [targetMonth, targetYear]),
+      `, q_aiDocTypes.params),
 
       safeQuery(`
         SELECT discrepancies 
         FROM ai_correction_logs 
-        WHERE MONTH(created_at) = ? AND YEAR(created_at) = ?
-      `, [targetMonth, targetYear])
+        WHERE ${q_aiCorrections.sql}
+      `, q_aiCorrections.params)
     ];
 
     const [
