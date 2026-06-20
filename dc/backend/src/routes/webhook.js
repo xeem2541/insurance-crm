@@ -21,7 +21,14 @@ if (process.env.GEMINI_API_KEY) {
     }
   })
     .then(res => console.log("✅ Gemini Models Available:", res.data.models.map(m => m.name.replace('models/', '')).filter(n => n.includes('gemini')).join(", ")))
-    .catch(err => console.error("❌ Error fetching models:", err.message));
+    .catch(err => {
+      const errMsg = err.response?.data?.error?.message || err.message;
+      if (errMsg.includes('API key not valid') || errMsg.includes('400') || errMsg.includes('key')) {
+        console.log("ℹ️ Gemini API key in environment (process.env.GEMINI_API_KEY) is invalid. (You can still enter a valid key in the web UI settings).");
+      } else {
+        console.error("❌ Error fetching models:", errMsg);
+      }
+    });
 }
 
 // System prompt for Gemini
