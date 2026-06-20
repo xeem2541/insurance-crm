@@ -18,9 +18,25 @@ router.get('/', authenticateToken, async (req, res) => {
   let params = [];
   
   if (search) {
-    conditions.push(`(c.first_name LIKE ? OR c.last_name LIKE ? OR c.phone LIKE ? OR c.customer_code LIKE ? OR c.id_card_no LIKE ?)`);
     const searchParam = `%${search}%`;
-    params.push(searchParam, searchParam, searchParam, searchParam, searchParam);
+    const cleanSearch = `%${search.replace(/[\s-]/g, '')}%`;
+    conditions.push(`(
+      c.first_name LIKE ? OR 
+      c.last_name LIKE ? OR 
+      c.phone LIKE ? OR 
+      c.customer_code LIKE ? OR 
+      c.id_card_no LIKE ? OR 
+      EXISTS (
+        SELECT 1 FROM vehicles v 
+        WHERE v.customer_id = c.id 
+          AND (
+            REPLACE(REPLACE(v.plate_no, ' ', ''), '-', '') LIKE ? OR 
+            REPLACE(REPLACE(v.vin, ' ', ''), '-', '') LIKE ? OR 
+            REPLACE(REPLACE(v.engine_no, ' ', ''), '-', '') LIKE ?
+          )
+      )
+    )`);
+    params.push(searchParam, searchParam, searchParam, searchParam, searchParam, cleanSearch, cleanSearch, cleanSearch);
   }
   
   if (month) {
