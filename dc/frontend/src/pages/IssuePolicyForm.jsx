@@ -455,6 +455,120 @@ const sanitizeAIResponse = (data) => {
   return sanitized;
 };
 
+// Helper for adaptive contrast / shadow removal (CamScanner-style)
+const removeShadowsAndEnhance = (originalCanvas) => {
+  const width = originalCanvas.width;
+  const height = originalCanvas.height;
+  
+  // 1. Create a small canvas to extract the background illumination (shadow map)
+  const bgCanvas = document.createElement('canvas');
+  // 1/16th size for fast processing and natural smooth blur
+  const bgW = Math.max(16, Math.floor(width / 16));
+  const bgH = Math.max(16, Math.floor(height / 16));
+  bgCanvas.width = bgW;
+  bgCanvas.height = bgH;
+  
+  const bgCtx = bgCanvas.getContext('2d');
+  bgCtx.drawImage(originalCanvas, 0, 0, bgW, bgH);
+  
+  const bgData = bgCtx.getImageData(0, 0, bgW, bgH);
+  const bgPixels = bgData.data;
+  
+  // Simple horizontal and vertical box blur helper function
+  const size = bgW * bgH;
+  const r = new Uint8Array(size);
+  const g = new Uint8Array(size);
+  const b = new Uint8Array(size);
+  
+  for (let i = 0; i < size; i++) {
+    r[i] = bgPixels[i * 4];
+    g[i] = bgPixels[i * 4 + 1];
+    b[i] = bgPixels[i * 4 + 2];
+  }
+  
+  const blurPass = (channel, pixels, w, h, radius, offset) => {
+    const temp = new Uint8Array(channel.length);
+    for (let y = 0; y < h; y++) {
+      for (let x = 0; x < w; x++) {
+        let val = 0;
+        let count = 0;
+        for (let k = -radius; k <= radius; k++) {
+          const nx = x + k;
+          if (nx >= 0 && nx < w) {
+            val += channel[y * w + nx];
+            count++;
+          }
+        }
+        temp[y * w + x] = Math.floor(val / count);
+      }
+    }
+    for (let x = 0; x < w; x++) {
+      for (let y = 0; y < h; y++) {
+        let val = 0;
+        let count = 0;
+        for (let k = -radius; k <= radius; k++) {
+          const ny = y + k;
+          if (ny >= 0 && ny < h) {
+            val += temp[ny * w + x];
+            count++;
+          }
+        }
+        pixels[(y * w + x) * 4 + offset] = Math.floor(val / count);
+      }
+    }
+  };
+
+  const radius = 2;
+  blurPass(r, bgPixels, bgW, bgH, radius, 0);
+  blurPass(g, bgPixels, bgW, bgH, radius, 1);
+  blurPass(b, bgPixels, bgW, bgH, radius, 2);
+  
+  bgCtx.putImageData(bgData, 0, 0);
+  
+  // 2. Prepare destination canvas
+  const destCanvas = document.createElement('canvas');
+  destCanvas.width = width;
+  destCanvas.height = height;
+  const destCtx = destCanvas.getContext('2d');
+  
+  // Draw the blurred background stretched to full size
+  destCtx.drawImage(bgCanvas, 0, 0, width, height);
+  const bgFullData = destCtx.getImageData(0, 0, width, height);
+  const bgFullPixels = bgFullData.data;
+  
+  // Draw the original image again
+  destCtx.drawImage(originalCanvas, 0, 0, width, height);
+  const origData = destCtx.getImageData(0, 0, width, height);
+  const origPixels = origData.data;
+  
+  // 3. Divide original by background to flatten shadows (Retinex division)
+  for (let i = 0; i < origPixels.length; i += 4) {
+    let origR = origPixels[i];
+    let bgR = bgFullPixels[i];
+    origPixels[i] = Math.min(255, Math.floor((origR / (bgR || 1)) * 230));
+    
+    let origG = origPixels[i + 1];
+    let bgG = bgFullPixels[i + 1];
+    origPixels[i + 1] = Math.min(255, Math.floor((origG / (bgG || 1)) * 230));
+    
+    let origB = origPixels[i + 2];
+    let bgB = bgFullPixels[i + 2];
+    origPixels[i + 2] = Math.min(255, Math.floor((origB / (bgB || 1)) * 230));
+  }
+  
+  destCtx.putImageData(origData, 0, 0);
+  
+  // 4. Boost overall contrast slightly to make text sharper
+  const finalCanvas = document.createElement('canvas');
+  finalCanvas.width = width;
+  finalCanvas.height = height;
+  const finalCtx = finalCanvas.getContext('2d');
+  finalCtx.filter = 'contrast(1.15) brightness(1.02)';
+  finalCtx.drawImage(destCanvas, 0, 0);
+  
+  return finalCanvas;
+};
+
 const compressImage = (file, maxWidth = 1600, maxHeight = 1600, quality = 0.8) => {
   return new Promise((resolve) => {
     if (!file.type.startsWith('image/')) {
@@ -489,7 +603,15 @@ const compressImage = (file, maxWidth = 1600, maxHeight = 1600, quality = 0.8) =
         const ctx = canvas.getContext('2d');
         ctx.drawImage(img, 0, 0, width, height);
 
-        canvas.toBlob(
+        // Apply CamScanner-style shadow removal & enhancement
+        let processedCanvas = canvas;
+        try {
+          processedCanvas = removeShadowsAndEnhance(canvas);
+        } catch (enhanceError) {
+          console.warn("Image enhancement failed, falling back to original:", enhanceError);
+        }
+
+        processedCanvas.toBlob(
           (blob) => {
             if (!blob) {
               return resolve(file);
