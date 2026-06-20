@@ -7,6 +7,7 @@ import CreatableSelect from 'react-select/creatable';
 import { useDropzone } from 'react-dropzone';
 import ThaiAddressSelect from '../components/ThaiAddressSelect';
 import { carBrands, carModels } from '../data/carData';
+import thaiData from '../data/thai_address.json';
 
 const formatPhone = (val) => {
   if (!val) return '';
@@ -426,6 +427,18 @@ const sanitizeAIResponse = (data) => {
     }
     if (sanitized.customer.zipcode) {
       sanitized.customer.zipcode = sanitized.customer.zipcode.replace(/\D/g, '').slice(0, 5);
+    }
+
+    // Auto-match/correct zipcode if province, district, and sub_district are resolved
+    if (sanitized.customer.province && sanitized.customer.district && sanitized.customer.sub_district) {
+      const match = thaiData.find(item => 
+        item.province === sanitized.customer.province && 
+        item.amphoe === sanitized.customer.district && 
+        item.district === sanitized.customer.sub_district
+      );
+      if (match) {
+        sanitized.customer.zipcode = match.zipcode.toString();
+      }
     }
   }
 
