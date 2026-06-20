@@ -12,15 +12,38 @@ let generativeModel = null;
 if (process.env.GEMINI_API_KEY) {
   const apiKey = process.env.GEMINI_API_KEY.trim();
   genAI = new GoogleGenerativeAI(apiKey);
+  
+  // Set default model first
   generativeModel = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
 
-  // Debug: Print available models to console
+  // Debug: Print available models to console and select the best available model dynamically
   axios.get(`https://generativelanguage.googleapis.com/v1beta/models`, {
     headers: {
       'x-goog-api-key': apiKey
     }
   })
-    .then(res => console.log("✅ Gemini Models Available:", res.data.models.map(m => m.name.replace('models/', '')).filter(n => n.includes('gemini')).join(", ")))
+    .then(res => {
+      const models = res.data.models
+        .filter(m => m.supportedGenerationMethods?.includes('generateContent'))
+        .map(m => m.name.replace('models/', ''));
+      
+      console.log("✅ Gemini Models Available:", models.join(", "));
+      
+      const preferredModels = [
+        'gemini-2.5-flash',
+        'gemini-3.5-flash',
+        'gemini-2.0-flash',
+        'gemini-1.5-flash',
+        'gemini-2.5-flash-lite',
+        'gemini-3.1-flash-lite'
+      ];
+      
+      const bestModel = preferredModels.find(m => models.includes(m));
+      if (bestModel) {
+        generativeModel = genAI.getGenerativeModel({ model: bestModel });
+        console.log(`🤖 Line Bot initialized with best available model: ${bestModel}`);
+      }
+    })
     .catch(err => {
       const errMsg = err.response?.data?.error?.message || err.message;
       if (errMsg.includes('API key not valid') || errMsg.includes('400') || errMsg.includes('key')) {

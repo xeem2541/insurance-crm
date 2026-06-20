@@ -162,11 +162,48 @@ router.post('/extract', authenticateToken, upload.array('images', 10), async (re
       }
     }));
 
-    const modelsToTry = [
-      { name: 'gemini-2.0-flash', timeout: 10000 },       // Latest, fastest and high accuracy
-      { name: 'gemini-1.5-flash', timeout: 10000 },       // Stable flash fallback
-      { name: 'gemini-1.5-pro', timeout: 15000 }          // Stable pro fallback
+    let availableModels = [];
+    try {
+      const modelsRes = await axios.get(`https://generativelanguage.googleapis.com/v1beta/models`, {
+        headers: {
+          'x-goog-api-key': apiKey
+        },
+        timeout: 5000
+      });
+      if (modelsRes.data && Array.isArray(modelsRes.data.models)) {
+        availableModels = modelsRes.data.models
+          .filter(m => m.supportedGenerationMethods?.includes('generateContent'))
+          .map(m => m.name.replace('models/', ''));
+        console.log("Fetched available Gemini models from API:", availableModels.join(", "));
+      }
+    } catch (e) {
+      console.warn("Failed to fetch available Gemini models:", e.response?.data?.error?.message || e.message);
+    }
+
+    const preferredModels = [
+      'gemini-2.5-flash',
+      'gemini-3.5-flash',
+      'gemini-2.0-flash',
+      'gemini-1.5-flash',
+      'gemini-3.1-flash-lite',
+      'gemini-2.5-flash-lite',
+      'gemini-1.5-pro',
+      'gemini-1.5-pro-latest'
     ];
+
+    let modelsToTry = preferredModels
+      .filter(name => availableModels.includes(name))
+      .map(name => ({ name, timeout: name.includes('pro') ? 15000 : 10000 }));
+
+    if (modelsToTry.length === 0) {
+      modelsToTry = [
+        { name: 'gemini-2.5-flash', timeout: 10000 },
+        { name: 'gemini-3.5-flash', timeout: 10000 },
+        { name: 'gemini-2.0-flash', timeout: 10000 },
+        { name: 'gemini-1.5-flash', timeout: 10000 },
+        { name: 'gemini-2.5-flash-lite', timeout: 10000 }
+      ];
+    }
 
     let lastError = null;
     let responseText = null;
