@@ -30,7 +30,6 @@ if (process.env.GEMINI_API_KEY) {
       console.log("✅ Gemini Models Available:", models.join(", "));
       
       const preferredModels = [
-        'gemini-3.5-flash',
         'gemini-2.5-flash',
         'gemini-1.5-flash'
       ];

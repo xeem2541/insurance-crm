@@ -213,7 +213,6 @@ router.post('/extract', authenticateToken, upload.array('images', 10), async (re
     }
 
     const preferredModels = [
-      'gemini-3.5-flash',
       'gemini-2.5-flash',
       'gemini-1.5-flash'
     ];
@@ -224,7 +223,6 @@ router.post('/extract', authenticateToken, upload.array('images', 10), async (re
 
     if (modelsToTry.length === 0) {
       modelsToTry = [
-        { name: 'gemini-3.5-flash', timeout: 35000 },
         { name: 'gemini-2.5-flash', timeout: 35000 },
         { name: 'gemini-1.5-flash', timeout: 35000 }
       ];
