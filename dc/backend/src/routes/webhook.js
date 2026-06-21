@@ -30,6 +30,7 @@ if (process.env.GEMINI_API_KEY) {
       console.log("✅ Gemini Models Available:", models.join(", "));
       
       const preferredModels = [
+        'gemini-3.5-flash',
         'gemini-2.5-flash',
         'gemini-1.5-flash'
       ];
@@ -115,14 +116,45 @@ router.post('/', async (req, res) => {
 
       // If no policy is found, and it's a direct message to the bot, use AI.
       if (!policyFound && event.source.type === 'user') {
-        if (generativeModel) {
-          try {
-            console.log("Passing message to Gemini API...");
-            const promptContext = SYSTEM_PROMPT + "\n\nคำถามจากลูกค้า: " + text + "\nตอบลูกค้า:";
-            const result = await generativeModel.generateContent(promptContext);
-            replyText = result.response.text();
-          } catch (aiError) {
-            console.error('Gemini API Error:', aiError);
+        if (genAI) {
+          const promptContext = SYSTEM_PROMPT + "\n\nคำถามจากลูกค้า: " + text + "\nตอบลูกค้า:";
+          const preferredModels = [
+            'gemini-3.5-flash',
+            'gemini-2.5-flash',
+            'gemini-1.5-flash'
+          ];
+          
+          let success = false;
+          for (const modelName of preferredModels) {
+            try {
+              console.log(`Trying LINE bot Gemini model: ${modelName}`);
+              const modelInstance = genAI.getGenerativeModel({ model: modelName });
+              const result = await modelInstance.generateContent({
+                contents: [{ role: 'user', parts: [{ text: promptContext }] }],
+                safetySettings: [
+                  { category: "HARM_CATEGORY_HARASSMENT", threshold: "BLOCK_NONE" },
+                  { category: "HARM_CATEGORY_HATE_SPEECH", threshold: "BLOCK_NONE" },
+                  { category: "HARM_CATEGORY_SEXUALLY_EXPLICIT", threshold: "BLOCK_NONE" },
+                  { category: "HARM_CATEGORY_DANGEROUS_CONTENT", threshold: "BLOCK_NONE" }
+                ]
+              });
+              
+              if (result.response && typeof result.response.text === 'function') {
+                replyText = result.response.text();
+                console.log(`Successfully replied to LINE bot using model: ${modelName}`);
+                success = true;
+                break;
+              }
+            } catch (aiError) {
+              console.warn(`LINE bot failed with model ${modelName}:`, aiError.message || aiError);
+              const errMsg = aiError.message || '';
+              if (errMsg.includes('API key not valid') || errMsg.includes('400') || errMsg.includes('403')) {
+                break;
+              }
+            }
+          }
+          
+          if (!success) {
             replyText = 'ขออภัยค่ะ ตอนนี้สมอง AI ของแอดมินกำลังปรับปรุง ไม่สามารถตอบคำถามได้ชั่วคราวนะคะ 🙏';
           }
         } else {
