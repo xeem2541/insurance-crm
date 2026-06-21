@@ -2289,11 +2289,7 @@ const IssuePolicyForm = () => {
 
         {/* Action Buttons */}
         <div className="card shadow-sm border-0 sticky-bottom mb-2" style={{ bottom: '0', zIndex: 1030 }}>
-          <div className="card-body bg-white rounded-3 d-flex flex-column flex-lg-row justify-content-between align-items-center p-2 p-lg-3 gap-2">
-            <div className="d-none d-lg-block">
-              <Button variant="outline-secondary" className="me-2 fw-bold" onClick={() => alert('ฟังก์ชันอยู่ระหว่างพัฒนา')}><i className="bi bi-file-earmark-text"></i> พิมพ์ใบเสนอราคา</Button>
-              <Button variant="outline-secondary" className="me-2 fw-bold" onClick={() => alert('ฟังก์ชันอยู่ระหว่างพัฒนา')}><i className="bi bi-receipt"></i> พิมพ์ใบแจ้งชำระ</Button>
-            </div>
+          <div className="card-body bg-white rounded-3 d-flex flex-column flex-lg-row justify-content-end align-items-center p-2 p-lg-3 gap-2">
             <div className="d-flex w-100 w-lg-auto gap-2">
               <Button variant="outline-primary" className="fw-bold w-100 w-lg-auto" onClick={() => setFollowUp({...followUp, status: 'แบบร่าง'})}>
                 <i className="bi bi-save"></i><span className="d-none d-sm-inline"> บันทึกร่าง</span>
