@@ -14,7 +14,7 @@ if (process.env.GEMINI_API_KEY) {
   genAI = new GoogleGenerativeAI(apiKey);
   
   // Set default model first
-  generativeModel = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+  generativeModel = genAI.getGenerativeModel({ model: "gemini-3.5-flash" });
 
   // Debug: Print available models to console and select the best available model dynamically
   axios.get(`https://generativelanguage.googleapis.com/v1beta/models`, {
@@ -30,19 +30,14 @@ if (process.env.GEMINI_API_KEY) {
       console.log("✅ Gemini Models Available:", models.join(", "));
       
       const preferredModels = [
-        'gemini-2.5-flash',
         'gemini-3.5-flash',
-        'gemini-2.0-flash',
-        'gemini-1.5-flash',
-        'gemini-2.5-flash-lite',
-        'gemini-3.1-flash-lite'
+        'gemini-2.5-flash',
+        'gemini-1.5-flash'
       ];
       
-      const bestModel = preferredModels.find(m => models.includes(m));
-      if (bestModel) {
-        generativeModel = genAI.getGenerativeModel({ model: bestModel });
-        console.log(`🤖 Line Bot initialized with best available model: ${bestModel}`);
-      }
+      const bestModel = preferredModels.find(m => models.includes(m)) || 'gemini-3.5-flash';
+      generativeModel = genAI.getGenerativeModel({ model: bestModel });
+      console.log(`🤖 Line Bot initialized with best available model: ${bestModel}`);
     })
     .catch(err => {
       const errMsg = err.response?.data?.error?.message || err.message;
