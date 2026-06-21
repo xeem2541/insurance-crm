@@ -15,6 +15,17 @@ const formatThaiDate = (dateString) => {
   return `${day}/${month}/${year}`;
 };
 
+const provincesList = [
+  'กรุงเทพมหานคร', 'กระบี่', 'กาญจนบุรี', 'กาฬสินธุ์', 'กำแพงเพชร', 'ขอนแก่น', 'จันทบุรี', 'ฉะเชิงเทรา', 'ชลบุรี', 'ชัยนาท', 
+  'ชัยภูมิ', 'ชุมพร', 'เชียงราย', 'เชียงใหม่', 'ตรัง', 'ตราด', 'ตาก', 'นครนายก', 'นครปฐม', 'นครพนม', 'นครราชสีมา', 
+  'นครศรีธรรมราช', 'นครสวรรค์', 'นนทบุรี', 'นราธิวาส', 'น่าน', 'บึงกาฬ', 'บุรีรัมย์', 'ปทุมธานี', 'ประจวบคีรีขันธ์', 
+  'ปราจีนบุรี', 'ปัตตานี', 'พระนครศรีอยุธยา', 'พะเยา', 'พังงา', 'พัทลุง', 'พิจิตร', 'พิษณุโลก', 'เพชรบุรี', 'เพชรบูรณ์', 
+  'แพร่', 'ภูเก็ต', 'มหาสารคาม', 'มุกดาหาร', 'แม่ฮ่องสอน', 'ยโสธร', 'ยะลา', 'ร้อยเอ็ด', 'ระนอง', 'ระยอง', 'ราชบุรี', 
+  'ลพบุรี', 'ลำปาง', 'ลำพูน', 'เลย', 'ศรีสะเกษ', 'สกลนคร', 'สงขลา', 'สตูล', 'สมุทรปราการ', 'สมุทรสงคราม', 'สมุทรสาคร', 
+  'สระแก้ว', 'สระบุรี', 'สิงห์บุรี', 'สุโขทัย', 'สุพรรณบุรี', 'สุราษฎร์ธานี', 'สุรินทร์', 'หนองคาย', 'หนองบัวลำภู', 
+  'อ่างทอง', 'อำนาจเจริญ', 'อุดรธานี', 'อุตรดิตถ์', 'อุทัยธานี', 'อุบลราชธานี'
+].map(p => ({ value: p, label: p }));
+
 const Policies = () => {
   const [policies, setPolicies] = useState([]);
   const [customers, setCustomers] = useState([]);
@@ -93,7 +104,8 @@ const Policies = () => {
     id: null, customer_id: '', vehicle_id: '', plate_no: '', policy_no: '', company: '', type: '', 
     sum_insured: '', net_premium: '', stamp_duty: '', vat: '', total_premium: '',
     commission_percent: '', commission_baht: '', payment_method: '', 
-    start_date: '', expiry_date: '', status: 'รอดำเนินการ', sales_person_id: ''
+    start_date: '', expiry_date: '', status: 'รอดำเนินการ', sales_person_id: '',
+    plate_province: '', vin: '', engine_no: '', tax_expiry: '', prb_start_date: '', prb_expiry_date: ''
   });
 
   const fetchData = async () => {
@@ -161,14 +173,21 @@ const Policies = () => {
         start_date: p.start_date ? p.start_date.split('T')[0] : '',
         expiry_date: p.expiry_date ? p.expiry_date.split('T')[0] : '',
         status: p.status,
-        sales_person_id: p.sales_person_id || ''
+        sales_person_id: p.sales_person_id || '',
+        plate_province: p.plate_province || '',
+        vin: p.vin || '',
+        engine_no: p.engine_no || '',
+        tax_expiry: p.tax_expiry ? p.tax_expiry.split('T')[0] : '',
+        prb_start_date: p.prb_start_date ? p.prb_start_date.split('T')[0] : '',
+        prb_expiry_date: p.prb_expiry_date ? p.prb_expiry_date.split('T')[0] : ''
       });
     } else {
       setFormData({
         id: null, customer_id: '', vehicle_id: '', plate_no: '', policy_no: '', company: '', type: '', 
         sum_insured: '', net_premium: '', stamp_duty: '', vat: '', total_premium: '',
         commission_percent: '', commission_baht: '', payment_method: '', 
-        start_date: '', expiry_date: '', status: 'รอดำเนินการ', sales_person_id: ''
+        start_date: '', expiry_date: '', status: 'รอดำเนินการ', sales_person_id: '',
+        plate_province: '', vin: '', engine_no: '', tax_expiry: '', prb_start_date: '', prb_expiry_date: ''
       });
     }
     setShowModal(true);
@@ -314,7 +333,15 @@ const Policies = () => {
                   value={vehicleOptions.find(v => v.value === formData.vehicle_id)}
                   onChange={option => {
                     const selectedVeh = vehicles.find(v => v.id === option?.value);
-                    setFormData({...formData, vehicle_id: option?.value || '', plate_no: selectedVeh ? selectedVeh.plate_no : ''})
+                    setFormData({
+                      ...formData, 
+                      vehicle_id: option?.value || '', 
+                      plate_no: selectedVeh ? (selectedVeh.plate_no || '') : '',
+                      plate_province: selectedVeh ? (selectedVeh.plate_province || '') : '',
+                      vin: selectedVeh ? (selectedVeh.vin || '') : '',
+                      engine_no: selectedVeh ? (selectedVeh.engine_no || '') : '',
+                      tax_expiry: selectedVeh && selectedVeh.tax_expiry ? selectedVeh.tax_expiry.split('T')[0] : ''
+                    });
                   }}
                   isClearable
                   placeholder="เลือก..."
@@ -328,7 +355,59 @@ const Policies = () => {
                   type="text" 
                   value={formData.plate_no} 
                   onChange={e => setFormData({...formData, plate_no: e.target.value})}
-                  placeholder="เช่น กข 1234 กทม"
+                  placeholder="เช่น กข 1234"
+                />
+              </div>
+              <div className="col-md-3">
+                <Form.Label>จังหวัดทะเบียนรถ</Form.Label>
+                <Select
+                  options={provincesList}
+                  value={provincesList.find(p => p.value === formData.plate_province)}
+                  onChange={opt => setFormData({...formData, plate_province: opt?.value || ''})}
+                  isClearable
+                  placeholder="เลือกจังหวัด..."
+                />
+              </div>
+              <div className="col-md-3">
+                <Form.Label>เลขตัวถัง (VIN / Chassis No)</Form.Label>
+                <Form.Control 
+                  type="text" 
+                  value={formData.vin} 
+                  onChange={e => setFormData({...formData, vin: e.target.value})}
+                  placeholder="ระบุเลขตัวถัง..."
+                />
+              </div>
+              <div className="col-md-3">
+                <Form.Label>เลขเครื่องยนต์</Form.Label>
+                <Form.Control 
+                  type="text" 
+                  value={formData.engine_no} 
+                  onChange={e => setFormData({...formData, engine_no: e.target.value})}
+                  placeholder="ระบุเลขเครื่องยนต์..."
+                />
+              </div>
+              <div className="col-md-3">
+                <Form.Label>วันภาษีรถหมดอายุ</Form.Label>
+                <Form.Control 
+                  type="date" 
+                  value={formData.tax_expiry} 
+                  onChange={e => setFormData({...formData, tax_expiry: e.target.value})}
+                />
+              </div>
+              <div className="col-md-3">
+                <Form.Label>วันเริ่มคุ้มครอง พ.ร.บ.</Form.Label>
+                <Form.Control 
+                  type="date" 
+                  value={formData.prb_start_date} 
+                  onChange={e => setFormData({...formData, prb_start_date: e.target.value})}
+                />
+              </div>
+              <div className="col-md-3">
+                <Form.Label>วันสิ้นสุดคุ้มครอง พ.ร.บ.</Form.Label>
+                <Form.Control 
+                  type="date" 
+                  value={formData.prb_expiry_date} 
+                  onChange={e => setFormData({...formData, prb_expiry_date: e.target.value})}
                 />
               </div>
 
