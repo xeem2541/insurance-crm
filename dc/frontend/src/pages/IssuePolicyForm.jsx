@@ -1698,6 +1698,9 @@ const IssuePolicyForm = () => {
                 <span className="align-middle">เลือกรูปภาพ/ไฟล์ในเครื่อง</span>
               </Button>
 
+                            <div className="w-100 text-center mt-3 text-white-50 small">
+                <i className="bi bi-info-circle me-1"></i> แนะนำ: ถ่ายภาพด้วยกล้องหลัก 1x และเปิดโหมดความละเอียดสูง (48MP) เพื่อความคมชัดสูงสุด
+              </div>
               <input type="file" ref={cameraScanInputRef} accept="image/*" capture="environment" className="d-none" onChange={handleAIExtract} />
               <input type="file" ref={fileInputRef} accept="image/*" className="d-none" multiple onChange={handleAIExtract} />
             </div>
@@ -2243,10 +2246,13 @@ const IssuePolicyForm = () => {
                 <h5 className="mt-2">แตะเพื่อเลือกไฟล์ หรือ ลากไฟล์มาวาง</h5>
                 <p className="mb-0 opacity-75 small">รองรับไฟล์: PDF, JPG, PNG</p>
               </div>
-              <div className="text-center mb-4">
+                            <div className="text-center mb-4">
                 <Button variant="outline-primary" className="fw-bold px-4 rounded-pill" onClick={() => cameraInputRef.current && cameraInputRef.current.click()}>
                   <i className="bi bi-camera-fill me-2"></i> เปิดกล้องถ่ายรูป
                 </Button>
+                <div className="mt-2 text-muted small">
+                  <i className="bi bi-info-circle me-1"></i> แนะนำ: ถ่ายภาพด้วยกล้องหลัก 1x และเปิดโหมดความละเอียดสูง (48MP)
+                </div>
                 <input type="file" ref={cameraInputRef} accept="image/*" capture="environment" className="d-none" onChange={(e) => {
                   const selected = Array.from(e.target.files);
                   if(selected.length > 0) onDrop(selected);
