@@ -839,6 +839,23 @@ const IssuePolicyForm = () => {
 
   const [files, setFiles] = useState([]);
   const [ocrLoading, setOcrLoading] = useState(false);
+  const [ocrSeconds, setOcrSeconds] = useState(0);
+
+  useEffect(() => {
+    let interval = null;
+    if (ocrLoading) {
+      setOcrSeconds(0);
+      interval = setInterval(() => {
+        setOcrSeconds(prev => prev + 1);
+      }, 1000);
+    } else {
+      setOcrSeconds(0);
+    }
+    return () => {
+      if (interval) clearInterval(interval);
+    };
+  }, [ocrLoading]);
+
   const [aiWarning, setAiWarning] = useState('');
   const [activePreviewIdx, setActivePreviewIdx] = useState(0);
   const [rawAiData, setRawAiData] = useState(null);
@@ -1647,7 +1664,7 @@ const IssuePolicyForm = () => {
               <div className="spinner-border mb-3" role="status" style={{ width: '3rem', height: '3rem', borderWidth: '0.25em' }}>
                 <span className="visually-hidden">Loading...</span>
               </div>
-              <span className="fs-5 tracking-wide">กำลังประมวลผลด้วย Gemini AI... (10-20 วินาที)</span>
+              <span className="fs-5 tracking-wide">กำลังประมวลผลด้วย Gemini AI... ผ่านไปแล้ว {ocrSeconds} วินาที (ประมาณ 10-35 วินาที)</span>
             </div>
           ) : (
             <div className="mt-4 d-flex flex-wrap justify-content-center gap-3">
