@@ -7,7 +7,9 @@ const { sendLineNotify } = require('../services/lineNotify');
 router.get('/', authenticateToken, async (req, res) => {
   const { search, customer_id, vehicle_id } = req.query;
   let query = `
-    SELECT p.*, c.first_name, c.last_name, c.customer_code, v.plate_no, v.brand, v.model, u.name as sales_person_name
+    SELECT p.*, c.first_name, c.last_name, c.customer_code, 
+           v.plate_no, v.plate_province, v.brand, v.model, v.vin, v.engine_no, v.tax_expiry, v.year, v.color,
+           u.name as sales_person_name
     FROM policies p 
     JOIN customers c ON p.customer_id = c.id
     LEFT JOIN vehicles v ON p.vehicle_id = v.id
@@ -51,7 +53,8 @@ router.get('/', authenticateToken, async (req, res) => {
 router.get('/:id', authenticateToken, async (req, res) => {
   try {
     const [policies] = await req.db.query(`
-      SELECT p.*, c.first_name, c.last_name, c.customer_code, v.plate_no, v.brand, v.model
+      SELECT p.*, c.first_name, c.last_name, c.customer_code, 
+             v.plate_no, v.plate_province, v.brand, v.model, v.vin, v.engine_no, v.tax_expiry, v.year, v.color
       FROM policies p 
       JOIN customers c ON p.customer_id = c.id
       LEFT JOIN vehicles v ON p.vehicle_id = v.id
@@ -67,22 +70,43 @@ router.get('/:id', authenticateToken, async (req, res) => {
 // Create policy
 router.post('/', authenticateToken, async (req, res) => {
   const { 
-    customer_id, vehicle_id, policy_no, company, type, sum_insured, 
+    customer_id, vehicle_id, plate_no, plate_province, vin, engine_no, tax_expiry,
+    prb_start_date, prb_expiry_date,
+    policy_no, company, type, sum_insured, 
     net_premium, stamp_duty, vat, total_premium, commission_percent, commission_baht, 
     payment_method, start_date, expiry_date, status, sales_person_id 
   } = req.body;
 
   try {
+    let finalVehicleId = vehicle_id || null;
+
+    if (plate_no && !finalVehicleId) {
+      const [vehResult] = await req.db.query(
+        `INSERT INTO vehicles (customer_id, plate_no, plate_province, vin, engine_no, tax_expiry) 
+         VALUES (?, ?, ?, ?, ?, ?)`,
+        [customer_id, plate_no, plate_province || null, vin || null, engine_no || null, tax_expiry || null]
+      );
+      finalVehicleId = vehResult.insertId;
+    } else if (plate_no && finalVehicleId) {
+      await req.db.query(
+        `UPDATE vehicles SET plate_no = ?, plate_province = ?, vin = ?, engine_no = ?, tax_expiry = ? 
+         WHERE id = ?`,
+        [plate_no, plate_province || null, vin || null, engine_no || null, tax_expiry || null, finalVehicleId]
+      );
+    }
+
     const [result] = await req.db.query(
       `INSERT INTO policies (
         customer_id, vehicle_id, policy_no, company, type, sum_insured, 
         net_premium, stamp_duty, vat, total_premium, commission_percent, commission_baht, 
-        payment_method, start_date, expiry_date, status, sales_person_id, created_by
-       ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        payment_method, start_date, expiry_date, status, sales_person_id, created_by,
+        prb_start_date, prb_expiry_date
+       ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
-        customer_id, vehicle_id || null, policy_no, company, type, sum_insured || null,
+        customer_id, finalVehicleId, policy_no, company, type, sum_insured || null,
         net_premium || 0, stamp_duty || 0, vat || 0, total_premium || 0, commission_percent || 0, commission_baht || 0,
-        payment_method || 'เงินสด', start_date, expiry_date, status || 'รอดำเนินการ', sales_person_id || null, req.user.id
+        payment_method || 'เงินสด', start_date, expiry_date, status || 'รอดำเนินการ', sales_person_id || null, req.user.id,
+        prb_start_date || null, prb_expiry_date || null
       ]
     );
     
@@ -108,7 +132,9 @@ router.post('/', authenticateToken, async (req, res) => {
 // Update policy
 router.put('/:id', authenticateToken, async (req, res) => {
   const { 
-    vehicle_id, plate_no, company, type, sum_insured, 
+    vehicle_id, plate_no, plate_province, vin, engine_no, tax_expiry,
+    prb_start_date, prb_expiry_date,
+    company, type, sum_insured, 
     net_premium, stamp_duty, vat, total_premium, commission_percent, commission_baht, 
     payment_method, start_date, expiry_date, status, sales_person_id 
   } = req.body;
@@ -119,13 +145,21 @@ router.put('/:id', authenticateToken, async (req, res) => {
     // Handle plate_no update or creation
     if (plate_no) {
       if (finalVehicleId) {
-        // Update existing vehicle's plate_no
-        await req.db.query('UPDATE vehicles SET plate_no = ? WHERE id = ?', [plate_no, finalVehicleId]);
+        // Update existing vehicle
+        await req.db.query(
+          `UPDATE vehicles SET plate_no = ?, plate_province = ?, vin = ?, engine_no = ?, tax_expiry = ? 
+           WHERE id = ?`,
+          [plate_no, plate_province || null, vin || null, engine_no || null, tax_expiry || null, finalVehicleId]
+        );
       } else {
         // Find customer_id of this policy to create a new vehicle
         const [polRow] = await req.db.query('SELECT customer_id FROM policies WHERE id = ?', [req.params.id]);
         if (polRow.length > 0) {
-          const [vehResult] = await req.db.query('INSERT INTO vehicles (customer_id, plate_no) VALUES (?, ?)', [polRow[0].customer_id, plate_no]);
+          const [vehResult] = await req.db.query(
+            `INSERT INTO vehicles (customer_id, plate_no, plate_province, vin, engine_no, tax_expiry) 
+             VALUES (?, ?, ?, ?, ?, ?)`,
+            [polRow[0].customer_id, plate_no, plate_province || null, vin || null, engine_no || null, tax_expiry || null]
+          );
           finalVehicleId = vehResult.insertId;
         }
       }
@@ -135,12 +169,15 @@ router.put('/:id', authenticateToken, async (req, res) => {
       `UPDATE policies SET 
         vehicle_id=?, company=?, type=?, sum_insured=?, 
         net_premium=?, stamp_duty=?, vat=?, total_premium=?, commission_percent=?, commission_baht=?, 
-        payment_method=?, start_date=?, expiry_date=?, status=?, sales_person_id=?
+        payment_method=?, start_date=?, expiry_date=?, status=?, sales_person_id=?,
+        prb_start_date=?, prb_expiry_date=?
        WHERE id=?`,
       [
         finalVehicleId, company, type, sum_insured || null,
         net_premium || 0, stamp_duty || 0, vat || 0, total_premium || 0, commission_percent || 0, commission_baht || 0,
-        payment_method || 'เงินสด', start_date, expiry_date, status || 'รอดำเนินการ', sales_person_id || null, req.params.id
+        payment_method || 'เงินสด', start_date, expiry_date, status || 'รอดำเนินการ', sales_person_id || null,
+        prb_start_date || null, prb_expiry_date || null,
+        req.params.id
       ]
     );
     
