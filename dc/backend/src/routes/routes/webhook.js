@@ -12,12 +12,41 @@ let generativeModel = null;
 if (process.env.GEMINI_API_KEY) {
   const apiKey = process.env.GEMINI_API_KEY.trim();
   genAI = new GoogleGenerativeAI(apiKey);
-  generativeModel = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+  
+  // Set default model first
+  generativeModel = genAI.getGenerativeModel({ model: "gemini-3.5-flash" });
 
-  // Debug: Print available models to console
-  axios.get(`https://generativelanguage.googleapis.com/v1beta/models?key=${apiKey}`)
-    .then(res => console.log("✅ Gemini Models Available:", res.data.models.map(m => m.name.replace('models/', '')).filter(n => n.includes('gemini')).join(", ")))
-    .catch(err => console.error("❌ Error fetching models:", err.message));
+  // Debug: Print available models to console and select the best available model dynamically
+  axios.get(`https://generativelanguage.googleapis.com/v1beta/models`, {
+    headers: {
+      'x-goog-api-key': apiKey
+    }
+  })
+    .then(res => {
+      const models = res.data.models
+        .filter(m => m.supportedGenerationMethods?.includes('generateContent'))
+        .map(m => m.name.replace('models/', ''));
+      
+      console.log("✅ Gemini Models Available:", models.join(", "));
+      
+      const preferredModels = [
+        'gemini-3.5-flash',
+        'gemini-2.5-flash',
+        'gemini-1.5-flash'
+      ];
+      
+      const bestModel = preferredModels.find(m => models.includes(m)) || 'gemini-3.5-flash';
+      generativeModel = genAI.getGenerativeModel({ model: bestModel });
+      console.log(`🤖 Line Bot initialized with best available model: ${bestModel}`);
+    })
+    .catch(err => {
+      const errMsg = err.response?.data?.error?.message || err.message;
+      if (errMsg.includes('API key not valid') || errMsg.includes('400') || errMsg.includes('key')) {
+        console.log("ℹ️ Gemini API key in environment (process.env.GEMINI_API_KEY) is invalid. (You can still enter a valid key in the web UI settings).");
+      } else {
+        console.error("❌ Error fetching models:", errMsg);
+      }
+    });
 }
 
 // System prompt for Gemini
