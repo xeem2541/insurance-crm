@@ -199,34 +199,16 @@ router.post('/extract', authenticateToken, upload.array('images', 10), async (re
     }
 
     const preferredModels = [
-      'gemini-2.5-pro',
-      'gemini-3.1-pro',
-      'gemini-1.5-pro',
-      'gemini-1.5-pro-latest',
-      'gemini-3.5-flash', // Prioritize Gemini 3.5 Flash over older flash versions
-      'gemini-3-flash',
-      'gemini-2.5-flash',
-      'gemini-2.0-flash',
-      'gemini-1.5-flash',
-      'gemini-3.1-flash-lite',
-      'gemini-2.5-flash-lite'
+      'gemini-3.5-flash'
     ];
 
     let modelsToTry = preferredModels
       .filter(name => availableModels.includes(name))
-      .map(name => ({ name, timeout: name.includes('pro') ? 15000 : 10000 }));
+      .map(name => ({ name, timeout: 10000 }));
 
     if (modelsToTry.length === 0) {
       modelsToTry = [
-        { name: 'gemini-2.5-pro', timeout: 15000 },
-        { name: 'gemini-3.1-pro', timeout: 15000 },
-        { name: 'gemini-1.5-pro', timeout: 15000 },
-        { name: 'gemini-3.5-flash', timeout: 10000 },
-        { name: 'gemini-3-flash', timeout: 10000 },
-        { name: 'gemini-2.5-flash', timeout: 10000 },
-        { name: 'gemini-2.0-flash', timeout: 10000 },
-        { name: 'gemini-1.5-flash', timeout: 10000 },
-        { name: 'gemini-2.5-flash-lite', timeout: 10000 }
+        { name: 'gemini-3.5-flash', timeout: 10000 }
       ];
     }
 
