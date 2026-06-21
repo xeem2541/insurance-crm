@@ -20,6 +20,46 @@ const NonMotorPolicies = () => {
   const [search, setSearch] = useState('');
   const [showModal, setShowModal] = useState(false);
   
+  const [sortConfig, setSortConfig] = useState({ key: 'start_date', direction: 'descending' });
+
+  const sortedPolicies = React.useMemo(() => {
+    let sortablePolicies = [...policies];
+    if (sortConfig !== null) {
+      sortablePolicies.sort((a, b) => {
+        let aVal = a[sortConfig.key];
+        let bVal = b[sortConfig.key];
+
+        if (sortConfig.key === 'start_date' || sortConfig.key === 'expiry_date') {
+          aVal = aVal ? new Date(aVal).getTime() : 0;
+          bVal = bVal ? new Date(bVal).getTime() : 0;
+        } else if (sortConfig.key === 'total_premium' || sortConfig.key === 'commission_baht' || sortConfig.key === 'sum_insured') {
+          aVal = Number(aVal) || 0;
+          bVal = Number(bVal) || 0;
+        } else {
+          aVal = String(aVal || '').toLowerCase();
+          bVal = String(bVal || '').toLowerCase();
+        }
+
+        if (aVal < bVal) {
+          return sortConfig.direction === 'ascending' ? -1 : 1;
+        }
+        if (aVal > bVal) {
+          return sortConfig.direction === 'ascending' ? 1 : -1;
+        }
+        return 0;
+      });
+    }
+    return sortablePolicies;
+  }, [policies, sortConfig]);
+
+  const requestSort = (key) => {
+    let direction = 'ascending';
+    if (sortConfig.key === key && sortConfig.direction === 'ascending') {
+      direction = 'descending';
+    }
+    setSortConfig({ key, direction });
+  };
+  
   // Master Data
   const [nonMotorTypes, setNonMotorTypes] = useState([]);
   const [companies, setCompanies] = useState([]);
@@ -265,13 +305,15 @@ const NonMotorPolicies = () => {
                 <th>ทุนประกัน</th>
                 <th>เบี้ยรวม</th>
                 <th>คอมมิชชั่น</th>
-                <th>วันเริ่ม - สิ้นสุด</th>
+                <th style={{ cursor: 'pointer', userSelect: 'none' }} onClick={() => requestSort('start_date')}>
+                  วันเริ่ม - สิ้นสุด {sortConfig.key === 'start_date' ? (sortConfig.direction === 'ascending' ? '▲' : '▼') : '⇅'}
+                </th>
                 <th>สถานะ</th>
                 <th>จัดการ</th>
               </tr>
             </thead>
             <tbody>
-              {policies.length > 0 ? policies.map(p => (
+              {sortedPolicies.length > 0 ? sortedPolicies.map(p => (
                 <tr key={p.id}>
                   <td><strong>{p.policy_no}</strong></td>
                   <td>{p.first_name} {p.last_name}<br/><small className="text-muted">{p.insured_name}</small></td>
