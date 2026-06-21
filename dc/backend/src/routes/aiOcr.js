@@ -219,12 +219,12 @@ router.post('/extract', authenticateToken, upload.array('images', 10), async (re
 
     let modelsToTry = preferredModels
       .filter(name => availableModels.includes(name))
-      .map(name => ({ name, timeout: 30000 }));
+      .map(name => ({ name, timeout: 40000 }));
 
     if (modelsToTry.length === 0) {
       modelsToTry = [
-        { name: 'gemini-3.5-flash', timeout: 30000 },
-        { name: 'gemini-2.5-flash', timeout: 30000 }
+        { name: 'gemini-3.5-flash', timeout: 40000 },
+        { name: 'gemini-2.5-flash', timeout: 40000 }
       ];
     }
 
