@@ -91,6 +91,53 @@ router.post('/', async (req, res) => {
       let replyText = '';
       let policyFound = false;
       
+      const isGroupOrRoom = event.source.type === 'group' || event.source.type === 'room';
+      
+      // Feature: Leave group/room if requested
+      if (isGroupOrRoom && (
+        text.includes('ออกจากระบบ') ||
+        text.includes('ออกจากกลุ่ม') ||
+        text.includes('ออกไป') ||
+        text.includes('แอดมิน ออก')
+      )) {
+        const replyTextLeave = 'แอดมินเปิ้ลขออนุญาตออกจากกลุ่มก่อนนะคะ หากต้องการใช้งานอีกครั้งสามารถเชิญกลับเข้ามาได้ตลอดเวลาค่ะ 🙏😊';
+        try {
+          await axios.post('https://api.line.me/v2/bot/message/reply', {
+            replyToken: event.replyToken,
+            messages: [{ type: 'text', text: replyTextLeave }]
+          }, {
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${LINE_ACCESS_TOKEN}`
+            }
+          });
+        } catch (replyError) {
+          console.error('Error replying before leave:', replyError);
+        }
+        
+        const groupId = event.source.groupId || event.source.roomId;
+        const leaveType = event.source.type === 'room' ? 'room' : 'group';
+        try {
+          console.log(`LINE bot leaving ${leaveType}: ${groupId}`);
+          await axios.post(`https://api.line.me/v2/bot/${leaveType}/${groupId}/leave`, {}, {
+            headers: {
+              'Authorization': `Bearer ${LINE_ACCESS_TOKEN}`
+            }
+          });
+          
+          await req.db.query(
+            "DELETE FROM master_data WHERE category = 'LINE_GROUP' AND value = ?",
+            [groupId]
+          );
+          console.log(`Successfully deleted group ${groupId} from master_data`);
+        } catch (leaveError) {
+          console.error(`Error leaving ${leaveType}:`, leaveError.response?.data || leaveError.message);
+        }
+        continue;
+      } else if (!isGroupOrRoom && text === 'ออกจากระบบ') {
+        replyText = 'สำหรับแชทเดี่ยว แอดมินไม่สามารถกดออกจากห้องแชทได้ค่ะ หากต้องการยกเลิกการติดต่อ คุณลูกค้าสามารถกดบล็อก (Block) แอดมินได้เลยนะคะ 🙏';
+      }
+      
       // Feature: Check policy if text looks like an ID, Plate, or Policy No.
       if (text.length >= 6) { 
         try {
