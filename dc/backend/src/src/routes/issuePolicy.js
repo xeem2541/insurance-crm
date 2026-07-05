@@ -33,20 +33,20 @@ router.post('/', authenticateToken, upload.array('files'), async (req, res) => {
     let customerId = customer.id;
 
     // 1. Handle Customer
-    if (!customerId) {
-      // Create new customer
-      const customerCode = `CUS-${new Date().getFullYear()}-${String(Math.floor(Math.random() * 9000)).padStart(4, '0')}`;
+      if (!customerId) {
+      // Create new customer (with unique code using timestamp to avoid duplicates)
+      const customerCode = `CUS-${new Date().getFullYear()}-${Date.now().toString().slice(-4)}${Math.floor(Math.random() * 10)}`;
       const [custResult] = await connection.query(
         `INSERT INTO customers (
-          customer_code, prefix, first_name, last_name, phone, email, line_id, facebook, 
-          dob, age, id_card_no, address, moo, soi, road, sub_district, district, province, zipcode, occupation, 
+          customer_code, prefix, first_name, last_name, phone, alt_phone, line_id, facebook, 
+          dob, age, id_card_no, address, moo, soi, road, sub_district, district, province, zipcode, 
           note, created_by
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
         [
-          customerCode, customer.prefix, customer.first_name, customer.last_name, customer.phone,
-          customer.email, customer.line_id, customer.facebook, customer.dob || null, customer.age || null,
-          customer.id_card_no, customer.address, customer.moo, customer.soi, customer.road,
-          customer.sub_district, customer.district, customer.province, customer.zipcode, customer.occupation,
+          customerCode, customer.prefix, customer.first_name, customer.last_name, customer.phone, customer.alt_phone || null,
+          customer.line_id, customer.facebook, customer.dob || null, customer.age || null, customer.id_card_no || null,
+          customer.address, customer.moo, customer.soi, customer.road,
+          customer.sub_district, customer.district, customer.province, customer.zipcode, 
           customer.note, req.user.id
         ]
       );
@@ -57,15 +57,15 @@ router.post('/', authenticateToken, upload.array('files'), async (req, res) => {
       // Update existing customer
       await connection.query(
         `UPDATE customers SET 
-          prefix=?, first_name=?, last_name=?, phone=?, email=?, line_id=?, facebook=?, 
+          prefix=?, first_name=?, last_name=?, phone=?, alt_phone=?, line_id=?, facebook=?, 
           dob=?, age=?, id_card_no=?, address=?, moo=?, soi=?, road=?, sub_district=?, district=?, 
-          province=?, zipcode=?, occupation=?, note=? 
+          province=?, zipcode=?, note=? 
          WHERE id=?`,
         [
-          customer.prefix, customer.first_name, customer.last_name, customer.phone, customer.email,
-          customer.line_id, customer.facebook, customer.dob || null, customer.age || null, customer.id_card_no,
+          customer.prefix, customer.first_name, customer.last_name, customer.phone, customer.alt_phone || null,
+          customer.line_id, customer.facebook, customer.dob || null, customer.age || null, customer.id_card_no || null,
           customer.address, customer.moo, customer.soi, customer.road, customer.sub_district, customer.district,
-          customer.province, customer.zipcode, customer.occupation, customer.note, customerId
+          customer.province, customer.zipcode, customer.note, customerId
         ]
       );
       await connection.query('INSERT INTO activity_logs (user_id, action, target_table, target_id, details) VALUES (?, ?, ?, ?, ?)',
@@ -80,45 +80,58 @@ router.post('/', authenticateToken, upload.array('files'), async (req, res) => {
     const isMotor = policy.category === 'motor';
 
     if (isMotor) {
-      // Insert Vehicle
-      const [vehResult] = await connection.query(
-        `INSERT INTO vehicles (
-          customer_id, vehicle_type, brand, model, year, color, 
-          plate_no, plate_province, vin, engine_no, sum_insured, tax_expiry
-         ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-        [
-          customerId, vehicle.vehicle_type, vehicle.brand, vehicle.model, vehicle.year, vehicle.color,
-          vehicle.plate_no, vehicle.plate_province, vehicle.vin, vehicle.engine_no, vehicle.sum_insured || null, vehicle.tax_expiry || null
-        ]
-      );
-      vehicleId = vehResult.insertId;
+      if (vehicle.id) {
+        // Update existing vehicle
+        await connection.query(
+          `UPDATE vehicles SET 
+            customer_id=?, vehicle_type=?, brand=?, model=?, year=?, color=?, 
+            plate_no=?, plate_province=?, vin=?, engine_no=?, sum_insured=?, tax_expiry=?
+           WHERE id=?`,
+          [
+            customerId, vehicle.vehicle_type, vehicle.brand, vehicle.model, vehicle.year, vehicle.color,
+            vehicle.plate_no, vehicle.plate_province, vehicle.vin, vehicle.engine_no, vehicle.sum_insured || null, vehicle.tax_expiry || null,
+            vehicle.id
+          ]
+        );
+        vehicleId = vehicle.id;
+        await connection.query('INSERT INTO activity_logs (user_id, action, target_table, target_id, details) VALUES (?, ?, ?, ?, ?)',
+          [req.user.id, 'UPDATE', 'vehicles', vehicleId, `Updated vehicle ID ${vehicleId} via Single Page Form`]);
+      } else {
+        // Insert new Vehicle
+        const [vehResult] = await connection.query(
+          `INSERT INTO vehicles (
+            customer_id, vehicle_type, brand, model, year, color, 
+            plate_no, plate_province, vin, engine_no, sum_insured, tax_expiry
+           ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+          [
+            customerId, vehicle.vehicle_type, vehicle.brand, vehicle.model, vehicle.year, vehicle.color,
+            vehicle.plate_no, vehicle.plate_province, vehicle.vin, vehicle.engine_no, vehicle.sum_insured || null, vehicle.tax_expiry || null
+          ]
+        );
+        vehicleId = vehResult.insertId;
+      }
 
-      // Calculate Commission for Motor
-      let commissionPercent = 0;
-      if (policy.type === 'ประกันภัยชั้น 1') commissionPercent = 18;
-      else if (policy.type === 'ประกันภัยชั้น 2+') commissionPercent = 25;
-      else if (policy.type === 'ประกันภัยชั้น 3+') commissionPercent = 25;
-      else if (policy.type === 'ประกันภัยชั้น 3') commissionPercent = 18;
-      
+      // Use Commission from frontend
+      const commissionPercent = parseFloat(policy.commission_percent) || 0;
+      const commissionBaht = parseFloat(policy.commission_baht) || 0;
       const netPremium = parseFloat(policy.net_premium) || 0;
-      const commissionBaht = netPremium * (commissionPercent / 100);
 
-      // Insert Motor Policy
-      const policyNo = policy.policy_no || `POL-${new Date().getFullYear()}-${String(Math.floor(Math.random() * 9000)).padStart(4, '0')}`;
+      // Insert Motor Policy (with unique generated policy number to avoid duplicate entry error)
+      const policyNo = policy.policy_no || `POL-${new Date().getFullYear()}-${Date.now().toString().slice(-4)}${Math.floor(Math.random() * 10)}`;
       const [polResult] = await connection.query(
         `INSERT INTO policies (
           customer_id, vehicle_id, policy_no, company, type, sum_insured,
           net_premium, stamp_duty, vat, total_premium, commission_percent, commission_baht,
           prb_start_date, prb_expiry_date, start_date, expiry_date, status, 
-          sales_person_id, created_by
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+          sales_person_id, created_by, repair_type
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
         [
           customerId, vehicleId, policyNo, policy.company, policy.type, policy.sum_insured || null,
           netPremium, policy.stamp_duty || 0, policy.vat || 0, policy.total_premium || 0,
           commissionPercent, commissionBaht,
           policy.prb_start_date || null, policy.prb_expiry_date || null, 
           policy.start_date || null, policy.expiry_date || null, policy.status || 'รอดำเนินการ',
-          req.user.id, req.user.id
+          req.user.id, req.user.id, policy.repair_type || 'อู่'
         ]
       );
       policyId = polResult.insertId;
@@ -126,16 +139,12 @@ router.post('/', authenticateToken, upload.array('files'), async (req, res) => {
         [req.user.id, 'CREATE', 'policies', policyId, `Created motor policy ${policyNo}`]);
     } else {
       // Non-Motor Policy
-      let commissionPercent = 0;
-      const typeName = policy.type_name || ''; // e.g., 'ประกันภัยขนส่งสินค้า'
-      if (typeName.includes('ขนส่ง')) commissionPercent = 10;
-      else if (typeName.includes('อัคคีภัย') || typeName.includes('ไฟไหม้')) commissionPercent = 23;
-      else if (typeName.includes('PA') || typeName.includes('อุบัติเหตุ')) commissionPercent = 18;
-
+      // Use Commission from frontend
+      const commissionPercent = parseFloat(policy.commission_percent) || 0;
+      const commissionBaht = parseFloat(policy.commission_baht) || 0;
       const netPremium = parseFloat(policy.net_premium) || 0;
-      const commissionBaht = netPremium * (commissionPercent / 100);
 
-      const policyNo = policy.policy_no || `NM-${new Date().getFullYear()}-${String(Math.floor(Math.random() * 9000)).padStart(4, '0')}`;
+      const policyNo = policy.policy_no || `NM-${new Date().getFullYear()}-${Date.now().toString().slice(-4)}${Math.floor(Math.random() * 10)}`;
       const [nmPolResult] = await connection.query(
         `INSERT INTO non_motor_policies (
           customer_id, policy_no, company, non_motor_type_id, insured_name, sum_insured,
@@ -200,28 +209,124 @@ router.post('/', authenticateToken, upload.array('files'), async (req, res) => {
     }
 
     // 5. Handle Documents (Files)
-    if (req.files && req.files.length > 0) {
-      const fileDataList = JSON.parse(req.body.fileData || '[]');
-      // fileDataList maps index to document_type_id and note
+    const fileDataList = JSON.parse(req.body.fileData || '[]');
+    let localFileIdx = 0;
+    
+    for (let i = 0; i < fileDataList.length; i++) {
+      const fData = fileDataList[i];
+      let filePath = '';
+      let fileType = 'image/jpeg';
+      let fileSize = 0;
       
-      for (let i = 0; i < req.files.length; i++) {
-        const file = req.files[i];
-        const fData = fileDataList[i] || { type_id: 6, note: '' }; // default to 'อื่นๆ'
-        
-        const filePath = `/uploads/${file.filename}`;
-        
-        if (isMotor) {
+      if (fData.file_path && fData.file_path.startsWith('http')) {
+        // Already uploaded to Cloudinary
+        filePath = fData.file_path;
+        fileType = fData.file_type || 'image/jpeg';
+        fileSize = fData.file_size || 0;
+      } else {
+        // Uploaded locally (fallback)
+        const file = req.files ? req.files[localFileIdx] : null;
+        if (!file) continue;
+        filePath = `/uploads/${file.filename}`;
+        fileType = file.mimetype;
+        fileSize = file.size;
+        localFileIdx++;
+      }
+      
+      const fileName = fData.name || 'document';
+      
+      if (isMotor) {
+        await connection.query(
+          `INSERT INTO documents (customer_id, policy_id, document_type_id, name, file_path, file_type, file_size, note, uploaded_by) 
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+          [customerId, policyId, fData.type_id, fileName, filePath, fileType, fileSize, fData.note || '', req.user.id]
+        );
+      } else {
+        await connection.query(
+          `INSERT INTO non_motor_documents (non_motor_policy_id, document_type_id, name, file_path, file_type, file_size, note, uploaded_by) 
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+          [nonMotorPolicyId, fData.type_id, fileName, filePath, fileType, fileSize, fData.note || '', req.user.id]
+        );
+      }
+    }
+
+    // 6. Handle AI Correction Logging
+    const rawAiData = data.rawAiData;
+    if (rawAiData) {
+      const discrepancies = [];
+      
+      const cleanVal = (val) => {
+        if (val === null || val === undefined) return '';
+        return val.toString().toLowerCase().trim().replace(/[\s\-,.:]/g, '');
+      };
+
+      // Compare customer fields
+      const customerFields = ['prefix', 'first_name', 'last_name', 'phone', 'id_card_no', 'sub_district', 'district', 'province', 'zipcode'];
+      customerFields.forEach(field => {
+        const ocrVal = cleanVal(rawAiData.customer?.[field]);
+        const savedVal = cleanVal(customer?.[field]);
+        if (ocrVal !== savedVal) {
+          discrepancies.push({
+            section: 'customer',
+            field,
+            ocr_value: rawAiData.customer?.[field] || '',
+            saved_value: customer?.[field] || '',
+            type: ocrVal === '' ? 'missed' : 'incorrect'
+          });
+        }
+      });
+
+      // Compare vehicle fields (if motor)
+      if (isMotor && rawAiData.vehicle && vehicle) {
+        const vehicleFields = ['brand', 'model', 'year', 'color', 'plate_no', 'plate_province', 'vin', 'engine_no'];
+        vehicleFields.forEach(field => {
+          const ocrVal = cleanVal(rawAiData.vehicle?.[field]);
+          const savedVal = cleanVal(vehicle?.[field]);
+          if (ocrVal !== savedVal) {
+            discrepancies.push({
+              section: 'vehicle',
+              field,
+              ocr_value: rawAiData.vehicle?.[field] || '',
+              saved_value: vehicle?.[field] || '',
+              type: ocrVal === '' ? 'missed' : 'incorrect'
+            });
+          }
+        });
+      }
+
+      // Compare policy fields
+      if (rawAiData.policy && policy) {
+        const policyFields = ['company', 'type', 'policy_no', 'sum_insured', 'net_premium', 'total_premium'];
+        policyFields.forEach(field => {
+          const ocrVal = cleanVal(rawAiData.policy?.[field]);
+          const savedVal = cleanVal(policy?.[field]);
+          if (ocrVal !== savedVal) {
+            discrepancies.push({
+              section: 'policy',
+              field,
+              ocr_value: rawAiData.policy?.[field] || '',
+              saved_value: policy?.[field] || '',
+              type: ocrVal === '' ? 'missed' : 'incorrect'
+            });
+          }
+        });
+      }
+
+      if (discrepancies.length > 0) {
+        try {
           await connection.query(
-            `INSERT INTO documents (customer_id, policy_id, document_type_id, name, file_path, file_type, file_size, note, uploaded_by) 
-             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-            [customerId, policyId, fData.type_id, file.originalname, filePath, file.mimetype, file.size, fData.note, req.user.id]
+            `INSERT INTO ai_correction_logs (policy_id, non_motor_policy_id, document_type, ocr_raw_data, saved_data, discrepancies) VALUES (?, ?, ?, ?, ?, ?)`,
+            [
+              policyId || null,
+              nonMotorPolicyId || null,
+              rawAiData.document_type || 'unknown',
+              JSON.stringify(rawAiData),
+              JSON.stringify({ customer, vehicle, policy }),
+              JSON.stringify(discrepancies)
+            ]
           );
-        } else {
-          await connection.query(
-            `INSERT INTO non_motor_documents (non_motor_policy_id, document_type_id, name, file_path, file_type, file_size, note, uploaded_by) 
-             VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
-            [nonMotorPolicyId, fData.type_id, file.originalname, filePath, file.mimetype, file.size, fData.note, req.user.id]
-          );
+        } catch (dbErr) {
+          console.error('Error saving AI correction log:', dbErr);
         }
       }
     }
@@ -232,7 +337,30 @@ router.post('/', authenticateToken, upload.array('files'), async (req, res) => {
   } catch (error) {
     await connection.rollback();
     console.error('Transaction Error:', error);
-    res.status(500).json({ error: 'Failed to issue policy: ' + error.message });
+    
+    let errMsg = error.message;
+    if (error.code === 'ER_DUP_ENTRY') {
+      const match = errMsg.match(/Duplicate entry '(.*)' for key '(.*)'/);
+      if (match) {
+        const val = match[1];
+        const key = match[2];
+        if (key.includes('policy_no')) {
+          errMsg = `เลขที่กรมธรรม์ "${val}" นี้มีในระบบแล้ว กรุณาใช้เลขอื่น หรือตรวจสอบข้อมูลเดิม`;
+        } else if (key.includes('customer_code')) {
+          errMsg = `รหัสลูกค้า "${val}" ซ้ำในระบบ กรุณาลองใหม่อีกครั้ง`;
+        } else if (key.includes('phone')) {
+          errMsg = `เบอร์โทรศัพท์ "${val}" นี้มีในระบบแล้ว กรุณาค้นหาลูกค้าจากช่องดึงข้อมูลลูกค้าเก่าอัตโนมัติ`;
+        } else if (key.includes('plate_no')) {
+          errMsg = `ทะเบียนรถ "${val}" นี้มีในระบบแล้ว กรุณาค้นหาข้อมูลรถจากช่องดึงข้อมูลอัตโนมัติ`;
+        } else {
+          errMsg = `ข้อมูล "${val}" ซ้ำในระบบ (${key})`;
+        }
+      } else {
+        errMsg = 'มีข้อมูลซ้ำในระบบ (Duplicate Entry)';
+      }
+    }
+
+    res.status(500).json({ error: 'เกิดข้อผิดพลาด: ' + errMsg });
   } finally {
     connection.release();
   }
