@@ -862,6 +862,7 @@ const IssuePolicyForm = () => {
   const [zoomLevel, setZoomLevel] = useState(1);
   const [rotation, setRotation] = useState(0);
   const [previewModalUrl, setPreviewModalUrl] = useState(null);
+const [showCameraHelp, setShowCameraHelp] = useState(false);
 
   const fileInputRef = useRef(null);
   const cameraInputRef = useRef(null);
@@ -1699,7 +1700,19 @@ const IssuePolicyForm = () => {
               </Button>
 
                             <div className="w-100 text-center mt-3 text-white-50 small">
-                <i className="bi bi-info-circle me-1"></i> แนะนำ: ถ่ายภาพด้วยกล้องหลัก 1x และเปิดโหมดความละเอียดสูง (48MP) เพื่อความคมชัดสูงสุด
+                <i className="bi bi-info-circle me-1"></i> แนะนำ: ถ่ายภาพด้วยกล้องหลัก 1x และเปิดโหมดความละเอียดสูง (48MP){' '}
+                  <span 
+                    onClick={() => setShowCameraHelp(true)} 
+                    style={{ color: '#0d6efd', textDecoration: 'underline', cursor: 'pointer', fontWeight: 'bold' }}
+                  >
+                    [วิธีเปิด]
+                  </span> เพื่อความคมชัดสูงสุด{' '}
+              <span 
+                onClick={() => setShowCameraHelp(true)} 
+                style={{ color: '#00ff88', textDecoration: 'underline', cursor: 'pointer', fontWeight: 'bold' }}
+              >
+                [ดูวิธีเปิดบนมือถือ]
+              </span>
               </div>
               <input type="file" ref={cameraScanInputRef} accept="image/*" capture="environment" className="d-none" onChange={handleAIExtract} />
               <input type="file" ref={fileInputRef} accept="image/*" className="d-none" multiple onChange={handleAIExtract} />
@@ -2499,6 +2512,36 @@ const IssuePolicyForm = () => {
               <i className="bi bi-arrow-counterclockwise"></i>
             </Button>
           </div>
+        </Modal.Footer>
+      </Modal>
+
+      {/* Camera 48MP Help Modal */}
+      <Modal show={showCameraHelp} onHide={() => setShowCameraHelp(false)} size="lg" centered>
+        <Modal.Header closeButton className="bg-primary text-white">
+          <Modal.Title className="fw-bold"><i className="bi bi-camera-fill me-2"></i>วิธีเปิดโหมดกล้องความละเอียดสูง (48MP/50MP) บนมือถือ</Modal.Title>
+        </Modal.Header>
+        <Modal.Body className="p-4">
+          <h5 className="fw-bold text-primary mb-3"><i className="bi bi-apple me-2"></i>สำหรับ iPhone (iOS 16+)</h5>
+          <ol className="ps-3 mb-4">
+            <li className="mb-2">ไปที่ <strong>การตั้งค่า (Settings)</strong> &gt; <strong>กล้อง (Camera)</strong></li>
+            <li className="mb-2">แตะที่ <strong>รูปแบบ (Formats)</strong></li>
+            <li className="mb-2">เปิดใช้งานสวิตช์ <strong>การควบคุม ProRAW และความละเอียด (ProRAW & Resolution Control)</strong></li>
+            <li className="mb-2">ตั้งค่าเริ่มต้นเป็น <strong>HEIF Max (สูงสุด 48MP)</strong> หรือ <strong>ProRAW Max</strong></li>
+            <li className="mb-2"><strong>เวลาถ่ายรูป:</strong> ในแอปกล้องปกติ ให้แตะปุ่ม <strong>HEIF MAX / RAW MAX</strong> ที่มุมขวาบนให้ทำงาน (ไม่มีเส้นขีดทับ)</li>
+          </ol>
+          <hr />
+          <h5 className="fw-bold text-success mt-3 mb-3"><i className="bi bi-android2 me-2"></i>สำหรับ Android (Samsung, Xiaomi, OPPO, vivo)</h5>
+          <ol className="ps-3">
+            <li className="mb-2">เปิดแอป <strong>กล้องถ่ายรูป (Camera)</strong></li>
+            <li className="mb-2">แตะเลือกสัญลักษณ์อัตราส่วนรูปภาพ (ปกติเขียนว่า <strong>[4:3]</strong> หรือ <strong>[3:4]</strong>) ที่แถบเครื่องมือด่วนด้านบน</li>
+            <li className="mb-2">แตะเลือก <strong>[4:3 50MP]</strong>, <strong>[4:3 48MP]</strong>, หรือ <strong>[108MP/200MP]</strong> เพื่อเปิดใช้งานโหมดกล้องหลักความละเอียดเต็มพิกเซล</li>
+            <li className="mb-2"><em>*หรือเลื่อนไปที่โหมด <strong>"เพิ่มเติม" (More)</strong> &gt; เลือกโหมด <strong>"ความละเอียดสูง" (Hi-Res / Ultra HD)</strong></em></li>
+          </ol>
+        </Modal.Body>
+        <Modal.Footer>
+          <Button variant="secondary" onClick={() => setShowCameraHelp(false)} className="fw-bold px-4 rounded-pill">
+            เข้าใจแล้ว
+          </Button>
         </Modal.Footer>
       </Modal>
     </div>
