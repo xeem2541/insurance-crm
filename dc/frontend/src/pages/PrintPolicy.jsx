@@ -127,7 +127,7 @@ const PrintPolicy = () => {
             <tr>
               <td className="text-center">1</td>
               <td>
-                <strong>ประกันภัยชั้น {policy.type}</strong><br/>
+                <strong>ประกันภัย {policy.type} {policy.repair_type ? `(${policy.repair_type})` : ''}</strong><br/>
                 <small className="text-muted">
                   เลขที่กรมธรรม์: {policy.policy_no}<br/>
                   ระยะเวลาคุ้มครอง: {formatDate(policy.start_date)} ถึง {formatDate(policy.expiry_date)}
