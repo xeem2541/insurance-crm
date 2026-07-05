@@ -596,4 +596,12 @@ cron.schedule('0 1 1 * *', () => {
 // Start server
 app.listen(PORT, () => {
   console.log(`Server is running on port ${PORT}`);
+  
+  // Start the auto image sync background worker
+  try {
+    const { startAutoSync } = require('./sync_images');
+    startAutoSync();
+  } catch (err) {
+    console.error('Failed to start auto sync:', err);
+  }
 });
