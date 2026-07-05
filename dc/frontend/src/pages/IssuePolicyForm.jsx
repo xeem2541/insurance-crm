@@ -1657,17 +1657,69 @@ const [showCameraHelp, setShowCameraHelp] = useState(false);
     setFiles(newFiles);
   };
 
+  const uploadFileToCloudinary = async (file) => {
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('upload_preset', 'unsigned_preset');
+
+    const isPdf = file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf');
+    const resourceType = isPdf ? 'raw' : 'image';
+
+    const response = await fetch(`https://api.cloudinary.com/v1_1/djnuhaq6b/${resourceType}/upload`, {
+      method: 'POST',
+      body: formData
+    });
+
+    if (!response.ok) {
+      const errData = await response.json();
+      throw new Error(errData.error?.message || 'Failed to upload to Cloudinary');
+    }
+
+    const result = await response.json();
+    return {
+      secure_url: result.secure_url,
+      bytes: result.bytes,
+      format: result.secure_url.includes('.pdf') ? 'application/pdf' : `image/${result.format}`
+    };
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
-    // Form validation has been removed as per user request
-    // that it should be able to save even if not fully filtered/filled.
-
     setLoading(true);
     setSuccessMsg(null);
 
     try {
+      // 1. Upload all files to Cloudinary sequentially
+      const fileDataList = [];
+      for (let i = 0; i < files.length; i++) {
+        const f = files[i];
+        let fileUrl = f.file_path;
+        let bytes = f.file.size;
+        let format = f.file.type;
+
+        if (!fileUrl) {
+          try {
+            const uploadRes = await uploadFileToCloudinary(f.file);
+            fileUrl = uploadRes.secure_url;
+            bytes = uploadRes.bytes;
+            format = uploadRes.format;
+          } catch (uploadErr) {
+            console.error("Cloudinary upload failed, falling back to local:", uploadErr);
+          }
+        }
+
+        fileDataList.push({
+          type_id: f.type_id,
+          note: f.note || '',
+          name: f.file.name,
+          file_path: fileUrl,
+          file_type: format,
+          file_size: bytes
+        });
+      }
+
+      // 2. Prepare payload
       const formData = new FormData();
-      
       const payload = {
         customer,
         vehicle,
@@ -1679,19 +1731,13 @@ const [showCameraHelp, setShowCameraHelp] = useState(false);
       };
       
       formData.append('data', JSON.stringify(payload));
-
-      const fileDataList = files.map(f => ({ type_id: f.type_id, note: f.note }));
       formData.append('fileData', JSON.stringify(fileDataList));
-
-      files.forEach(f => {
-        formData.append('files', f.file);
-      });
 
       const res = await api.post('/issue-policy', formData);
 
       setSuccessMsg({
         text: 'บันทึกข้อมูลลูกค้าและกรมธรรม์สำเร็จ!',
-        customerName: `${customer.first_name} ${customer.last_name}`,
+        customerName: `${customer.first_name} ` + customer.last_name,
         policyNo: policy.policy_no || '(สร้างใหม่อัตโนมัติ)',
         company: policy.company,
         type: policy.type || (nonMotorTypes.find(t => t.value === parseInt(policy.non_motor_type_id))?.label),
