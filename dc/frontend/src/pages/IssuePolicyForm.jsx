@@ -786,6 +786,164 @@ const compressImage = (file, maxWidth = 1600, maxHeight = 1600, quality = 0.8) =
 const IssuePolicyForm = () => {
   const [loading, setLoading] = useState(false);
   const [successMsg, setSuccessMsg] = useState(null);
+
+  // --- MULTI-PACKAGE STATE & HELPERS ---
+  const createEmptyPackage = () => ({
+    id: Date.now() + Math.random(),
+    customer: {
+      id: null, prefix: 'นาย', first_name: '', last_name: '', id_card_no: '', dob: '', age: '',
+      phone: '', alt_phone: '', email: '', line_id: '', facebook: '', occupation: '',
+      address: '', moo: '', soi: '', road: '', sub_district: '', district: '', province: '', zipcode: '', note: ''
+    },
+    vehicle: {
+      vehicle_type: '', brand: '', model: '', year: '', color: '', 
+      plate_no: '', plate_province: '', vin: '', engine_no: '', sum_insured: '', tax_expiry: '',
+      registration_date: ''
+    },
+    policy: {
+      category: 'motor',
+      company: '', type: '', policy_no: '', sum_insured: '', 
+      net_premium: '', stamp_duty: '', vat: '', total_premium: '',
+      prb_start_date: '', prb_expiry_date: '', start_date: '', expiry_date: '',
+      non_motor_type_id: '', additional_data: {}, insured_name: '', status: 'รอดำเนินการ'
+    },
+    payment: {
+      payment_method: 'เงินสด',
+      installments: 1,
+      pay_date: '',
+      status: 'รอชำระ'
+    },
+    followUp: {
+      status: 'รอดำเนินการ', next_date: '', note: ''
+    },
+    installmentSchedule: [],
+    files: [],
+    rawAiData: null,
+    aiWarning: ''
+  });
+
+  const [packages, setPackages] = useState([]);
+  const [activePackageIdx, setActivePackageIdx] = useState(0);
+
+  // Initialize with 1 empty package on mount
+  useEffect(() => {
+    setPackages([createEmptyPackage()]);
+  }, []);
+
+  const loadPackage = (pkg) => {
+    if (!pkg) return;
+    setCustomer(pkg.customer);
+    setVehicle(pkg.vehicle);
+    setPolicy(pkg.policy);
+    setPayment(pkg.payment);
+    setFollowUp(pkg.followUp || { status: 'รอดำเนินการ', next_date: '', note: '' });
+    setInstallmentSchedule(pkg.installmentSchedule || []);
+    setFiles(pkg.files || []);
+    setRawAiData(pkg.rawAiData || null);
+    setAiWarning(pkg.aiWarning || '');
+    
+    setCustomerSearchText(pkg.customer.first_name ? `${pkg.customer.first_name} ${pkg.customer.last_name || ''}` : '');
+    setVehicleSearchText(pkg.vehicle.plate_no || '');
+  };
+
+  const handleSwitchPackage = (targetIdx) => {
+    if (targetIdx === activePackageIdx) return;
+    
+    // Save current active package first
+    const currentPkg = {
+      id: packages[activePackageIdx]?.id || Date.now(),
+      customer,
+      vehicle,
+      policy,
+      payment,
+      followUp,
+      installmentSchedule,
+      files,
+      rawAiData,
+      aiWarning
+    };
+
+    setPackages(prev => {
+      const updated = [...prev];
+      if (updated[activePackageIdx]) {
+        updated[activePackageIdx] = currentPkg;
+      }
+      
+      const targetPkg = updated[targetIdx];
+      if (targetPkg) {
+        loadPackage(targetPkg);
+        setActivePackageIdx(targetIdx);
+      }
+      return updated;
+    });
+  };
+
+  const handleAddPackage = () => {
+    const currentPkg = {
+      id: packages[activePackageIdx]?.id || Date.now(),
+      customer,
+      vehicle,
+      policy,
+      payment,
+      followUp,
+      installmentSchedule,
+      files,
+      rawAiData,
+      aiWarning
+    };
+
+    setPackages(prev => {
+      const updated = [...prev];
+      if (updated[activePackageIdx]) {
+        updated[activePackageIdx] = currentPkg;
+      }
+      const newPkg = createEmptyPackage();
+      const nextList = [...updated, newPkg];
+      
+      setTimeout(() => {
+        loadPackage(newPkg);
+        setActivePackageIdx(nextList.length - 1);
+      }, 0);
+      
+      return nextList;
+    });
+  };
+
+  const handleDeletePackage = (idxToDelete) => {
+    if (packages.length <= 1) {
+      alert("ต้องมีชุดข้อมูลอย่างน้อย 1 ชุดในระบบ");
+      return;
+    }
+    
+    const confirmDelete = window.confirm(`คุณแน่ใจว่าต้องการลบ ชุดข้อมูลที่ ${idxToDelete + 1} หรือไม่?`);
+    if (!confirmDelete) return;
+
+    const pkgToDelete = packages[idxToDelete];
+    if (pkgToDelete && pkgToDelete.files) {
+      pkgToDelete.files.forEach(f => {
+        if (f.preview) URL.revokeObjectURL(f.preview);
+      });
+    }
+
+    setPackages(prev => {
+      const remaining = prev.filter((_, idx) => idx !== idxToDelete);
+      
+      let nextIdx = activePackageIdx;
+      if (activePackageIdx === idxToDelete) {
+        nextIdx = 0;
+      } else if (activePackageIdx > idxToDelete) {
+        nextIdx = activePackageIdx - 1;
+      }
+      
+      setTimeout(() => {
+        loadPackage(remaining[nextIdx]);
+        setActivePackageIdx(nextIdx);
+      }, 0);
+      
+      return remaining;
+    });
+  };
+  // -------------------------------------
   
   // Master Data Options
   const [companies, setCompanies] = useState([]);
@@ -882,138 +1040,46 @@ const [showCameraHelp, setShowCameraHelp] = useState(false);
       localStorage.setItem('geminiApiKey', geminiApiKey);
     }
 
-    const currentLength = files.length;
-
-    // Auto-add AI scanned files to attachments state with temporary status note
-    const newFiles = rawFiles.map(file => ({
-      file,
-      type_id: 1, // default "ตารางกรมธรรม์"
-      note: 'กำลังรอการสแกนด้วย AI...',
-      preview: URL.createObjectURL(file)
-    }));
-    
-    setFiles(prev => [...prev, ...newFiles]);
-    setActivePreviewIdx(currentLength);
-
     setOcrLoading(true);
+    setOcrSeconds(0);
 
     try {
-      // Loop through each file sequentially to ensure 100% accuracy and prevent mixed data
+      let currentPackages = [...packages];
+      let currentActiveIdx = activePackageIdx;
+
+      // Save current active package first if it is NOT empty
+      const activeIsUnused = !currentPackages[currentActiveIdx]?.files?.length && !currentPackages[currentActiveIdx]?.customer?.first_name;
+      if (!activeIsUnused) {
+        currentPackages[currentActiveIdx] = {
+          id: currentPackages[currentActiveIdx].id,
+          customer,
+          vehicle,
+          policy,
+          payment,
+          followUp,
+          installmentSchedule,
+          files,
+          rawAiData,
+          aiWarning
+        };
+      }
+
       for (let idx = 0; idx < rawFiles.length; idx++) {
         const file = rawFiles[idx];
-        const fileIndex = currentLength + idx;
-
-        // Update active preview index to highlight the current file being scanned
-        setActivePreviewIdx(fileIndex);
-
-        // Update status note for the currently scanning file
-        setFiles(prev => {
-          const updated = [...prev];
-          if (updated[fileIndex]) {
-            updated[fileIndex].note = 'กำลังอ่านข้อมูลด้วย AI...';
-          }
-          return updated;
-        });
-
-        // Increase image resolution and compression quality for sharper text details in AI OCR
+        
+        // Compress image
         const compressedFile = await compressImage(file, 4096, 4096, 0.95);
 
         const formData = new FormData();
-        formData.append('images', compressedFile); // Send exactly 1 image
+        formData.append('images', compressedFile);
 
         const res = await api.post('/ai-ocr/extract', formData, {
-          headers: { 'x-gemini-api-key': geminiApiKey } 
+          headers: { 'x-gemini-api-key': geminiApiKey }
         });
 
         const data = sanitizeAIResponse(res.data);
 
-        // Save the raw AI extraction for accuracy comparison
-        setRawAiData({
-          document_type: data.document_type,
-          customer: data.customer ? { ...data.customer } : null,
-          vehicle: data.vehicle ? { ...data.vehicle } : null,
-          policy: data.policy ? { ...data.policy } : null
-        });
-
-        // Auto-link existing customer checking is completely disabled as per user request
-        // to prevent overwriting scanned details with old values from database.
-        /*
-        if (data.customer && (data.customer.phone || data.customer.id_card_no)) {
-          const lookupVal = (data.customer.id_card_no || '').replace(/\D/g, '') || (data.customer.phone || '').replace(/\D/g, '');
-          if (lookupVal && lookupVal.length >= 9) {
-            try {
-              const checkRes = await api.get(`/customers?search=${lookupVal}`);
-              if (checkRes.data && checkRes.data.length > 0) {
-                const cleanLookup = lookupVal.replace(/\D/g, '');
-                const matchedCustomer = checkRes.data.find(c => {
-                  const cleanCustPhone = (c.phone || '').replace(/\D/g, '');
-                  const cleanCustId = (c.id_card_no || '').replace(/\D/g, '');
-                  return (cleanCustPhone && cleanCustPhone === cleanLookup) || 
-                         (cleanCustId && cleanCustId === cleanLookup);
-                });
-                if (matchedCustomer) {
-                  // Merge the existing customer ID, code, and details into the extracted data object
-                  data.customer = {
-                    ...data.customer,
-                    ...matchedCustomer,
-                    dob: matchedCustomer.dob ? matchedCustomer.dob.split('T')[0] : data.customer.dob,
-                    id: matchedCustomer.id
-                  };
-                  
-                  // Suppressed notice banner as per user request to keep UI clean, while keeping background auto-linking active
-                  // const notice = `ตรวจพบลูกค้าเก่าในระบบ: ${matchedCustomer.prefix || ''}${matchedCustomer.first_name} ${matchedCustomer.last_name || ''} (ระบบทำการเชื่อมโยงข้อมูลอัตโนมัติ)`;
-                  // setAiWarning(prev => prev ? `${prev} | ${notice}` : notice);
-
-                  // Fetch their latest vehicle and merge into data.vehicle
-                  try {
-                    const vehRes = await api.get(`/vehicles?customer_id=${matchedCustomer.id}`);
-                    if (vehRes.data && vehRes.data.length > 0) {
-                      const latestVehicle = vehRes.data[0];
-                      data.vehicle = {
-                        ...data.vehicle,
-                        ...latestVehicle,
-                        tax_expiry: latestVehicle.tax_expiry ? latestVehicle.tax_expiry.split('T')[0] : (data.vehicle ? data.vehicle.tax_expiry : ''),
-                        id: latestVehicle.id
-                      };
-                      setVehicleSearchText(latestVehicle.plate_no); // visually show it
-                    }
-                  } catch (vErr) {
-                    console.error('Error fetching auto-linked customer vehicle:', vErr);
-                  }
-                }
-              }
-            } catch (cErr) {
-              console.error('Error during customer auto-link check:', cErr);
-            }
-          }
-        }
-        */
-
-        // Append warnings if any
-        if (data.validation && data.validation.warning_message) {
-          setAiWarning(prev => prev ? `${prev} | ${data.validation.warning_message}` : data.validation.warning_message);
-        }
-
-        // Handle payment slip auto-population
-        if (data.document_type === 'payment_slip' && data.payment_slip_data) {
-          const slip = data.payment_slip_data;
-          setPayment(prev => ({
-            ...prev,
-            payment_method: 'เงินสด',
-            pay_date: slip.transfer_date_time ? normalizeDate(slip.transfer_date_time) : prev.pay_date,
-            status: 'ชำระครบแล้ว'
-          }));
-          
-          let bankText = '';
-          if (slip.bank_sender || slip.bank_receiver) {
-            bankText = ` (${slip.bank_sender || ''} -> ${slip.bank_receiver || ''})`;
-          }
-          let slipNotice = `ตรวจพบสลิปโอนเงิน ยอดโอน: ฿${parseFloat(slip.amount || 0).toLocaleString()}${bankText} วันที่โอน: ${slip.transfer_date_time || ''}`;
-          setAiWarning(prev => prev ? `${prev} | ${slipNotice}` : slipNotice);
-        }
-
-        // Auto-set the document type in the files state for this specific file
-        let detectedTypeId = 1; // default to policy
+        let detectedTypeId = 1; 
         if (data.document_type === 'vehicle_book') detectedTypeId = 4;
         else if (data.document_type === 'payment_slip') detectedTypeId = 2;
         
@@ -1021,20 +1087,14 @@ const [showCameraHelp, setShowCameraHelp] = useState(false);
         if (data.document_type === 'payment_slip') docLabel = 'สลิปโอนเงิน';
         else if (data.document_type === 'vehicle_book') docLabel = 'ทะเบียนรถ';
         else if (data.document_type === 'non_motor_policy') docLabel = 'กรมธรรม์ Non-Motor';
-        
-        setFiles(prev => {
-          const updated = [...prev];
-          if (updated[fileIndex]) {
-            updated[fileIndex] = {
-              ...updated[fileIndex],
-              type_id: detectedTypeId,
-              note: `สแกนด้วย AI: ${docLabel}`
-            };
-          }
-          return updated;
-        });
-        
-        // Auto-normalize any extracted dates (e.g. converting BE to AD)
+
+        const fileObj = {
+          file,
+          type_id: detectedTypeId,
+          note: `สแกนด้วย AI: ${docLabel}`,
+          preview: URL.createObjectURL(file)
+        };
+
         if (data.customer && data.customer.dob) {
           data.customer.dob = normalizeDate(data.customer.dob);
         }
@@ -1045,7 +1105,11 @@ const [showCameraHelp, setShowCameraHelp] = useState(false);
           if (data.policy.start_date) data.policy.start_date = normalizeDate(data.policy.start_date);
           if (data.policy.expiry_date) data.policy.expiry_date = normalizeDate(data.policy.expiry_date);
         }
+
+        // Run matching and cleaning logic for package
+        const emptyPkg = createEmptyPackage();
         
+        let pkgCustomer = { ...emptyPkg.customer };
         if (data.customer) {
           let calculatedAge = data.customer.age;
           if (data.customer.dob) {
@@ -1059,108 +1123,139 @@ const [showCameraHelp, setShowCameraHelp] = useState(false);
           }
 
           const cleanedCustomer = cleanAndExtractAddressFields(data.customer);
-          setCustomer(prev => {
-            const merged = { ...prev };
-            Object.keys(cleanedCustomer).forEach(key => {
-              const val = cleanedCustomer[key];
-              if (val !== '' && val !== null && val !== undefined) {
-                merged[key] = val;
-              }
-            });
-            if (calculatedAge) merged.age = calculatedAge;
-            return merged;
+          Object.keys(cleanedCustomer).forEach(key => {
+            const val = cleanedCustomer[key];
+            if (val !== '' && val !== null && val !== undefined) {
+              pkgCustomer[key] = val;
+            }
           });
+          if (calculatedAge) pkgCustomer.age = calculatedAge;
         }
 
+        let pkgVehicle = { ...emptyPkg.vehicle };
         if (data.vehicle) {
           const matchedBrand = data.vehicle.brand ? findMatchingBrand(data.vehicle.brand, carBrands) : '';
           const matchedModel = data.vehicle.model ? findMatchingModel(data.vehicle.model, matchedBrand, carModels) : '';
           const matchedVehicleType = data.vehicle.vehicle_type ? findMatchingVehicleType(data.vehicle.vehicle_type, vehicleTypes) : '';
           const matchedColor = data.vehicle.color ? findMatchingColor(data.vehicle.color) : '';
 
-          setVehicle(prev => {
-            const merged = { ...prev };
-            const rawVehicle = data.vehicle;
-            Object.keys(rawVehicle).forEach(key => {
-              const val = rawVehicle[key];
-              if (val !== '' && val !== null && val !== undefined) {
-                merged[key] = val;
-              }
-            });
-            if (matchedBrand) merged.brand = matchedBrand;
-            if (matchedModel) merged.model = matchedModel;
-            if (matchedVehicleType) merged.vehicle_type = matchedVehicleType;
-            if (matchedColor) merged.color = matchedColor;
-            return merged;
+          const rawVehicle = data.vehicle;
+          Object.keys(rawVehicle).forEach(key => {
+            const val = rawVehicle[key];
+            if (val !== '' && val !== null && val !== undefined) {
+              pkgVehicle[key] = val;
+            }
           });
+          if (matchedBrand) pkgVehicle.brand = matchedBrand;
+          if (matchedModel) pkgVehicle.model = matchedModel;
+          if (matchedVehicleType) pkgVehicle.vehicle_type = matchedVehicleType;
+          if (matchedColor) pkgVehicle.color = matchedColor;
         }
 
+        let pkgPolicy = { ...emptyPkg.policy };
         if (data.policy) {
           const matchedCompany = data.policy.company ? findMatchingCompany(data.policy.company, companies) : '';
           const matchedTypeInfo = data.policy.type ? findMatchingType(data.policy.type, policyTypes, nonMotorTypes) : null;
 
-          setPolicy(prev => {
-            const merged = { ...prev };
-            const rawPolicy = data.policy;
-            Object.keys(rawPolicy).forEach(key => {
-              const val = rawPolicy[key];
-              if (val !== '' && val !== null && val !== undefined) {
-                merged[key] = val;
-              }
-            });
-            if (matchedCompany) merged.company = matchedCompany;
-            
-            if (data.document_type === 'prb_policy') {
-              merged.prb_start_date = data.policy.start_date || merged.prb_start_date || '';
-              merged.prb_expiry_date = data.policy.expiry_date || merged.prb_expiry_date || '';
-            } else {
-              merged.start_date = data.policy.start_date || merged.start_date || '';
-              merged.expiry_date = data.policy.expiry_date || merged.expiry_date || '';
+          const rawPolicy = data.policy;
+          Object.keys(rawPolicy).forEach(key => {
+            const val = rawPolicy[key];
+            if (val !== '' && val !== null && val !== undefined) {
+              pkgPolicy[key] = val;
             }
-
-            if (matchedTypeInfo) {
-              merged.category = matchedTypeInfo.category;
-              merged.type = matchedTypeInfo.type;
-              merged.non_motor_type_id = matchedTypeInfo.non_motor_type_id;
-            } else {
-              // Fallback mapping for non-motor policy types
-              if (data.document_type === 'non_motor_policy') {
-                merged.category = 'non-motor';
-              }
-              
-              if (merged.category === 'non-motor' && !merged.non_motor_type_id && rawPolicy.type) {
-                const cleanType = rawPolicy.type.toString().toLowerCase();
-                const found = nonMotorTypes.find(t => {
-                  const cleanLabel = t.label.toLowerCase();
-                  return cleanLabel.includes(cleanType) || cleanType.includes(cleanLabel) || 
-                         (cleanType.includes('pa') && cleanLabel.includes('pa')) ||
-                         (cleanType.includes('อุบัติเหตุ') && cleanLabel.includes('อุบัติเหตุ')) ||
-                         (cleanType.includes('สุขภาพ') && cleanLabel.includes('สุขภาพ')) ||
-                         (cleanType.includes('อัคคีภัย') && cleanLabel.includes('อัคคีภัย')) ||
-                         (cleanType.includes('ไฟไหม้') && cleanLabel.includes('ไฟไหม้')) ||
-                         (cleanType.includes('ขนส่ง') && cleanLabel.includes('ขนส่ง')) ||
-                         (cleanType.includes('ชีวิต') && cleanLabel.includes('life'));
-                });
-                if (found) {
-                  merged.non_motor_type_id = found.value;
-                  merged.type = found.label;
-                }
-              }
-            }
-            return merged;
           });
+          if (matchedCompany) pkgPolicy.company = matchedCompany;
+          
+          if (data.document_type === 'prb_policy') {
+            pkgPolicy.prb_start_date = data.policy.start_date || pkgPolicy.prb_start_date || '';
+            pkgPolicy.prb_expiry_date = data.policy.expiry_date || pkgPolicy.prb_expiry_date || '';
+          } else {
+            pkgPolicy.start_date = data.policy.start_date || pkgPolicy.start_date || '';
+            pkgPolicy.expiry_date = data.policy.expiry_date || pkgPolicy.expiry_date || '';
+          }
+
+          if (matchedTypeInfo) {
+            pkgPolicy.category = matchedTypeInfo.category;
+            pkgPolicy.type = matchedTypeInfo.type;
+            pkgPolicy.non_motor_type_id = matchedTypeInfo.non_motor_type_id;
+          } else {
+            if (data.document_type === 'non_motor_policy') {
+              pkgPolicy.category = 'non-motor';
+            }
+            
+            if (pkgPolicy.category === 'non-motor' && !pkgPolicy.non_motor_type_id && rawPolicy.type) {
+              const cleanType = rawPolicy.type.toString().toLowerCase();
+              const found = nonMotorTypes.find(t => {
+                const cleanLabel = t.label.toLowerCase();
+                return cleanLabel.includes(cleanType) || cleanType.includes(cleanLabel) || 
+                       (cleanType.includes('pa') && cleanLabel.includes('pa')) ||
+                       (cleanType.includes('อุบัติเหตุ') && cleanLabel.includes('อุบัติเหตุ')) ||
+                       (cleanType.includes('สุขภาพ') && cleanLabel.includes('สุขภาพ')) ||
+                       (cleanType.includes('อัคคีภัย') && cleanLabel.includes('อัคคีภัย')) ||
+                       (cleanType.includes('ไฟไหม้') && cleanLabel.includes('ไฟไหม้')) ||
+                       (cleanType.includes('ขนส่ง') && cleanLabel.includes('ขนส่ง')) ||
+                       (cleanType.includes('ชีวิต') && cleanLabel.includes('life'));
+              });
+              if (found) {
+                pkgPolicy.non_motor_type_id = found.value;
+                pkgPolicy.type = found.label;
+              }
+            }
+          }
+        }
+
+        let pkgPayment = { ...emptyPkg.payment };
+        if (data.document_type === 'payment_slip' && data.payment_slip_data) {
+          const slip = data.payment_slip_data;
+          pkgPayment.payment_method = 'เงินสด';
+          pkgPayment.pay_date = slip.transfer_date_time ? normalizeDate(slip.transfer_date_time) : pkgPayment.pay_date;
+          pkgPayment.status = 'ชำระครบแล้ว';
+        }
+
+        let warningMsg = data.validation?.warning_message || '';
+        if (data.document_type === 'payment_slip' && data.payment_slip_data) {
+          const slip = data.payment_slip_data;
+          let bankText = '';
+          if (slip.bank_sender || slip.bank_receiver) {
+            bankText = ` (${slip.bank_sender || ''} -> ${slip.bank_receiver || ''})`;
+          }
+          let slipNotice = `ตรวจพบสลิปโอนเงิน ยอดโอน: ฿${parseFloat(slip.amount || 0).toLocaleString()}${bankText} วันที่โอน: ${slip.transfer_date_time || ''}`;
+          warningMsg = warningMsg ? `${warningMsg} | ${slipNotice}` : slipNotice;
+        }
+
+        const newPkg = {
+          id: Date.now() + Math.random(),
+          customer: pkgCustomer,
+          vehicle: pkgVehicle,
+          policy: pkgPolicy,
+          payment: pkgPayment,
+          followUp: { status: 'รอดำเนินการ', next_date: '', note: '' },
+          installmentSchedule: [],
+          files: [fileObj],
+          rawAiData: {
+            document_type: data.document_type,
+            customer: data.customer ? { ...data.customer } : null,
+            vehicle: data.vehicle ? { ...data.vehicle } : null,
+            policy: data.policy ? { ...data.policy } : null
+          },
+          aiWarning: warningMsg
+        };
+
+        if (idx === 0 && activeIsUnused) {
+          currentPackages[currentActiveIdx] = newPkg;
+        } else {
+          currentPackages.push(newPkg);
         }
       }
+
+      setPackages(currentPackages);
       
-      alert('ดึงข้อมูลจากรูปภาพทั้งหมดสำเร็จ! กรุณาตรวจสอบความถูกต้องก่อนบันทึกอีกครั้งนะครับ');
+      const targetIdx = activeIsUnused ? currentActiveIdx : (currentPackages.length - rawFiles.length);
+      setActivePackageIdx(targetIdx);
+      loadPackage(currentPackages[targetIdx]);
+
+      alert('ดึงข้อมูลจากรูปภาพและแยกชุดเอกสารสำเร็จ! กรุณาตรวจสอบรายละเอียดความถูกต้องทีละชุดก่อนบันทึกนะครับ');
     } catch (err) {
-      setFiles(prev => {
-        const reverted = prev.slice(0, currentLength);
-        for (let i = currentLength; i < prev.length; i++) {
-          if (prev[i].preview) URL.revokeObjectURL(prev[i].preview);
-        }
-        return reverted;
-      });
       if (err.response?.data?.error === 'GEMINI_API_KEY_REQUIRED' || err.response?.data?.error === 'OPENAI_API_KEY_REQUIRED') {
         alert('API Key ของ Gemini ไม่ถูกต้องหรือหมดอายุ กรุณาตั้งค่าใหม่ครับ');
         localStorage.removeItem('geminiApiKey');
@@ -1605,12 +1700,32 @@ const [showCameraHelp, setShowCameraHelp] = useState(false);
         status: followUp.status
       });
 
-      // Cleanup memory
+      // Cleanup memory of the saved package
       files.forEach(f => {
         if (f.preview) URL.revokeObjectURL(f.preview);
       });
 
       window.scrollTo(0, 0);
+
+      // Remove the saved package and transition to next remaining
+      setPackages(prev => {
+        const remaining = prev.filter((_, idx) => idx !== activePackageIdx);
+        if (remaining.length === 0) {
+          const empty = createEmptyPackage();
+          setTimeout(() => {
+            loadPackage(empty);
+            setActivePackageIdx(0);
+          }, 0);
+          return [empty];
+        } else {
+          const nextIdx = 0;
+          setTimeout(() => {
+            loadPackage(remaining[nextIdx]);
+            setActivePackageIdx(nextIdx);
+          }, 0);
+          return remaining;
+        }
+      });
     } catch (error) {
       alert(error.response?.data?.error || 'เกิดข้อผิดพลาดในการบันทึกข้อมูล (Rollback เรียบร้อยแล้ว)');
     } finally {
@@ -1626,6 +1741,91 @@ const [showCameraHelp, setShowCameraHelp] = useState(false);
       <div className="d-flex justify-content-between align-items-center mb-4">
         <h2 className="fw-bold"><i className="bi bi-file-earmark-plus-fill text-primary"></i> เพิ่มลูกค้าใหม่ / ออกกรมธรรม์ใหม่ (Single Page Form)</h2>
       </div>
+
+      {/* Package Tabs Selector */}
+      {packages.length > 0 && (
+        <div className="mb-4 d-flex flex-wrap align-items-center gap-2 bg-dark p-3 rounded-4 shadow-sm" style={{ backdropFilter: 'blur(10px)', border: '1px solid rgba(255,255,255,0.05)' }}>
+          <div className="text-white-50 small fw-bold me-2 mb-2 mb-md-0">
+            <i className="bi bi-folder-fill me-1 text-warning"></i> ชุดข้อมูลเอกสาร ({packages.length}):
+          </div>
+          
+          {packages.map((pkg, idx) => {
+            const isActive = idx === activePackageIdx;
+            let label = `ชุดที่ ${idx + 1}`;
+            
+            // Generate descriptive tab label
+            if (pkg.policy?.type) {
+              label = `${idx + 1}. ${pkg.policy.type}`;
+            } else if (pkg.rawAiData?.document_type) {
+              let docLabel = 'เอกสารใหม่';
+              if (pkg.rawAiData.document_type === 'payment_slip') docLabel = 'สลิปโอนเงิน';
+              else if (pkg.rawAiData.document_type === 'vehicle_book') docLabel = 'ทะเบียนรถ';
+              else if (pkg.rawAiData.document_type === 'prb_policy') docLabel = 'พ.ร.บ.';
+              label = `${idx + 1}. ${docLabel}`;
+            }
+            
+            const plate = pkg.vehicle?.plate_no ? ` (${pkg.vehicle.plate_no})` : '';
+            const name = pkg.customer?.first_name ? ` - ${pkg.customer.first_name}` : '';
+            
+            return (
+              <div key={pkg.id} className="position-relative d-inline-flex align-items-center mb-1">
+                <Button 
+                  variant={isActive ? "primary" : "outline-secondary"} 
+                  className={`fw-bold px-3 py-2 rounded-pill shadow-sm d-flex align-items-center gap-1 ${isActive ? 'active' : ''}`}
+                  style={{
+                    fontSize: '0.9rem',
+                    border: isActive ? 'none' : '1px solid rgba(255,255,255,0.15)',
+                    color: isActive ? '#fff' : '#ccc',
+                    background: isActive ? 'linear-gradient(135deg, #0d6efd 0%, #0a58ca 100%)' : 'rgba(255,255,255,0.05)'
+                  }}
+                  onClick={() => handleSwitchPackage(idx)}
+                >
+                  <i className={`bi ${isActive ? 'bi-file-earmark-check-fill' : 'bi-file-earmark'} me-1`}></i>
+                  {label}{plate}{name}
+                </Button>
+                {packages.length > 1 && (
+                  <button 
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleDeletePackage(idx);
+                    }}
+                    className="btn btn-sm btn-danger rounded-circle position-absolute"
+                    style={{
+                      top: '-5px',
+                      right: '-5px',
+                      width: '20px',
+                      height: '20px',
+                      padding: '0',
+                      fontSize: '0.7rem',
+                      lineHeight: '18px',
+                      zIndex: 10,
+                      boxShadow: '0 2px 5px rgba(0,0,0,0.3)'
+                    }}
+                    title="ลบชุดนี้"
+                  >
+                    <i className="bi bi-x"></i>
+                  </button>
+                )}
+              </div>
+            );
+          })}
+          
+          <Button 
+            variant="outline-success" 
+            className="fw-bold px-3 py-2 rounded-pill d-flex align-items-center gap-1"
+            style={{
+              fontSize: '0.9rem',
+              borderStyle: 'dashed',
+              borderWidth: '2px',
+              background: 'rgba(25, 135, 84, 0.05)'
+            }}
+            onClick={handleAddPackage}
+          >
+            <i className="bi bi-plus-circle-fill"></i> เพิ่มชุดใหม่
+          </Button>
+        </div>
+      )}
 
       <div className="card border-0 mb-4 overflow-hidden position-relative" style={{ 
         background: 'linear-gradient(135deg, #0f2027 0%, #203a43 50%, #2c5364 100%)',
