@@ -123,15 +123,15 @@ router.post('/', authenticateToken, upload.array('files'), async (req, res) => {
           customer_id, vehicle_id, policy_no, company, type, sum_insured,
           net_premium, stamp_duty, vat, total_premium, commission_percent, commission_baht,
           prb_start_date, prb_expiry_date, start_date, expiry_date, status, 
-          sales_person_id, created_by
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+          sales_person_id, created_by, repair_type
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
         [
           customerId, vehicleId, policyNo, policy.company, policy.type, policy.sum_insured || null,
           netPremium, policy.stamp_duty || 0, policy.vat || 0, policy.total_premium || 0,
           commissionPercent, commissionBaht,
           policy.prb_start_date || null, policy.prb_expiry_date || null, 
           policy.start_date || null, policy.expiry_date || null, policy.status || 'รอดำเนินการ',
-          req.user.id, req.user.id
+          req.user.id, req.user.id, policy.repair_type || 'อู่'
         ]
       );
       policyId = polResult.insertId;
