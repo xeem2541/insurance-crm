@@ -805,7 +805,8 @@ const IssuePolicyForm = () => {
       company: '', type: '', policy_no: '', sum_insured: '', 
       net_premium: '', stamp_duty: '', vat: '', total_premium: '',
       prb_start_date: '', prb_expiry_date: '', start_date: '', expiry_date: '',
-      non_motor_type_id: '', additional_data: {}, insured_name: '', status: 'รอดำเนินการ'
+      non_motor_type_id: '', additional_data: {}, insured_name: '', status: 'รอดำเนินการ',
+      repair_type: 'อู่'
     },
     payment: {
       payment_method: 'เงินสด',
@@ -2310,6 +2311,19 @@ const [showCameraHelp, setShowCameraHelp] = useState(false);
                   <Form.Label>เลขกรมธรรม์</Form.Label>
                   <Form.Control type="text" value={policy.policy_no} onChange={e => setPolicy({...policy, policy_no: e.target.value})} placeholder="พิมพ์เลขกรมธรรม์ หรือ เว้นว่างไว้เพื่อรัน Auto" />
                 </Col>
+
+                {policy.category === 'motor' && (
+                  <Col md={4}>
+                    <Form.Label>ประเภทการซ่อม</Form.Label>
+                    <Form.Select 
+                      value={policy.repair_type || 'อู่'} 
+                      onChange={e => setPolicy({...policy, repair_type: e.target.value})}
+                    >
+                      <option value="อู่">ซ่อมอู่ (Contract Garage)</option>
+                      <option value="ศูนย์">ซ่อมศูนย์ / ซ่อมห้าง (Dealer Service)</option>
+                    </Form.Select>
+                  </Col>
+                )}
 
                 {policy.category === 'non-motor' && (
                   <>

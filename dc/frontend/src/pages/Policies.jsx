@@ -87,6 +87,7 @@ const Policies = () => {
       'ทะเบียนรถ': p.plate_no || '-',
       'บริษัทประกัน': p.company,
       'ประเภท': p.type,
+      'ประเภทการซ่อม': p.repair_type || 'อู่',
       'เบี้ยรวม': p.total_premium,
       'คอมมิชชั่น': p.commission_baht,
       'วันเริ่มคุ้มครอง': p.start_date ? p.start_date.split('T')[0] : '',
@@ -105,7 +106,8 @@ const Policies = () => {
     sum_insured: '', net_premium: '', stamp_duty: '', vat: '', total_premium: '',
     commission_percent: '', commission_baht: '', payment_method: '', 
     start_date: '', expiry_date: '', status: 'รอดำเนินการ', sales_person_id: '',
-    plate_province: '', vin: '', engine_no: '', tax_expiry: '', prb_start_date: '', prb_expiry_date: ''
+    plate_province: '', vin: '', engine_no: '', tax_expiry: '', prb_start_date: '', prb_expiry_date: '',
+    repair_type: 'อู่'
   });
 
   const fetchData = async () => {
@@ -179,7 +181,8 @@ const Policies = () => {
         engine_no: p.engine_no || '',
         tax_expiry: p.tax_expiry ? p.tax_expiry.split('T')[0] : '',
         prb_start_date: p.prb_start_date ? p.prb_start_date.split('T')[0] : '',
-        prb_expiry_date: p.prb_expiry_date ? p.prb_expiry_date.split('T')[0] : ''
+        prb_expiry_date: p.prb_expiry_date ? p.prb_expiry_date.split('T')[0] : '',
+        repair_type: p.repair_type || 'อู่'
       });
     } else {
       setFormData({
@@ -187,7 +190,8 @@ const Policies = () => {
         sum_insured: '', net_premium: '', stamp_duty: '', vat: '', total_premium: '',
         commission_percent: '', commission_baht: '', payment_method: '', 
         start_date: '', expiry_date: '', status: 'รอดำเนินการ', sales_person_id: '',
-        plate_province: '', vin: '', engine_no: '', tax_expiry: '', prb_start_date: '', prb_expiry_date: ''
+        plate_province: '', vin: '', engine_no: '', tax_expiry: '', prb_start_date: '', prb_expiry_date: '',
+        repair_type: 'อู่'
       });
     }
     setShowModal(true);
@@ -281,7 +285,7 @@ const Policies = () => {
                   <td><strong>{p.policy_no}</strong></td>
                   <td>{p.first_name} {p.last_name}</td>
                   <td>{p.plate_no ? `${p.plate_no}` : '-'}</td>
-                  <td>{p.company}<br/><small className="text-muted">{p.type}</small></td>
+                  <td>{p.company}<br/><small className="text-muted">{p.type} {p.repair_type ? `(${p.repair_type})` : ''}</small></td>
                   <td>{new Intl.NumberFormat('th-TH', { style: 'currency', currency: 'THB' }).format(p.total_premium)}</td>
                   <td>{new Intl.NumberFormat('th-TH', { style: 'currency', currency: 'THB' }).format(p.commission_baht)}</td>
                   <td>{formatThaiDate(p.start_date)} - {formatThaiDate(p.expiry_date)}</td>
@@ -468,6 +472,17 @@ const Policies = () => {
                   noOptionsMessage={() => "ไม่พบข้อมูล"}
                   required
                 />
+              </div>
+
+              <div className="col-md-3">
+                <Form.Label>ประเภทการซ่อม</Form.Label>
+                <Form.Select 
+                  value={formData.repair_type || 'อู่'} 
+                  onChange={e => setFormData({...formData, repair_type: e.target.value})}
+                >
+                  <option value="อู่">ซ่อมอู่ (Contract Garage)</option>
+                  <option value="ศูนย์">ซ่อมศูนย์ / ซ่อมห้าง (Dealer Service)</option>
+                </Form.Select>
               </div>
 
               <div className="col-md-3">
