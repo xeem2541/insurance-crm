@@ -1689,38 +1689,53 @@ const [showCameraHelp, setShowCameraHelp] = useState(false);
     setLoading(true);
     setSuccessMsg(null);
 
+    const isLocalhost = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+
     try {
-      // 1. Upload all files to Cloudinary sequentially
       const fileDataList = [];
-      for (let i = 0; i < files.length; i++) {
-        const f = files[i];
-        let fileUrl = f.file_path;
-        let bytes = f.file.size;
-        let format = f.file.type;
+      const formData = new FormData();
 
-        if (!fileUrl) {
-          try {
-            const uploadRes = await uploadFileToCloudinary(f.file);
-            fileUrl = uploadRes.secure_url;
-            bytes = uploadRes.bytes;
-            format = uploadRes.format;
-          } catch (uploadErr) {
-            console.error("Cloudinary upload failed, falling back to local:", uploadErr);
-          }
-        }
-
-        fileDataList.push({
-          type_id: f.type_id,
-          note: f.note || '',
-          name: f.file.name,
-          file_path: fileUrl,
-          file_type: format,
-          file_size: bytes
+      if (isLocalhost) {
+        // LOCAL MODE: Save directly to computer folder (uploads)
+        files.forEach((f, idx) => {
+          formData.append('files', f.file);
+          fileDataList.push({
+            type_id: f.type_id,
+            note: f.note || '',
+            name: f.file.name
+          });
         });
+      } else {
+        // CLOUD MODE: Upload all files to Cloudinary sequentially
+        for (let i = 0; i < files.length; i++) {
+          const f = files[i];
+          let fileUrl = f.file_path;
+          let bytes = f.file.size;
+          let format = f.file.type;
+
+          if (!fileUrl) {
+            try {
+              const uploadRes = await uploadFileToCloudinary(f.file);
+              fileUrl = uploadRes.secure_url;
+              bytes = uploadRes.bytes;
+              format = uploadRes.format;
+            } catch (uploadErr) {
+              console.error("Cloudinary upload failed, falling back to local:", uploadErr);
+            }
+          }
+
+          fileDataList.push({
+            type_id: f.type_id,
+            note: f.note || '',
+            name: f.file.name,
+            file_path: fileUrl,
+            file_type: format,
+            file_size: bytes
+          });
+        }
       }
 
       // 2. Prepare payload
-      const formData = new FormData();
       const payload = {
         customer,
         vehicle,
@@ -1789,90 +1804,7 @@ const [showCameraHelp, setShowCameraHelp] = useState(false);
         <h2 className="fw-bold"><i className="bi bi-file-earmark-plus-fill text-primary"></i> เพิ่มลูกค้าใหม่ / ออกกรมธรรม์ใหม่ (Single Page Form)</h2>
       </div>
 
-      {/* Package Tabs Selector */}
-      {packages.length > 0 && (
-        <div className="mb-4 d-flex flex-wrap align-items-center gap-2 bg-dark p-3 rounded-4 shadow-sm" style={{ backdropFilter: 'blur(10px)', border: '1px solid rgba(255,255,255,0.05)' }}>
-          <div className="text-white-50 small fw-bold me-2 mb-2 mb-md-0">
-            <i className="bi bi-folder-fill me-1 text-warning"></i> ชุดข้อมูลเอกสาร ({packages.length}):
-          </div>
-          
-          {packages.map((pkg, idx) => {
-            const isActive = idx === activePackageIdx;
-            let label = `ชุดที่ ${idx + 1}`;
-            
-            // Generate descriptive tab label
-            if (pkg.policy?.type) {
-              label = `${idx + 1}. ${pkg.policy.type}`;
-            } else if (pkg.rawAiData?.document_type) {
-              let docLabel = 'เอกสารใหม่';
-              if (pkg.rawAiData.document_type === 'payment_slip') docLabel = 'สลิปโอนเงิน';
-              else if (pkg.rawAiData.document_type === 'vehicle_book') docLabel = 'ทะเบียนรถ';
-              else if (pkg.rawAiData.document_type === 'prb_policy') docLabel = 'พ.ร.บ.';
-              label = `${idx + 1}. ${docLabel}`;
-            }
-            
-            const plate = pkg.vehicle?.plate_no ? ` (${pkg.vehicle.plate_no})` : '';
-            const name = pkg.customer?.first_name ? ` - ${pkg.customer.first_name}` : '';
-            
-            return (
-              <div key={pkg.id} className="position-relative d-inline-flex align-items-center mb-1">
-                <Button 
-                  variant={isActive ? "primary" : "outline-secondary"} 
-                  className={`fw-bold px-3 py-2 rounded-pill shadow-sm d-flex align-items-center gap-1 ${isActive ? 'active' : ''}`}
-                  style={{
-                    fontSize: '0.9rem',
-                    border: isActive ? 'none' : '1px solid rgba(255,255,255,0.15)',
-                    color: isActive ? '#fff' : '#ccc',
-                    background: isActive ? 'linear-gradient(135deg, #0d6efd 0%, #0a58ca 100%)' : 'rgba(255,255,255,0.05)'
-                  }}
-                  onClick={() => handleSwitchPackage(idx)}
-                >
-                  <i className={`bi ${isActive ? 'bi-file-earmark-check-fill' : 'bi-file-earmark'} me-1`}></i>
-                  {label}{plate}{name}
-                </Button>
-                {packages.length > 1 && (
-                  <button 
-                    type="button"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handleDeletePackage(idx);
-                    }}
-                    className="btn btn-sm btn-danger rounded-circle position-absolute"
-                    style={{
-                      top: '-5px',
-                      right: '-5px',
-                      width: '20px',
-                      height: '20px',
-                      padding: '0',
-                      fontSize: '0.7rem',
-                      lineHeight: '18px',
-                      zIndex: 10,
-                      boxShadow: '0 2px 5px rgba(0,0,0,0.3)'
-                    }}
-                    title="ลบชุดนี้"
-                  >
-                    <i className="bi bi-x"></i>
-                  </button>
-                )}
-              </div>
-            );
-          })}
-          
-          <Button 
-            variant="outline-success" 
-            className="fw-bold px-3 py-2 rounded-pill d-flex align-items-center gap-1"
-            style={{
-              fontSize: '0.9rem',
-              borderStyle: 'dashed',
-              borderWidth: '2px',
-              background: 'rgba(25, 135, 84, 0.05)'
-            }}
-            onClick={handleAddPackage}
-          >
-            <i className="bi bi-plus-circle-fill"></i> เพิ่มชุดใหม่
-          </Button>
-        </div>
-      )}
+      {/* Package Tabs Selector UI removed per user request */}
 
       <div className="card border-0 mb-4 overflow-hidden position-relative" style={{ 
         background: 'linear-gradient(135deg, #0f2027 0%, #203a43 50%, #2c5364 100%)',
