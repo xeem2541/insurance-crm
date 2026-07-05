@@ -6,6 +6,26 @@ import jsPDF from 'jspdf';
 import 'jspdf-autotable';
 import { BarChart, Bar, LineChart, Line, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 
+const formatThaiDate = (dateString) => {
+  if (!dateString) return '-';
+  if (/^\d{4}-\d{2}$/.test(dateString)) {
+    const [yr, mo] = dateString.split('-');
+    const months = [
+      'มกราคม', 'กุมภาพันธ์', 'มีนาคม', 'เมษายน', 'พฤษภาคม', 'มิถุนายน',
+      'กรกฎาคม', 'สิงหาคม', 'กันยายน', 'ตุลาคม', 'พฤศจิกายน', 'ธันวาคม'
+    ];
+    const thaiMonth = months[parseInt(mo) - 1] || mo;
+    const thaiYear = parseInt(yr) + 543;
+    return `${thaiMonth} ${thaiYear}`;
+  }
+  const date = new Date(dateString);
+  if (isNaN(date.getTime())) return dateString;
+  const day = String(date.getDate()).padStart(2, '0');
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const year = date.getFullYear() + 543;
+  return `${day}/${month}/${year}`;
+};
+
 const Reports = () => {
   const { user } = useContext(AuthContext);
   const [reportType, setReportType] = useState('sales_monthly');
@@ -70,9 +90,17 @@ const Reports = () => {
   const renderTableBody = () => {
     return reportData.map((row, index) => (
       <tr key={index}>
-        {Object.keys(row).map(key => (
-          <td key={key}>{String(row[key])}</td>
-        ))}
+        {Object.keys(row).map(key => {
+          let val = row[key];
+          const keyLower = key.toLowerCase();
+          if (
+            typeof val === 'string' &&
+            (keyLower.includes('date') || keyLower.includes('month') || keyLower.includes('expiry') || keyLower.includes('due') || keyLower.includes('วัน'))
+          ) {
+            val = formatThaiDate(val);
+          }
+          return <td key={key}>{String(val !== null && val !== undefined ? val : '-')}</td>;
+        })}
       </tr>
     ));
   };

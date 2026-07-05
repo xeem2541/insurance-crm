@@ -4,6 +4,18 @@ import { Modal, Button, Form } from 'react-bootstrap';
 import Select from 'react-select';
 import CloudinaryUpload from '../components/CloudinaryUpload';
 
+const formatThaiDate = (dateString) => {
+  if (!dateString) return '-';
+  const date = new Date(dateString);
+  if (isNaN(date.getTime())) return '-';
+  const day = String(date.getDate()).padStart(2, '0');
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const year = date.getFullYear() + 543;
+  const hours = String(date.getHours()).padStart(2, '0');
+  const minutes = String(date.getMinutes()).padStart(2, '0');
+  return `${day}/${month}/${year} ${hours}:${minutes}`;
+};
+
 const Documents = () => {
   const [documents, setDocuments] = useState([]);
   const [documentTypes, setDocumentTypes] = useState([]);
@@ -161,7 +173,7 @@ const Documents = () => {
                     </div>
                   </td>
                   <td><span className="badge bg-light text-dark border">{d.document_type_name}</span></td>
-                  <td>{new Date(d.created_at).toLocaleString('th-TH')}</td>
+                  <td>{formatThaiDate(d.created_at)}</td>
                   <td>{(d.file_size / 1024 / 1024).toFixed(2)} MB</td>
                   <td>{d.uploader_name || 'System'}</td>
                   <td>

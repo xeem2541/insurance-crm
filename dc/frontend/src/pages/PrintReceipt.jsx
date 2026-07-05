@@ -2,6 +2,16 @@ import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import api from '../services/api';
 
+const formatThaiDate = (dateString) => {
+  if (!dateString) return '-';
+  const date = new Date(dateString);
+  if (isNaN(date.getTime())) return '-';
+  const day = String(date.getDate()).padStart(2, '0');
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const year = date.getFullYear() + 543;
+  return `${day}/${month}/${year}`;
+};
+
 const PrintReceipt = () => {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -62,7 +72,7 @@ const PrintReceipt = () => {
           </div>
           <div className="col-4">
             <p className="mb-1"><strong>เลขที่ใบเสร็จ:</strong> RC-{new Date().getFullYear()}-{String(data.id).padStart(4, '0')}</p>
-            <p className="mb-1"><strong>วันที่ชำระเงิน:</strong> {new Date(data.payment_date || new Date()).toLocaleDateString('th-TH')}</p>
+            <p className="mb-1"><strong>วันที่ชำระเงิน:</strong> {formatThaiDate(data.payment_date || new Date())}</p>
             <p className="mb-0"><strong>ผู้รับเงิน:</strong> {data.sales_person || 'System'}</p>
           </div>
         </div>
