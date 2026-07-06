@@ -2453,12 +2453,12 @@ const [showCameraHelp, setShowCameraHelp] = useState(false);
               </div>
                             <div className="text-center mb-4">
                 <Button variant="outline-primary" className="fw-bold px-4 rounded-pill" onClick={() => cameraInputRef.current && cameraInputRef.current.click()}>
-                  <i className="bi bi-camera-fill me-2"></i> เปิดกล้องถ่ายรูป
+                  <i className="bi bi-camera-fill me-2"></i> เปิดกล้อง / เลือกรูปจากเครื่อง
                 </Button>
                 <div className="mt-2 text-muted small">
-                  <i className="bi bi-info-circle me-1"></i> แนะนำ: ถ่ายภาพด้วยกล้องหลัก 1x และเปิดโหมดความละเอียดสูง (48MP)
+                  <i className="bi bi-info-circle me-1"></i> แนะนำ: ถ่ายภาพด้วยกล้องหลัก 1x หรือเลือกหลายรูปจากอัลบั้ม
                 </div>
-                <input type="file" ref={cameraInputRef} accept="image/*" capture="environment" className="d-none" onChange={(e) => {
+                <input type="file" multiple ref={cameraInputRef} accept="image/*" className="d-none" onChange={(e) => {
                   const selected = Array.from(e.target.files);
                   if(selected.length > 0) onDrop(selected);
                 }} />
