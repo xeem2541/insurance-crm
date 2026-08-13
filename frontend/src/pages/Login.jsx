@@ -23,7 +23,8 @@ const Login = () => {
     <div className="login-split-layout">
       <div className="row g-0 h-100">
         {/* Left side: Image */}
-        <div className="col-md-6 d-none d-md-flex login-image-side">
+        <div className="col-md-6 d-none d-md-flex login-image-side align-items-center justify-content-center flex-column">
+          <img src="/logo.png" alt="Apple Insurance Logo" style={{ maxWidth: '55%', zIndex: 1, filter: 'drop-shadow(0 20px 30px rgba(0,0,0,0.15))' }} className="fade-in" />
         </div>
         
         {/* Right side: Form */}
