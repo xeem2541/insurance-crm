@@ -76,20 +76,22 @@ const Dashboard = () => {
       {
         label: 'ยอดขาย Motor (บาท)',
         data: (stats?.monthlySales || []).map(m => m.motor_sales),
-        backgroundColor: 'rgba(54, 162, 235, 0.6)',
-        borderColor: 'rgba(54, 162, 235, 1)',
-        borderWidth: 1,
+        backgroundColor: 'rgba(59, 130, 246, 0.85)',
+        borderColor: 'transparent',
+        borderWidth: 0,
         maxBarThickness: 35,
-        borderRadius: 4,
+        borderRadius: 12,
+        borderSkipped: false,
       },
       {
         label: 'ยอดขาย Non-Motor (บาท)',
         data: (stats?.monthlySales || []).map(m => m.non_motor_sales),
-        backgroundColor: 'rgba(255, 99, 132, 0.6)',
-        borderColor: 'rgba(255, 99, 132, 1)',
-        borderWidth: 1,
+        backgroundColor: 'rgba(239, 68, 68, 0.85)',
+        borderColor: 'transparent',
+        borderWidth: 0,
         maxBarThickness: 35,
-        borderRadius: 4,
+        borderRadius: 12,
+        borderSkipped: false,
       }
     ],
   };
@@ -145,12 +147,12 @@ const Dashboard = () => {
         </div>
       </div>
       
-      <div className="row g-4 mb-4">
+      <div className="row g-5 mb-5">
         {/* Yearly Total Sales */}
         <div className="col-md-3">
-          <div className="card stat-card shadow-sm h-100 border-0 bg-primary text-white">
+          <div className="card stat-card shadow-sm h-100 border-0 card-gradient-primary text-white">
             <i className="bi bi-graph-up stat-icon text-white opacity-50"></i>
-            <div className="stat-value text-white">{formatMoney((parseFloat(stats.salesThisYear) || 0) + (parseFloat(stats.nmSalesThisYear) || 0))}</div>
+            <div className="stat-value fw-extrabold tracking-tight text-white">{formatMoney((parseFloat(stats.salesThisYear) || 0) + (parseFloat(stats.nmSalesThisYear) || 0))}</div>
             <div className="stat-label mb-2 text-white">ยอดรวมสิ้นปี (ปี {filterYear})</div>
             <div className="d-flex justify-content-between small opacity-75">
               <span>M: {formatMoney(stats.salesThisYear)}</span>
@@ -163,7 +165,7 @@ const Dashboard = () => {
         <div className="col-md-3">
           <div className="card stat-card shadow-sm h-100 border-0">
             <i className="bi bi-cash-stack stat-icon text-success"></i>
-            <div className="stat-value text-success">{formatMoney((parseFloat(stats.salesThisMonth) || 0) + (parseFloat(stats.nmSalesThisMonth) || 0))}</div>
+            <div className="stat-value fw-extrabold tracking-tight text-success">{formatMoney((parseFloat(stats.salesThisMonth) || 0) + (parseFloat(stats.nmSalesThisMonth) || 0))}</div>
             <div className="stat-label mb-2">ยอดขาย {filterMonth === 'all' ? '(ทั้งปี)' : '(เดือนที่เลือก)'}</div>
             <div className="d-flex justify-content-between small text-muted">
               <span>M: {formatMoney(stats.salesThisMonth)}</span>
@@ -176,7 +178,7 @@ const Dashboard = () => {
         <div className="col-md-3">
           <div className="card stat-card shadow-sm h-100 border-0">
             <i className="bi bi-percent stat-icon text-warning"></i>
-            <div className="stat-value text-warning">{formatMoney((parseFloat(stats.commThisMonth) || 0) + (parseFloat(stats.nmCommThisMonth) || 0))}</div>
+            <div className="stat-value fw-extrabold tracking-tight text-warning">{formatMoney((parseFloat(stats.commThisMonth) || 0) + (parseFloat(stats.nmCommThisMonth) || 0))}</div>
             <div className="stat-label mb-2">คอมมิชชัน {filterMonth === 'all' ? '(ทั้งปี)' : '(เดือนที่เลือก)'}</div>
             <div className="d-flex justify-content-between small text-muted">
               <span>M: {formatMoney(stats.commThisMonth)}</span>
@@ -189,19 +191,19 @@ const Dashboard = () => {
         <div className="col-md-3">
           <div className="card stat-card shadow-sm h-100 border-0">
             <i className="bi bi-people-fill stat-icon text-info"></i>
-            <div className="stat-value text-info">{stats.newCustomersThisMonth}</div>
+            <div className="stat-value fw-extrabold tracking-tight text-info">{stats.newCustomersThisMonth}</div>
             <div className="stat-label mb-2">ลูกค้าใหม่ {filterMonth === 'all' ? '(ทั้งปี)' : '(เดือนที่เลือก)'}</div>
             <div className="small text-muted">ลูกค้าในระบบทั้งหมด: {stats.totalCustomers} ราย</div>
           </div>
         </div>
       </div>
 
-      <div className="row g-4 mb-4">
+      <div className="row g-5 mb-5">
         {/* Cash Sales */}
         <div className="col-md-3">
           <div className="card stat-card shadow-sm h-100 border-0">
             <i className="bi bi-wallet2 stat-icon text-secondary"></i>
-            <div className="stat-value text-secondary">{formatMoney(stats.cashSalesTotal || 0)}</div>
+            <div className="stat-value fw-extrabold tracking-tight text-secondary">{formatMoney(stats.cashSalesTotal || 0)}</div>
             <div className="stat-label mb-2">ยอดเงินสด (รวม)</div>
           </div>
         </div>
@@ -210,7 +212,7 @@ const Dashboard = () => {
         <div className="col-md-3">
           <div className="card stat-card shadow-sm h-100 border-0">
             <i className="bi bi-credit-card-fill stat-icon text-primary"></i>
-            <div className="stat-value text-primary">{formatMoney(stats.installmentSalesTotal || 0)}</div>
+            <div className="stat-value fw-extrabold tracking-tight text-primary">{formatMoney(stats.installmentSalesTotal || 0)}</div>
             <div className="stat-label mb-2">ยอดเงินผ่อน (รวม)</div>
           </div>
         </div>
@@ -219,7 +221,7 @@ const Dashboard = () => {
         <div className="col-md-3">
           <div className="card stat-card shadow-sm h-100 border-0">
             <i className="bi bi-x-octagon-fill stat-icon text-danger"></i>
-            <div className="stat-value text-danger">{formatMoney(stats.unpaidInstallmentTotal || 0)}</div>
+            <div className="stat-value fw-extrabold tracking-tight text-danger">{formatMoney(stats.unpaidInstallmentTotal || 0)}</div>
             <div className="stat-label mb-2">ยอดค้างชำระผ่อน</div>
             <div className="small text-muted">ลูกค้าค้างชำระ: {stats.overdueCustomersCount || 0} ราย</div>
           </div>
@@ -229,19 +231,30 @@ const Dashboard = () => {
         <div className="col-md-3">
           <div className="card stat-card shadow-sm h-100 border-0">
             <i className="bi bi-check-circle-fill stat-icon text-success"></i>
-            <div className="stat-value text-success">{formatMoney(stats.collectedThisMonth || 0)}</div>
+            <div className="stat-value fw-extrabold tracking-tight text-success">{formatMoney(stats.collectedThisMonth || 0)}</div>
             <div className="stat-label mb-2">ยอดเก็บค่างวด {filterMonth === 'all' ? '(ทั้งปี)' : '(เดือนที่เลือก)'}</div>
           </div>
         </div>
       </div>
 
-      <div className="row g-4 mb-4">
+      <div className="row g-5 mb-5">
         <div className="col-md-8">
           <div className="card shadow-sm border-0 h-100">
             <div className="card-body">
               <h5 className="card-title fw-bold mb-4">ยอดขายรายเดือน (ปี {filterYear})</h5>
               <div style={{height: '300px'}}>
-                <Bar data={barChartData} options={{ responsive: true, maintainAspectRatio: false }} />
+                <Bar data={barChartData} options={{ 
+                  responsive: true, 
+                  maintainAspectRatio: false,
+                  scales: {
+                    x: {
+                      grid: { display: false }
+                    },
+                    y: {
+                      grid: { color: 'rgba(0,0,0,0.05)', drawBorder: false }
+                    }
+                  }
+                }} />
               </div>
             </div>
           </div>
@@ -258,7 +271,7 @@ const Dashboard = () => {
         </div>
       </div>
 
-      <div className="row g-4 mb-4">
+      <div className="row g-5 mb-5">
         <div className="col-md-6">
           <div className="card shadow-sm border-0 h-100">
             <div className="card-header bg-white border-bottom py-3">
@@ -306,7 +319,7 @@ const Dashboard = () => {
       </div>
 
       {/* AI Usage Stats Section */}
-      <div className="row g-4 mb-4">
+      <div className="row g-5 mb-5">
         <div className="col-md-12">
           <div className="card shadow-sm border-0 h-100">
             <div className="card-header bg-dark text-white border-bottom py-3 d-flex justify-content-between align-items-center">
@@ -452,7 +465,7 @@ const Dashboard = () => {
       </div>
 
       {/* New Section: Customers for selected month */}
-      <div className="row g-4 mb-4">
+      <div className="row g-5 mb-5">
         <div className="col-md-12">
           <div className="card shadow-sm border-0 h-100">
             <div className="card-header bg-primary text-white border-bottom py-3 d-flex justify-content-between align-items-center">
