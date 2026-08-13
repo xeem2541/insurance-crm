@@ -30,11 +30,11 @@ const Login = () => {
         
         {error && <div className="alert alert-danger py-2 rounded-3 fs-6 border-0 shadow-sm">{error}</div>}
         
-        <form onSubmit={handleSubmit} className="text-start">
-          <div className="mb-3">
-            <label className="form-label fw-semibold small text-uppercase" style={{ letterSpacing: '1px' }}>ชื่อผู้ใช้งาน (Username)</label>
+        <form onSubmit={handleSubmit} className="text-start mt-2">
+          <div className="mb-4">
+            <label className="form-label fw-semibold small text-uppercase" style={{ letterSpacing: '1px', opacity: 0.9 }}>ชื่อผู้ใช้งาน (Username)</label>
             <div className="input-group">
-              <span className="input-group-text border-end-0"><i className="bi bi-person"></i></span>
+              <span className="input-group-text border-end-0 px-3"><i className="bi bi-person fs-5"></i></span>
               <input 
                 type="text" 
                 className="form-control form-control-lg border-start-0 ps-0" 
@@ -45,10 +45,10 @@ const Login = () => {
               />
             </div>
           </div>
-          <div className="mb-4">
-            <label className="form-label fw-semibold small text-uppercase" style={{ letterSpacing: '1px' }}>รหัสผ่าน (Password)</label>
+          <div className="mb-5">
+            <label className="form-label fw-semibold small text-uppercase" style={{ letterSpacing: '1px', opacity: 0.9 }}>รหัสผ่าน (Password)</label>
             <div className="input-group">
-              <span className="input-group-text border-end-0"><i className="bi bi-key"></i></span>
+              <span className="input-group-text border-end-0 px-3"><i className="bi bi-key fs-5"></i></span>
               <input 
                 type="password" 
                 className="form-control form-control-lg border-start-0 ps-0" 
@@ -59,8 +59,8 @@ const Login = () => {
               />
             </div>
           </div>
-          <button type="submit" className="btn btn-primary btn-lg w-100 mt-3 py-3 fw-bold" style={{ borderRadius: '16px' }}>
-            <i className="bi bi-box-arrow-in-right me-2"></i> เข้าสู่ระบบ (Login)
+          <button type="submit" className="btn btn-primary btn-lg w-100 py-3 fw-bold fs-5" style={{ borderRadius: '16px', letterSpacing: '0.5px' }}>
+            เข้าสู่ระบบ (Login) <i className="bi bi-arrow-right-short ms-1"></i>
           </button>
         </form>
       </div>
