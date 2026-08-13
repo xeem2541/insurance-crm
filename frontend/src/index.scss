@@ -58,9 +58,9 @@ h1, h2, h3, h4, h5, h6 {
   background: rgba(255, 255, 255, 0.95);
   backdrop-filter: blur(15px);
   -webkit-backdrop-filter: blur(15px);
-  border-radius: 24px;
+  border-radius: 32px;
   border: 1px solid rgba(255, 255, 255, 1);
-  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.04), 0 2px 6px rgba(0, 0, 0, 0.02);
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.03), 0 2px 10px rgba(0, 0, 0, 0.02);
   transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.4s cubic-bezier(0.16, 1, 0.3, 1);
   overflow: hidden;
 
@@ -216,6 +216,32 @@ h1, h2, h3, h4, h5, h6 {
   }
 }
 
+// Typography Utilities
+.fw-extrabold {
+  font-weight: 800 !important;
+}
+
+.tracking-tight {
+  letter-spacing: -0.05em !important;
+}
+
+// Special Dashboard Cards
+.card-gradient-primary {
+  background: linear-gradient(135deg, #2563eb 0%, #1e3a8a 100%) !important;
+  color: white !important;
+  border: 1px solid rgba(255, 255, 255, 0.1) !important;
+  box-shadow: 0 20px 40px rgba(37, 99, 235, 0.2) !important;
+  position: relative;
+  
+  &::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: radial-gradient(circle at top right, rgba(255,255,255,0.1), transparent 50%);
+    pointer-events: none;
+  }
+}
+
 // Premium Tables
 .table {
   vertical-align: middle;
@@ -268,7 +294,7 @@ h1, h2, h3, h4, h5, h6 {
   padding: 2rem;
   position: relative;
   overflow: hidden;
-  border-radius: 28px;
+  border-radius: 32px;
   background: white;
   
   .stat-icon {
@@ -456,19 +482,19 @@ h1, h2, h3, h4, h5, h6 {
 // Dark Mode Support (Neo-Luxury Dark)
 .dark-mode {
   body {
-    background: linear-gradient(135deg, #09090b 0%, #18181b 100%);
-    color: #fafafa;
+    background: linear-gradient(135deg, #0f172a 0%, #020617 100%);
+    color: #f8fafc;
   }
 
   .card, .glass-panel {
-    background: rgba(24, 24, 27, 0.75) !important;
+    background: rgba(30, 41, 59, 0.7) !important;
     border-color: rgba(255, 255, 255, 0.05) !important;
-    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
+    box-shadow: none !important;
   }
   
   .glass-nav {
-    background: rgba(9, 9, 11, 0.85) !important;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.03) !important;
+    background: rgba(15, 23, 42, 0.85) !important;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05) !important;
   }
 
   .form-control, .form-select {
