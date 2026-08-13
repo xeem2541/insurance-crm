@@ -20,76 +20,54 @@ const Login = () => {
   };
 
   return (
-    <div className="login-split-layout">
-      <div className="row g-0 h-100">
-        {/* Left side: Image */}
-        <div className="col-md-6 d-none d-md-flex login-image-side align-items-center justify-content-center flex-column">
-          <img src="/logo.png" alt="Apple Insurance Logo" style={{ maxWidth: '55%', zIndex: 1, filter: 'drop-shadow(0 20px 30px rgba(0,0,0,0.15))' }} className="fade-in" />
+    <div className="login-centered-layout">
+      <div className="login-card">
+        <div className="logo-circle">
+          <img src="/logo.png" alt="Logo" />
         </div>
         
-        {/* Right side: Form */}
-        <div className="col-md-6 d-flex align-items-center justify-content-center bg-white login-form-side">
-          <div className="login-form-container p-4 p-md-5 w-100" style={{ maxWidth: '450px' }}>
-            
-            <div className="text-center mb-5">
-              <h3 className="mb-2 fw-medium" style={{ color: '#333', letterSpacing: '-0.5px' }}>Login to continue</h3>
-              <p className="text-muted" style={{ fontSize: '0.9rem' }}>สำนักงานเปิ้ลประกัน</p>
-            </div>
+        <h3>LOG IN</h3>
 
-            {error && <div className="alert alert-danger py-2 rounded-3 fs-6 border-0 shadow-sm text-center">{error}</div>}
+        {error && <div className="alert alert-danger py-2 rounded-3 fs-6 shadow-sm text-center mb-4" style={{ backgroundColor: 'rgba(255, 255, 255, 0.2)', color: 'white', border: '1px solid rgba(255,255,255,0.3)' }}>{error}</div>}
 
-            <form onSubmit={handleSubmit}>
-              <div className="mb-4">
-                <input 
-                  type="text" 
-                  className="form-control form-control-lg login-input" 
-                  value={username} 
-                  onChange={(e) => setUsername(e.target.value)} 
-                  required 
-                  placeholder="Username"
-                />
-              </div>
-              
-              <div className="mb-4">
-                <input 
-                  type="password" 
-                  className="form-control form-control-lg login-input" 
-                  value={password} 
-                  onChange={(e) => setPassword(e.target.value)} 
-                  required 
-                  placeholder="Password"
-                />
-              </div>
-
-              <div className="d-flex justify-content-between align-items-center mb-4 px-1">
-                <div className="form-check m-0 d-flex align-items-center">
-                  <input className="form-check-input mt-0 me-2" type="checkbox" id="rememberMe" style={{ width: '16px', height: '16px', cursor: 'pointer' }} />
-                  <label className="form-check-label text-muted" htmlFor="rememberMe" style={{ fontSize: '0.85rem', cursor: 'pointer' }}>
-                    Remember me
-                  </label>
-                </div>
-                <a href="#" className="text-muted text-decoration-none hover-dark" style={{ fontSize: '0.85rem' }}>Forgot Password?</a>
-              </div>
-
-              <button type="submit" className="btn btn-login w-100 py-3 fw-bold text-white mb-4">
-                LOGIN
-              </button>
-
-              <div className="text-center">
-                <p className="text-muted mb-3" style={{ fontSize: '0.8rem' }}>or sign up using</p>
-                <div className="d-flex justify-content-center gap-3">
-                  <button type="button" className="btn btn-social rounded-circle p-0 shadow-sm" style={{ backgroundColor: '#3b5998', color: 'white', width: '35px', height: '35px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                    <i className="bi bi-facebook" style={{ fontSize: '1rem' }}></i>
-                  </button>
-                  <button type="button" className="btn btn-social rounded-circle p-0 shadow-sm" style={{ backgroundColor: '#1da1f2', color: 'white', width: '35px', height: '35px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                    <i className="bi bi-twitter" style={{ fontSize: '1rem' }}></i>
-                  </button>
-                </div>
-              </div>
-
-            </form>
+        <form onSubmit={handleSubmit}>
+          <div className="input-group">
+            <span className="input-group-text"><i className="bi bi-person-fill"></i></span>
+            <input 
+              type="text" 
+              className="form-control" 
+              value={username} 
+              onChange={(e) => setUsername(e.target.value)} 
+              required 
+              placeholder="Username"
+            />
           </div>
-        </div>
+          
+          <div className="input-group">
+            <span className="input-group-text"><i className="bi bi-lock-fill"></i></span>
+            <input 
+              type="password" 
+              className="form-control" 
+              value={password} 
+              onChange={(e) => setPassword(e.target.value)} 
+              required 
+              placeholder="Password"
+            />
+          </div>
+
+          <div className="form-check d-flex align-items-center mb-4">
+            <input className="form-check-input mt-0 me-2" type="checkbox" id="rememberMe" style={{ width: '15px', height: '15px', cursor: 'pointer' }} />
+            <label className="form-check-label" htmlFor="rememberMe" style={{ cursor: 'pointer' }}>
+              Remember me
+            </label>
+          </div>
+
+          <button type="submit" className="btn btn-login text-uppercase">
+            Login
+          </button>
+
+          <a href="#" className="forgot-password">Forgot Password?</a>
+        </form>
       </div>
     </div>
   );
