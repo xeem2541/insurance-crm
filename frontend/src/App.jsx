@@ -17,6 +17,7 @@ import PrintReceipt from './pages/PrintReceipt';
 import Payments from './pages/Payments';
 import NonMotorPolicies from './pages/NonMotorPolicies';
 import IssuePolicyForm from './pages/IssuePolicyForm';
+import ActivityLogs from './pages/ActivityLogs';
 
 const PrivateRoute = ({ children }) => {
   const { user, loading } = useContext(AuthContext);
@@ -40,6 +41,7 @@ const AppRoutes = () => {
         <Route path="reports" element={<Reports />} />
         <Route path="master-data" element={<MasterData />} />
         <Route path="payments" element={<Payments />} />
+        <Route path="activity-logs" element={<ActivityLogs />} />
       </Route>
       {/* Route for printing without Layout (sidebar/header) */}
       <Route path="/print-policy/:id" element={

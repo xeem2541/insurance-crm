@@ -181,8 +181,15 @@ router.put('/:id', authenticateToken, async (req, res) => {
       ]
     );
     
-    await req.db.query('INSERT INTO activity_logs (user_id, action, target_table, target_id, details) VALUES (?, ?, ?, ?, ?)',
-      [req.user.id, 'UPDATE', 'policies', req.params.id, `Updated policy ID ${req.params.id}`]);
+    try {
+      const { logActivity } = require('../utils/activityLogger');
+      await logActivity(req.db, req, {
+        action: 'UPDATE_POLICY',
+        entity_type: 'policy',
+        entity_id: req.params.id,
+        description: `แก้ไขข้อมูลกรมธรรม์ ID [${req.params.id}] บริษัท: ${company} (${type}) ยอดรวม: ${total_premium} บาท`
+      });
+    } catch (e) {}
 
     res.json({ message: 'Policy updated successfully' });
   } catch (error) {
@@ -199,8 +206,15 @@ router.delete('/:id', authenticateToken, async (req, res) => {
       return res.status(404).json({ error: 'Policy not found' });
     }
     
-    await req.db.query('INSERT INTO activity_logs (user_id, action, target_table, target_id, details) VALUES (?, ?, ?, ?, ?)',
-      [req.user.id, 'DELETE', 'policies', req.params.id, `Deleted policy ID ${req.params.id}`]);
+    try {
+      const { logActivity } = require('../utils/activityLogger');
+      await logActivity(req.db, req, {
+        action: 'DELETE_POLICY',
+        entity_type: 'policy',
+        entity_id: req.params.id,
+        description: `ลบข้อมูลกรมธรรม์ ID [${req.params.id}] ออกจากระบบ`
+      });
+    } catch (e) {}
       
     res.json({ message: 'Deleted successfully' });
   } catch (error) {

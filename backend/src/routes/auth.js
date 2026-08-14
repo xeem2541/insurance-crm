@@ -31,6 +31,21 @@ router.post('/login', loginLimiter, async (req, res) => {
       { expiresIn: '1d' }
     );
 
+    // Record Login Activity
+    try {
+      const { logActivity } = require('../utils/activityLogger');
+      await logActivity(req.db, {
+        user: { id: user.id, name: user.name, role: user.role },
+        headers: req.headers,
+        socket: req.socket
+      }, {
+        action: 'LOGIN',
+        entity_type: 'auth',
+        entity_id: user.id,
+        description: `ผู้ใช้งาน ${user.name} (${user.role}) เข้าสู่ระบบสำเร็จ`
+      });
+    } catch (e) {}
+
     res.json({ token, user: { id: user.id, username: user.username, role: user.role, name: user.name } });
   } catch (error) {
     res.status(500).json({ error: 'Server error' });

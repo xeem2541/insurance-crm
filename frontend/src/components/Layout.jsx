@@ -70,6 +70,7 @@ const Layout = () => {
     { path: '/payments', label: 'ระบบรับชำระเงิน', icon: 'bi-wallet2', color: '#4ade80', roles: ['Admin', 'Manager', 'Staff', 'Sales'] },
     { path: '/documents', label: 'ระบบเอกสาร', icon: 'bi-file-earmark-medical-fill', color: '#2dd4bf', roles: ['Admin', 'Manager', 'Staff', 'Sales', 'Viewer'] },
     { path: '/reports', label: 'รายงาน', icon: 'bi-bar-chart-line-fill', color: '#fb923c', roles: ['Admin', 'Manager', 'Sales'] },
+    { path: '/activity-logs', label: 'ประวัติการทำงาน (Logs)', icon: 'bi-clock-history', color: '#ec4899', roles: ['Admin', 'Manager'] },
     { path: '/master-data', label: 'ตั้งค่าระบบ', icon: 'bi-gear-fill', color: '#94a3b8', roles: ['Admin', 'Manager'] }
   ];
 

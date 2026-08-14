@@ -332,6 +332,21 @@ router.post('/', authenticateToken, upload.array('files'), async (req, res) => {
     }
 
     await connection.commit();
+
+    // Log policy issuance activity
+    try {
+      const { logActivity } = require('../utils/activityLogger');
+      const policyTypeStr = isMotor ? `รถยนต์ (${policy?.type || '-'})` : `Non-Motor (${policy?.type || '-'})`;
+      const custName = `${customer?.prefix || ''}${customer?.first_name || ''} ${customer?.last_name || ''}`.trim();
+      const pNo = policy?.policy_no || '-';
+      await logActivity(req.db, req, {
+        action: 'CREATE_POLICY',
+        entity_type: isMotor ? 'policy' : 'non_motor_policy',
+        entity_id: isMotor ? policyId : nonMotorPolicyId,
+        description: `ออกกรมธรรม์ใหม่ ${policyTypeStr} เลขที่ [${pNo}] ลูกค้า: ${custName} (เบี้ยรวม: ${policy?.total_premium || '-'} บาท)`
+      });
+    } catch (logErr) {}
+
     res.status(201).json({ message: 'บันทึกข้อมูลลูกค้าและกรมธรรม์สำเร็จ', customerId, policyId, nonMotorPolicyId });
 
   } catch (error) {

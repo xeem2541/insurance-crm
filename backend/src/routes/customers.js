@@ -92,8 +92,15 @@ router.post('/', authenticateToken, async (req, res) => {
       ]
     );
     
-    await req.db.query('INSERT INTO activity_logs (user_id, action, target_table, target_id, details) VALUES (?, ?, ?, ?, ?)',
-      [req.user.id, 'CREATE', 'customers', result.insertId, `Created customer ${customer_code}`]);
+    try {
+      const { logActivity } = require('../utils/activityLogger');
+      await logActivity(req.db, req, {
+        action: 'CREATE_CUSTOMER',
+        entity_type: 'customer',
+        entity_id: result.insertId,
+        description: `เพิ่มลูกค้าใหม่ [${customer_code}] ${prefix || ''}${first_name} ${last_name || ''} (เบอร์: ${phone || '-'})`
+      });
+    } catch (e) {}
 
     res.status(201).json({ id: result.insertId, message: 'Customer created successfully' });
   } catch (error) {
@@ -127,8 +134,15 @@ router.put('/:id', authenticateToken, async (req, res) => {
       ]
     );
 
-    await req.db.query('INSERT INTO activity_logs (user_id, action, target_table, target_id, details) VALUES (?, ?, ?, ?, ?)',
-      [req.user.id, 'UPDATE', 'customers', req.params.id, `Updated customer ID ${req.params.id}`]);
+    try {
+      const { logActivity } = require('../utils/activityLogger');
+      await logActivity(req.db, req, {
+        action: 'UPDATE_CUSTOMER',
+        entity_type: 'customer',
+        entity_id: req.params.id,
+        description: `แก้ไขข้อมูลลูกค้า ID [${req.params.id}]: ${prefix || ''}${first_name} ${last_name || ''}`
+      });
+    } catch (e) {}
 
     res.json({ message: 'Customer updated successfully' });
   } catch (error) {
@@ -147,8 +161,15 @@ router.delete('/:id', authenticateToken, async (req, res) => {
       return res.status(404).json({ error: 'Customer not found' });
     }
     
-    await req.db.query('INSERT INTO activity_logs (user_id, action, target_table, target_id, details) VALUES (?, ?, ?, ?, ?)',
-      [req.user.id, 'DELETE', 'customers', req.params.id, `Deleted customer ID ${req.params.id}`]);
+    try {
+      const { logActivity } = require('../utils/activityLogger');
+      await logActivity(req.db, req, {
+        action: 'DELETE_CUSTOMER',
+        entity_type: 'customer',
+        entity_id: req.params.id,
+        description: `ลบข้อมูลลูกค้า ID [${req.params.id}] ออกจากระบบ`
+      });
+    } catch (e) {}
       
     res.json({ message: 'Deleted successfully' });
   } catch (error) {
