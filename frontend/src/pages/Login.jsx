@@ -138,7 +138,7 @@ const Login = () => {
             </div>
           </div>
 
-          <h2 className="office-title">สำนักงานเปิ้ลประกัน</h2>
+          <h2 className="office-title">สำนักงานเปิ้ลประกันภัย</h2>
           <p className="office-subtitle">
             ศูนย์รวมประกัน & งานทะเบียน ครบ จบ ดูแลต่อเนื่อง
           </p>

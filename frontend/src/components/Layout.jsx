@@ -124,17 +124,18 @@ const Layout = () => {
               </div>
               <div 
                 style={{ 
-                  fontSize: '1.38rem', 
+                  fontSize: '1.28rem', 
                   fontWeight: '800', 
                   lineHeight: '1.15',
                   background: 'linear-gradient(135deg, #fff7c2 0%, #d4af37 60%, #b45309 100%)',
                   WebkitBackgroundClip: 'text',
                   WebkitTextFillColor: 'transparent',
                   filter: 'drop-shadow(0 2px 6px rgba(212, 175, 55, 0.35))',
-                  letterSpacing: '0.3px'
+                  letterSpacing: '0.2px',
+                  whiteSpace: 'nowrap'
                 }}
               >
-                เปิ้ลประกัน
+                เปิ้ลประกันภัย
               </div>
             </div>
           </Link>
