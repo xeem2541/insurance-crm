@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const { authenticateToken, checkRole } = require('../middleware/auth');
+const { authenticateToken, authorizeRole } = require('../middlewares/auth');
 
 // Ensure table exists on first query
 async function ensureActivityTable(db) {
@@ -28,7 +28,7 @@ async function ensureActivityTable(db) {
 }
 
 // GET /api/activity-logs (Admin & Manager only)
-router.get('/', authenticateToken, checkRole(['Admin', 'Manager']), async (req, res) => {
+router.get('/', authenticateToken, authorizeRole(['Admin', 'Manager']), async (req, res) => {
   try {
     await ensureActivityTable(req.db);
 
@@ -124,7 +124,7 @@ router.get('/', authenticateToken, checkRole(['Admin', 'Manager']), async (req, 
 });
 
 // GET /api/activity-logs/users (List users for filter dropdown)
-router.get('/users', authenticateToken, checkRole(['Admin', 'Manager']), async (req, res) => {
+router.get('/users', authenticateToken, authorizeRole(['Admin', 'Manager']), async (req, res) => {
   try {
     const [users] = await req.db.query('SELECT id, name, username, role FROM users ORDER BY name ASC');
     res.json(users);

@@ -24,19 +24,35 @@ export const AuthProvider = ({ children }) => {
     checkUser();
   }, []);
 
-  // Idle Timeout Mechanism
+  // Frontend Keep-Alive Heartbeat: Send lightweight ping every 60 seconds to keep backend & DB awake 24/7
+  useEffect(() => {
+    // Ping immediately once on mount
+    api.get('/health').catch(() => {});
+
+    const heartbeatInterval = setInterval(async () => {
+      try {
+        await api.get('/health');
+      } catch (e) {
+        // Silently ignore ping errors
+      }
+    }, 60 * 1000);
+
+    return () => clearInterval(heartbeatInterval);
+  }, [user]);
+
+  // Idle Timeout Mechanism (Reset on user interaction)
   useEffect(() => {
     let timeoutId;
     
     const resetTimeout = () => {
       clearTimeout(timeoutId);
       if (user) {
-        // 30 minutes (1800000 ms)
+        // 60 minutes (3600000 ms) idle timeout
         timeoutId = setTimeout(() => {
           logout();
           alert('ระบบได้ออกจากระบบอัตโนมัติเนื่องจากไม่มีการใช้งานเป็นเวลานาน');
           window.location.href = '/login';
-        }, 30 * 60 * 1000);
+        }, 60 * 60 * 1000);
       }
     };
 

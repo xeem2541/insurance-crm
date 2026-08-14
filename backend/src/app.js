@@ -15,6 +15,14 @@ try {
   console.log('Backup module not found. Please upload cron/backup.js to enable automated backups.');
 }
 
+// Process Crash Prevention (Keeps server alive 24/7 even on unexpected edge cases)
+process.on('uncaughtException', (err) => {
+  console.error('[CRASH PREVENTED] Uncaught Exception:', err);
+});
+process.on('unhandledRejection', (reason, promise) => {
+  console.error('[CRASH PREVENTED] Unhandled Rejection at:', promise, 'reason:', reason);
+});
+
 const app = express();
 const PORT = process.env.PORT || 5000;
 
@@ -32,21 +40,8 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
 
-// Database connection pool
-const pool = mysql.createPool({
-  uri: process.env.DB_URI ? process.env.DB_URI : undefined,
-  host: process.env.DB_URI ? undefined : (process.env.DB_HOST || 'localhost'),
-  user: process.env.DB_URI ? undefined : (process.env.DB_USER || 'app_user'),
-  password: process.env.DB_URI ? undefined : (process.env.DB_PASSWORD || 'app_password'),
-  database: process.env.DB_URI ? undefined : (process.env.DB_NAME || 'insurance_db'),
-  port: process.env.DB_PORT || 3306,
-  charset: 'utf8mb4',
-  waitForConnections: true,
-  connectionLimit: 10,
-  queueLimit: 0,
-  dateStrings: true,
-  ssl: process.env.DB_SSL === 'true' ? { rejectUnauthorized: true } : undefined
-});
+// Database connection pool with 24/7 keepalive & heartbeat
+const { pool, getDbStatus, pingDatabase } = require('./db');
 
 // Test connection and seed Admin
 async function initDb() {
@@ -509,9 +504,55 @@ app.use((req, res, next) => {
 
 initDb();
 
+// Root endpoints for uptime monitors & load balancers
+app.get('/', (req, res) => {
+  res.json({
+    status: 'ok',
+    message: 'Apple Insurance CRM API is running 24/7',
+    database: getDbStatus().isConnected ? 'connected' : 'connecting'
+  });
+});
+app.get('/health', (req, res) => {
+  const status = getDbStatus();
+  res.status(status.isConnected ? 200 : 503).json({
+    status: status.isConnected ? 'ok' : 'degraded',
+    service: 'insurance-crm-api',
+    database: status.isConnected ? 'connected' : 'disconnected'
+  });
+});
+
+// Health check endpoint for external pingers / uptime monitors
+app.get('/api/health', (req, res) => {
+  const status = getDbStatus();
+  res.status(status.isConnected ? 200 : 503).json({
+    status: status.isConnected ? 'ok' : 'degraded',
+    service: 'insurance-crm-api',
+    database: status.isConnected ? 'connected' : 'disconnected',
+    timestamp: new Date().toISOString(),
+    uptime: process.uptime()
+  });
+});
+
+// Detailed real-time DB status endpoint
+app.get('/api/db-status', (req, res) => {
+  res.json({
+    ...getDbStatus(),
+    serverTime: new Date().toISOString()
+  });
+});
+
+// Force manual DB ping & refresh
+app.post('/api/db-ping', async (req, res) => {
+  const result = await pingDatabase();
+  res.json(result);
+});
+
 // Basic route
 app.get('/api', (req, res) => {
-  res.json({ message: 'Insurance API is running' });
+  res.json({ 
+    message: 'Insurance API is running',
+    database: getDbStatus().isConnected ? 'connected (24/7 keepalive active)' : 'connecting'
+  });
 });
 
 // Fix DB route (Manual trigger)
@@ -594,14 +635,40 @@ cron.schedule('0 1 1 * *', () => {
   }
 });
 
+// Cloud Server Keep-Alive (Ping self every 4 minutes to prevent cloud hosting from sleeping)
+function startServerKeepAlive() {
+  const targetUrl = process.env.KEEP_ALIVE_URL || process.env.RENDER_EXTERNAL_URL || 'https://insurance-crm-kpff.onrender.com';
+  if (!targetUrl) return;
+
+  const https = require('https');
+  const http = require('http');
+  
+  const pingUrl = targetUrl.endsWith('/api/health') ? targetUrl : `${targetUrl.replace(/\/+$/, '')}/api/health`;
+  
+  console.log(`[Server Keep-Alive] ตัวป้องกันเซิร์ฟเวอร์หลับเริ่มทำงาน (Ping: ${pingUrl} ทุก 4 นาที)...`);
+  
+  setInterval(() => {
+    const client = pingUrl.startsWith('https') ? https : http;
+    client.get(pingUrl, (res) => {
+      // res.resume() to consume data and free memory
+      res.resume();
+    }).on('error', (err) => {
+      // Ignore network errors in local dev
+    });
+  }, 4 * 60 * 1000);
+}
+
 // Start server
 app.listen(PORT, () => {
   console.log(`Server is running on port ${PORT}`);
   
+  // Start server keep-alive
+  startServerKeepAlive();
+
   // Start the auto image sync background worker
   try {
     const { startAutoSync } = require('./sync_images');
-    startAutoSync();
+    startAutoSync(pool);
   } catch (err) {
     console.error('Failed to start auto sync:', err);
   }

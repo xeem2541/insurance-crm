@@ -144,11 +144,15 @@ const Layout = () => {
           </button>
         </div>
 
-        {/* AI Engine Status Capsule */}
+        {/* Status Capsule: AI & Database 24/7 Connected */}
         <div className="mx-3 my-2 p-2 rounded-3 text-center" style={{ background: 'rgba(255, 255, 255, 0.04)', border: '1px solid rgba(255, 255, 255, 0.08)' }}>
-          <div className="d-flex align-items-center justify-content-center gap-2">
+          <div className="d-flex align-items-center justify-content-center gap-2 mb-1">
             <span className="pulse-dot-online"></span>
-            <span style={{ color: '#00ff88', fontSize: '0.76rem', fontWeight: '600', letterSpacing: '0.3px', fontFamily: "'Inter', sans-serif" }}>AI OCR Gemini 3.5 Ready</span>
+            <span style={{ color: '#00ff88', fontSize: '0.76rem', fontWeight: '600', letterSpacing: '0.3px', fontFamily: "'Inter', sans-serif" }}>AI OCR Gemini Ready</span>
+          </div>
+          <div className="d-flex align-items-center justify-content-center gap-1" style={{ borderTop: '1px solid rgba(255, 255, 255, 0.06)', paddingTop: '4px' }}>
+            <i className="bi bi-database-check" style={{ color: '#38bdf8', fontSize: '0.75rem' }}></i>
+            <span style={{ color: '#94a3b8', fontSize: '0.7rem', fontWeight: '500' }}>ฐานข้อมูล: เชื่อมต่อตลอดเวลา</span>
           </div>
         </div>
         

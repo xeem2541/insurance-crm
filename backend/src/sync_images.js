@@ -1,11 +1,10 @@
-const mysql = require('mysql2/promise');
 const fs = require('fs');
 const path = require('path');
 const https = require('https');
+const { pool } = require('./db');
 
-const uploadDir = '/app/uploads';
-const tidbUri = 'mysql://BsRyTEVHX6fudsU.root:MqZz2WMqULDfGPqu@gateway01.ap-southeast-1.prod.alicloud.tidbcloud.com:4000/insurance_db?ssl={"rejectUnauthorized":true}';
-const renderBackendUrl = 'https://insurance-crm-kpff.onrender.com';
+const uploadDir = process.env.UPLOAD_DIR || path.join(__dirname, '../uploads');
+const renderBackendUrl = process.env.RENDER_BACKEND_URL || 'https://insurance-crm-kpff.onrender.com';
 
 // Helper to download a file from URL
 function downloadFile(url, destPath) {
@@ -31,18 +30,20 @@ function downloadFile(url, destPath) {
   });
 }
 
-async function main() {
-  if (!fs.existsSync(uploadDir)) {
-    fs.mkdirSync(uploadDir, { recursive: true });
-  }
+let isSyncRunning = false;
 
-  let connection;
+async function syncImages(dbPool = pool) {
+  if (isSyncRunning) return;
+  isSyncRunning = true;
+
   try {
-    connection = await mysql.createConnection({ uri: tidbUri });
+    if (!fs.existsSync(uploadDir)) {
+      fs.mkdirSync(uploadDir, { recursive: true });
+    }
 
-    // Fetch documents
-    const [docs] = await connection.query("SELECT * FROM documents WHERE deleted_at IS NULL");
-    const [nonMotorDocs] = await connection.query("SELECT * FROM non_motor_documents WHERE deleted_at IS NULL");
+    // Use shared pool with query retry
+    const [docs] = await dbPool.query("SELECT * FROM documents WHERE deleted_at IS NULL");
+    const [nonMotorDocs] = await dbPool.query("SELECT * FROM non_motor_documents WHERE deleted_at IS NULL");
     
     const allDocs = [...docs, ...nonMotorDocs];
 
@@ -74,30 +75,35 @@ async function main() {
       try {
         await downloadFile(downloadUrl, destPath);
         downloadCount++;
-        console.log(`[ดาวน์โหลดสำเร็จ] ${doc.name} -> ${filename}`);
+        console.log(`[AutoSync] ดาวน์โหลดสำเร็จ: ${doc.name} -> ${filename}`);
       } catch (err) {
         failCount++;
       }
     }
 
     if (downloadCount > 0) {
-      console.log(`[AutoSync] ดาวน์โหลดรูปล่าสุดเสร็จสิ้น: ${downloadCount} รูป ลงใน D:\\Apple Insurance\\รูป`);
+      console.log(`[AutoSync] ซิงค์ไฟล์รูปภาพใหม่เรียบร้อย: ${downloadCount} รูป`);
     }
-
-    await connection.end();
   } catch (err) {
-    // silently catch connection errors to keep the server clean
+    // Silently catch error to prevent loop breakage
+  } finally {
+    isSyncRunning = false;
   }
 }
 
-// Export a function to start the auto sync loop
-function startAutoSync() {
-  console.log("[AutoSync] ระบบดึงรูปอัตโนมัติแบบเบื้องหลังเริ่มทำงานแล้ว (ดึงลง D:\\Apple Insurance\\รูป)...");
-  setInterval(async () => {
-    try {
-      await main();
-    } catch (e) {}
-  }, 2000);
+// Export a function to start the auto sync loop with reasonable interval (every 30s)
+function startAutoSync(dbPool = pool) {
+  console.log("[AutoSync] ระบบดึงรูปอัตโนมัติแบบเบื้องหลังเริ่มทำงานแล้ว (Sync ทุก 30 วินาที)...");
+  
+  // Initial run after 5 seconds
+  setTimeout(() => {
+    syncImages(dbPool);
+  }, 5000);
+
+  // Periodic run every 30 seconds
+  setInterval(() => {
+    syncImages(dbPool);
+  }, 30000);
 }
 
-module.exports = { startAutoSync };
+module.exports = { startAutoSync, syncImages };
