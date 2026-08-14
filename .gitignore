@@ -1,0 +1,16 @@
+node_modules/
+**/node_modules/
+dist/
+**/dist/
+.env
+**/.env
+.env.*
+!.env.example
+*.log
+backend/test_conn.js
+uploads/
+**/uploads/
+รูป/
+backups/
+.DS_Store
+

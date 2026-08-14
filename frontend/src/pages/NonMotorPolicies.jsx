@@ -3,6 +3,8 @@ import api from '../services/api';
 import { Modal, Button, Form } from 'react-bootstrap';
 import Select from 'react-select';
 import * as XLSX from 'xlsx';
+import { TableSkeleton, tableContainerVariants, tableRowVariants } from '../components/TableSkeleton';
+import { motion } from 'framer-motion';
 
 const formatThaiDate = (dateString) => {
   if (!dateString) return '-';
@@ -16,6 +18,7 @@ const formatThaiDate = (dateString) => {
 
 const NonMotorPolicies = () => {
   const [policies, setPolicies] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [customers, setCustomers] = useState([]);
   const [search, setSearch] = useState('');
   const [showModal, setShowModal] = useState(false);
@@ -73,6 +76,7 @@ const NonMotorPolicies = () => {
   });
 
   const fetchData = async () => {
+    setLoading(true);
     try {
       const [polRes, custRes, typesRes, mdRes] = await Promise.all([
         api.get(`/non-motor-policies?search=${search}`),
@@ -89,6 +93,8 @@ const NonMotorPolicies = () => {
       setJobStatuses(md.filter(m => m.category === 'JobStatus').map(m => ({ value: m.value, label: m.value })));
     } catch (error) {
       console.error(error);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -294,10 +300,10 @@ const NonMotorPolicies = () => {
         </div>
       </div>
 
-      <div className="card shadow-sm border-0">
+      <div className="table-container-enterprise">
         <div className="table-responsive">
-          <table className="table table-hover mb-0 align-middle">
-            <thead className="table-light">
+          <table className="table table-enterprise align-middle">
+            <thead>
               <tr>
                 <th>เลขกรมธรรม์</th>
                 <th>ลูกค้า / ผู้เอาประกัน</th>
@@ -309,33 +315,49 @@ const NonMotorPolicies = () => {
                   วันเริ่ม - สิ้นสุด {sortConfig.key === 'start_date' ? (sortConfig.direction === 'ascending' ? '▲' : '▼') : '⇅'}
                 </th>
                 <th>สถานะ</th>
-                <th>จัดการ</th>
+                <th className="text-end">จัดการ</th>
               </tr>
             </thead>
-            <tbody>
-              {sortedPolicies.length > 0 ? sortedPolicies.map(p => (
-                <tr key={p.id}>
-                  <td><strong>{p.policy_no}</strong></td>
-                  <td>{p.first_name} {p.last_name}<br/><small className="text-muted">{p.insured_name}</small></td>
-                  <td>{p.type_name}<br/><small className="text-muted">{p.company}</small></td>
-                  <td>{new Intl.NumberFormat('th-TH', { style: 'currency', currency: 'THB' }).format(p.sum_insured)}</td>
-                  <td>{new Intl.NumberFormat('th-TH', { style: 'currency', currency: 'THB' }).format(p.total_premium)}</td>
-                  <td>{new Intl.NumberFormat('th-TH', { style: 'currency', currency: 'THB' }).format(p.commission_baht)}</td>
-                  <td>{formatThaiDate(p.start_date)} - {formatThaiDate(p.expiry_date)}</td>
-                  <td>{getStatusBadge(p.status)}</td>
-                  <td>
-                    <button className="btn btn-sm btn-outline-primary me-2" onClick={() => handleOpenModal(p)} title="แก้ไข">
-                      <i className="bi bi-pencil"></i>
-                    </button>
-                    <button className="btn btn-sm btn-outline-danger" onClick={() => handleDelete(p.id)} title="ลบ">
-                      <i className="bi bi-trash"></i>
-                    </button>
-                  </td>
-                </tr>
-              )) : (
-                <tr><td colSpan="9" className="text-center py-4">ไม่พบข้อมูล</td></tr>
-              )}
-            </tbody>
+            {loading ? (
+              <TableSkeleton rows={6} columns={9} />
+            ) : (
+              <motion.tbody
+                variants={tableContainerVariants}
+                initial="hidden"
+                animate="show"
+              >
+                {sortedPolicies.length > 0 ? sortedPolicies.map(p => (
+                  <motion.tr key={p.id} variants={tableRowVariants}>
+                    <td><strong>{p.policy_no}</strong></td>
+                    <td>{p.first_name} {p.last_name}<br/><small className="text-muted">{p.insured_name}</small></td>
+                    <td>{p.type_name}<br/><small className="text-muted">{p.company}</small></td>
+                    <td>{new Intl.NumberFormat('th-TH', { style: 'currency', currency: 'THB' }).format(p.sum_insured)}</td>
+                    <td>{new Intl.NumberFormat('th-TH', { style: 'currency', currency: 'THB' }).format(p.total_premium)}</td>
+                    <td>{new Intl.NumberFormat('th-TH', { style: 'currency', currency: 'THB' }).format(p.commission_baht)}</td>
+                    <td>{formatThaiDate(p.start_date)} - {formatThaiDate(p.expiry_date)}</td>
+                    <td>{getStatusBadge(p.status)}</td>
+                    <td className="text-end">
+                      <button className="btn btn-sm btn-outline-primary me-2" onClick={() => handleOpenModal(p)} title="แก้ไข">
+                        <i className="bi bi-pencil"></i>
+                      </button>
+                      <button className="btn btn-sm btn-outline-danger" onClick={() => handleDelete(p.id)} title="ลบ">
+                        <i className="bi bi-trash"></i>
+                      </button>
+                    </td>
+                  </motion.tr>
+                )) : (
+                  <tr>
+                    <td colSpan="9">
+                      <div className="table-empty-state">
+                        <i className="bi bi-inbox empty-icon"></i>
+                        <div className="empty-title">ไม่พบข้อมูลกรมธรรม์ Non-Motor</div>
+                        <div className="empty-desc">ลองค้นหาด้วยคำค้นอื่น หรือกดปุ่มเพิ่มกรมธรรม์ Non-Motor ด้านบน</div>
+                      </div>
+                    </td>
+                  </tr>
+                )}
+              </motion.tbody>
+            )}
           </table>
         </div>
       </div>

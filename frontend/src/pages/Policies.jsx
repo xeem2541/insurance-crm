@@ -2,6 +2,8 @@ import React, { useState, useEffect } from 'react';
 import api from '../services/api';
 import { Modal, Button, Form } from 'react-bootstrap';
 import Select from 'react-select';
+import { TableSkeleton, tableContainerVariants, tableRowVariants } from '../components/TableSkeleton';
+import { motion } from 'framer-motion';
 
 import * as XLSX from 'xlsx';
 
@@ -28,6 +30,7 @@ const provincesList = [
 
 const Policies = () => {
   const [policies, setPolicies] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [customers, setCustomers] = useState([]);
   const [vehicles, setVehicles] = useState([]);
   const [salesPersons, setSalesPersons] = useState([]);
@@ -111,6 +114,7 @@ const Policies = () => {
   });
 
   const fetchData = async () => {
+    setLoading(true);
     try {
       const [polRes, custRes, vehRes, mdRes] = await Promise.all([
         api.get(`/policies?search=${search}`),
@@ -129,6 +133,8 @@ const Policies = () => {
       setPaymentMethods(md.filter(m => m.category === 'PaymentMethod').map(m => ({ value: m.value, label: m.value })));
     } catch (error) {
       console.error(error);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -261,10 +267,10 @@ const Policies = () => {
         </div>
       </div>
 
-      <div className="card shadow-sm border-0">
+      <div className="table-container-enterprise">
         <div className="table-responsive">
-          <table className="table table-hover mb-0 align-middle">
-            <thead className="table-light">
+          <table className="table table-enterprise align-middle">
+            <thead>
               <tr>
                 <th>เลขกรมธรรม์</th>
                 <th>ลูกค้า</th>
@@ -276,36 +282,52 @@ const Policies = () => {
                   วันเริ่ม - สิ้นสุด {sortConfig.key === 'start_date' ? (sortConfig.direction === 'ascending' ? '▲' : '▼') : '⇅'}
                 </th>
                 <th>สถานะ</th>
-                <th>จัดการ</th>
+                <th className="text-end">จัดการ</th>
               </tr>
             </thead>
-            <tbody>
-              {sortedPolicies.length > 0 ? sortedPolicies.map(p => (
-                <tr key={p.id}>
-                  <td><strong>{p.policy_no}</strong></td>
-                  <td>{p.first_name} {p.last_name}</td>
-                  <td>{p.plate_no ? `${p.plate_no}` : '-'}</td>
-                  <td>{p.company}<br/><small className="text-muted">{p.type} {p.repair_type ? `(${p.repair_type})` : ''}</small></td>
-                  <td>{new Intl.NumberFormat('th-TH', { style: 'currency', currency: 'THB' }).format(p.total_premium)}</td>
-                  <td>{new Intl.NumberFormat('th-TH', { style: 'currency', currency: 'THB' }).format(p.commission_baht)}</td>
-                  <td>{formatThaiDate(p.start_date)} - {formatThaiDate(p.expiry_date)}</td>
-                  <td>{getStatusBadge(p.status)}</td>
-                  <td>
-                    <button className="btn btn-sm btn-outline-primary me-2" onClick={() => handleOpenModal(p)} title="แก้ไข">
-                      <i className="bi bi-pencil"></i>
-                    </button>
-                    <button className="btn btn-sm btn-outline-danger me-2" onClick={() => handleDelete(p.id)} title="ลบ">
-                      <i className="bi bi-trash"></i>
-                    </button>
-                    <button className="btn btn-sm btn-outline-info" onClick={() => window.open(`/print-policy/${p.id}`, '_blank')} title="พิมพ์ใบเสนอราคา">
-                      <i className="bi bi-file-pdf"></i>
-                    </button>
-                  </td>
-                </tr>
-              )) : (
-                <tr><td colSpan="9" className="text-center py-4">ไม่พบข้อมูล</td></tr>
-              )}
-            </tbody>
+            {loading ? (
+              <TableSkeleton rows={6} columns={9} />
+            ) : (
+              <motion.tbody
+                variants={tableContainerVariants}
+                initial="hidden"
+                animate="show"
+              >
+                {sortedPolicies.length > 0 ? sortedPolicies.map(p => (
+                  <motion.tr key={p.id} variants={tableRowVariants}>
+                    <td><strong>{p.policy_no}</strong></td>
+                    <td>{p.first_name} {p.last_name}</td>
+                    <td>{p.plate_no ? `${p.plate_no}` : '-'}</td>
+                    <td>{p.company}<br/><small className="text-muted">{p.type} {p.repair_type ? `(${p.repair_type})` : ''}</small></td>
+                    <td>{new Intl.NumberFormat('th-TH', { style: 'currency', currency: 'THB' }).format(p.total_premium)}</td>
+                    <td>{new Intl.NumberFormat('th-TH', { style: 'currency', currency: 'THB' }).format(p.commission_baht)}</td>
+                    <td>{formatThaiDate(p.start_date)} - {formatThaiDate(p.expiry_date)}</td>
+                    <td>{getStatusBadge(p.status)}</td>
+                    <td className="text-end">
+                      <button className="btn btn-sm btn-outline-primary me-2" onClick={() => handleOpenModal(p)} title="แก้ไข">
+                        <i className="bi bi-pencil"></i>
+                      </button>
+                      <button className="btn btn-sm btn-outline-danger me-2" onClick={() => handleDelete(p.id)} title="ลบ">
+                        <i className="bi bi-trash"></i>
+                      </button>
+                      <button className="btn btn-sm btn-outline-info" onClick={() => window.open(`/print-policy/${p.id}`, '_blank')} title="พิมพ์ใบเสนอราคา">
+                        <i className="bi bi-file-pdf"></i>
+                      </button>
+                    </td>
+                  </motion.tr>
+                )) : (
+                  <tr>
+                    <td colSpan="9">
+                      <div className="table-empty-state">
+                        <i className="bi bi-inbox empty-icon"></i>
+                        <div className="empty-title">ไม่พบข้อมูลกรมธรรม์</div>
+                        <div className="empty-desc">ลองค้นหาด้วยคำค้นอื่น หรือกดปุ่มเพิ่มกรมธรรม์ด้านบน</div>
+                      </div>
+                    </td>
+                  </tr>
+                )}
+              </motion.tbody>
+            )}
           </table>
         </div>
       </div>

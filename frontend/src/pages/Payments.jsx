@@ -2,6 +2,8 @@ import React, { useState, useEffect } from 'react';
 import api from '../services/api';
 import { Modal, Button, Form, Badge, Row, Col } from 'react-bootstrap';
 import * as XLSX from 'xlsx';
+import { TableSkeleton, tableContainerVariants, tableRowVariants } from '../components/TableSkeleton';
+import { motion } from 'framer-motion';
 
 const formatThaiDate = (dateString) => {
   if (!dateString) return '-';
@@ -157,60 +159,76 @@ const Payments = () => {
             </Col>
           </Row>
 
-          <div className="table-responsive">
-            <table className="table table-hover align-middle mb-0">
-              <thead className="table-light">
-                <tr>
-                  <th>วันที่สร้าง</th>
-                  <th>เลขกรมธรรม์</th>
-                  <th>ชื่อลูกค้า</th>
-                  <th>ยอดรวม</th>
-                  <th>รูปแบบ</th>
-                  <th>สถานะ</th>
-                  <th className="text-center">จัดการ</th>
-                </tr>
-              </thead>
-              <tbody>
+          <div className="table-container-enterprise mt-3">
+            <div className="table-responsive">
+              <table className="table table-enterprise align-middle mb-0">
+                <thead>
+                  <tr>
+                    <th>วันที่สร้าง</th>
+                    <th>เลขกรมธรรม์</th>
+                    <th>ชื่อลูกค้า</th>
+                    <th>ยอดรวม</th>
+                    <th>รูปแบบ</th>
+                    <th>สถานะ</th>
+                    <th className="text-end">จัดการ</th>
+                  </tr>
+                </thead>
                 {loading ? (
-                  <tr><td colSpan="7" className="text-center py-5"><div className="spinner-border text-primary"></div></td></tr>
-                ) : filteredData.length === 0 ? (
-                  <tr><td colSpan="7" className="text-center py-5 text-muted">ไม่พบข้อมูลการชำระเงิน</td></tr>
+                  <TableSkeleton rows={6} columns={7} />
                 ) : (
-                  filteredData.map(p => (
-                    <tr key={p.id}>
-                      <td>{formatThaiDate(p.created_at)}</td>
-                      <td className="fw-bold text-primary">{p.policy_no || '-'}</td>
-                      <td>{p.first_name} {p.last_name}</td>
-                      <td className="fw-bold">฿{(Number(p.total_premium)||0).toLocaleString()}</td>
-                      <td>
-                        {p.payment_method === 'เงินสด' ? (
-                          <span className="text-success fw-bold"><i className="bi bi-cash me-1"></i>เงินสด</span>
-                        ) : (
-                          <span className="text-info fw-bold"><i className="bi bi-credit-card me-1"></i>เงินผ่อน ({p.installments} งวด)</span>
-                        )}
-                      </td>
-                      <td>{getStatusBadge(p.status)}</td>
-                      <td className="text-center">
-                        {p.payment_method === 'เงินผ่อน' ? (
-                          <Button variant="outline-primary" size="sm" onClick={() => fetchInstallments(p)}>
-                            <i className="bi bi-list-check me-1"></i> ตารางผ่อน
-                          </Button>
-                        ) : (
-                          p.status !== 'ชำระครบแล้ว' && (
-                            <Button variant="success" size="sm" onClick={() => handleMarkCashPaid(p.id)}>
-                              <i className="bi bi-check-circle me-1"></i> รับชำระ
+                  <motion.tbody
+                    variants={tableContainerVariants}
+                    initial="hidden"
+                    animate="show"
+                  >
+                    {filteredData.length === 0 ? (
+                      <tr>
+                        <td colSpan="7">
+                          <div className="table-empty-state">
+                            <i className="bi bi-inbox empty-icon"></i>
+                            <div className="empty-title">ไม่พบข้อมูลการชำระเงิน</div>
+                            <div className="empty-desc">ลองเปลี่ยนตัวกรอง หรือค้นหาด้วยชื่อหรือเลขกรมธรรม์</div>
+                          </div>
+                        </td>
+                      </tr>
+                    ) : (
+                      filteredData.map(p => (
+                        <motion.tr key={p.id} variants={tableRowVariants}>
+                          <td>{formatThaiDate(p.created_at)}</td>
+                          <td className="fw-bold text-primary">{p.policy_no || '-'}</td>
+                          <td>{p.first_name} {p.last_name}</td>
+                          <td className="fw-bold">฿{(Number(p.total_premium)||0).toLocaleString()}</td>
+                          <td>
+                            {p.payment_method === 'เงินสด' ? (
+                              <span className="text-success fw-bold"><i className="bi bi-cash me-1"></i>เงินสด</span>
+                            ) : (
+                              <span className="text-info fw-bold"><i className="bi bi-credit-card me-1"></i>เงินผ่อน ({p.installments} งวด)</span>
+                            )}
+                          </td>
+                          <td>{getStatusBadge(p.status)}</td>
+                          <td className="text-end">
+                            {p.payment_method === 'เงินผ่อน' ? (
+                              <Button variant="outline-primary" size="sm" onClick={() => fetchInstallments(p)}>
+                                <i className="bi bi-list-check me-1"></i> ตารางผ่อน
+                              </Button>
+                            ) : (
+                              p.status !== 'ชำระครบแล้ว' && (
+                                <Button variant="success" size="sm" onClick={() => handleMarkCashPaid(p.id)}>
+                                  <i className="bi bi-check-circle me-1"></i> รับชำระ
+                                </Button>
+                              )
+                            )}
+                            <Button variant="outline-danger" size="sm" className="ms-2" onClick={() => handleDelete(p.id)} title="ลบรายการ">
+                              <i className="bi bi-trash3"></i>
                             </Button>
-                          )
-                        )}
-                        <Button variant="outline-danger" size="sm" className="ms-2" onClick={() => handleDelete(p.id)} title="ลบรายการ">
-                          <i className="bi bi-trash3"></i>
-                        </Button>
-                      </td>
-                    </tr>
-                  ))
+                          </td>
+                        </motion.tr>
+                      ))
+                    )}
+                  </motion.tbody>
                 )}
-              </tbody>
-            </table>
+              </table>
+            </div>
           </div>
         </div>
       </div>

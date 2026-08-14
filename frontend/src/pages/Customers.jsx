@@ -3,6 +3,8 @@ import api from '../services/api';
 import { Modal, Button, Form } from 'react-bootstrap';
 import Select from 'react-select';
 import ThaiAddressSelect from '../components/ThaiAddressSelect';
+import { TableSkeleton, tableContainerVariants, tableRowVariants } from '../components/TableSkeleton';
+import { motion } from 'framer-motion';
 
 import * as XLSX from 'xlsx';
 
@@ -38,6 +40,7 @@ const formatIdCard = (val) => {
 
 const Customers = () => {
   const [customers, setCustomers] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState(() => sessionStorage.getItem('customersSearch') || '');
   const [selectedMonth, setSelectedMonth] = useState(() => sessionStorage.getItem('customersMonth') || ''); // Month filter
   const [showModal, setShowModal] = useState(false);
@@ -89,6 +92,7 @@ const Customers = () => {
   });
 
   const fetchData = async () => {
+    setLoading(true);
     try {
       const [custRes, mdRes] = await Promise.all([
         api.get(`/customers?search=${search}&month=${selectedMonth}`),
@@ -99,6 +103,8 @@ const Customers = () => {
       setLeadSources(md.filter(m => m.category === 'LeadSource').map(m => ({ value: m.value, label: m.value })));
     } catch (error) {
       console.error(error);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -218,10 +224,10 @@ const Customers = () => {
         </div>
       </div>
 
-      <div className="card shadow-sm border-0">
+      <div className="table-container-enterprise">
         <div className="table-responsive">
-          <table className="table table-hover mb-0 align-middle">
-            <thead className="table-light">
+          <table className="table table-enterprise align-middle">
+            <thead>
               <tr>
                 <th>รหัสลูกค้า</th>
                 <th>ชื่อ - นามสกุล</th>
@@ -231,36 +237,52 @@ const Customers = () => {
                 <th>สถานะลูกค้า</th>
                 <th>สถานะการขาย</th>
                 <th>ที่มา (Source)</th>
-                <th>จัดการ</th>
+                <th className="text-end">จัดการ</th>
               </tr>
             </thead>
-            <tbody>
-              {customers.length > 0 ? customers.map(c => (
-                <tr key={c.id}>
-                  <td><span className="badge bg-secondary">{c.customer_code}</span></td>
-                  <td><strong>{c.prefix}{c.first_name} {c.last_name}</strong></td>
-                  <td>
-                    <div className="small"><i className="bi bi-telephone-fill text-muted"></i> {c.phone}</div>
-                    {c.line_id && <div className="small text-success"><i className="bi bi-line"></i> {c.line_id}</div>}
-                  </td>
-                  <td><span className="fw-bold text-dark">{c.plate_no || '-'}</span></td>
-                  <td>{c.motor_type || c.non_motor_type ? <span className={`badge ${c.motor_type ? 'bg-primary' : 'bg-info'}`}>{c.motor_type || c.non_motor_type}</span> : '-'}</td>
-                  <td>{getStatusBadge(c.customer_status)}</td>
-                  <td>{getStatusBadge(c.lead_status)}</td>
-                  <td>{c.source || '-'}</td>
-                  <td>
-                    <button className="btn btn-sm btn-outline-primary me-2" onClick={() => openEdit(c)} title="แก้ไข">
-                      <i className="bi bi-pencil"></i>
-                    </button>
-                    <button className="btn btn-sm btn-outline-danger" onClick={() => handleDelete(c.id)} title="ลบ">
-                      <i className="bi bi-trash"></i>
-                    </button>
-                  </td>
-                </tr>
-              )) : (
-                <tr><td colSpan="9" className="text-center py-4">ไม่พบข้อมูล</td></tr>
-              )}
-            </tbody>
+            {loading ? (
+              <TableSkeleton rows={6} columns={9} />
+            ) : (
+              <motion.tbody
+                variants={tableContainerVariants}
+                initial="hidden"
+                animate="show"
+              >
+                {customers.length > 0 ? customers.map(c => (
+                  <motion.tr key={c.id} variants={tableRowVariants}>
+                    <td><span className="badge bg-secondary">{c.customer_code}</span></td>
+                    <td><strong>{c.prefix}{c.first_name} {c.last_name}</strong></td>
+                    <td>
+                      <div className="small"><i className="bi bi-telephone-fill text-muted"></i> {c.phone}</div>
+                      {c.line_id && <div className="small text-success"><i className="bi bi-line"></i> {c.line_id}</div>}
+                    </td>
+                    <td><span className="fw-bold">{c.plate_no || '-'}</span></td>
+                    <td>{c.motor_type || c.non_motor_type ? <span className={`badge ${c.motor_type ? 'bg-primary' : 'bg-info'}`}>{c.motor_type || c.non_motor_type}</span> : '-'}</td>
+                    <td>{getStatusBadge(c.customer_status)}</td>
+                    <td>{getStatusBadge(c.lead_status)}</td>
+                    <td>{c.source || '-'}</td>
+                    <td className="text-end">
+                      <button className="btn btn-sm btn-outline-primary me-2" onClick={() => openEdit(c)} title="แก้ไข">
+                        <i className="bi bi-pencil"></i>
+                      </button>
+                      <button className="btn btn-sm btn-outline-danger" onClick={() => handleDelete(c.id)} title="ลบ">
+                        <i className="bi bi-trash"></i>
+                      </button>
+                    </td>
+                  </motion.tr>
+                )) : (
+                  <tr>
+                    <td colSpan="9">
+                      <div className="table-empty-state">
+                        <i className="bi bi-inbox empty-icon"></i>
+                        <div className="empty-title">ไม่พบข้อมูลลูกค้า</div>
+                        <div className="empty-desc">ลองค้นหาด้วยคำค้นอื่น หรือกดปุ่มเพิ่มลูกค้าใหม่ด้านบน</div>
+                      </div>
+                    </td>
+                  </tr>
+                )}
+              </motion.tbody>
+            )}
           </table>
         </div>
       </div>

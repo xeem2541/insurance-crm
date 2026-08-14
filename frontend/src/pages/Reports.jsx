@@ -5,6 +5,8 @@ import * as XLSX from 'xlsx';
 import jsPDF from 'jspdf';
 import 'jspdf-autotable';
 import { BarChart, Bar, LineChart, Line, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
+import { TableSkeleton, tableContainerVariants, tableRowVariants } from '../components/TableSkeleton';
+import { motion } from 'framer-motion';
 
 const formatThaiDate = (dateString) => {
   if (!dateString) return '-';
@@ -89,7 +91,7 @@ const Reports = () => {
 
   const renderTableBody = () => {
     return reportData.map((row, index) => (
-      <tr key={index}>
+      <motion.tr key={index} variants={tableRowVariants}>
         {Object.keys(row).map(key => {
           let val = row[key];
           const keyLower = key.toLowerCase();
@@ -101,7 +103,7 @@ const Reports = () => {
           }
           return <td key={key}>{String(val !== null && val !== undefined ? val : '-')}</td>;
         })}
-      </tr>
+      </motion.tr>
     ));
   };
 
@@ -219,8 +221,8 @@ const Reports = () => {
             </div>
           )}
 
-          <div className="card shadow-sm border-0">
-            <div className="card-header bg-white border-bottom py-3 d-flex justify-content-between align-items-center">
+          <div className="table-container-enterprise">
+            <div className="card-header bg-white border-bottom py-3 px-4 d-flex justify-content-between align-items-center">
               <h5 className="mb-0 fw-bold">ตารางข้อมูล ({reportData.length} รายการ)</h5>
               <div>
                 <button className="btn btn-outline-success me-2 fw-bold" onClick={exportExcel}>
@@ -231,17 +233,25 @@ const Reports = () => {
                 </button>
               </div>
             </div>
-          <div className="table-responsive">
-            <table className="table table-hover mb-0 align-middle">
-              <thead className="table-light">
-                {renderTableHeaders()}
-              </thead>
-              <tbody>
-                {renderTableBody()}
-              </tbody>
-            </table>
+            <div className="table-responsive">
+              <table className="table table-enterprise align-middle">
+                <thead>
+                  {renderTableHeaders()}
+                </thead>
+                {loading ? (
+                  <TableSkeleton rows={6} columns={reportData.length > 0 ? Object.keys(reportData[0]).length : 6} />
+                ) : (
+                  <motion.tbody
+                    variants={tableContainerVariants}
+                    initial="hidden"
+                    animate="show"
+                  >
+                    {renderTableBody()}
+                  </motion.tbody>
+                )}
+              </table>
+            </div>
           </div>
-        </div>
         </>
       )}
     </div>
