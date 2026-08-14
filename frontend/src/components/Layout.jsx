@@ -266,8 +266,80 @@ const Layout = () => {
             </div>
           </div>
         </nav>
-        <div className="p-3 p-lg-4 fade-in flex-grow-1 overflow-auto">
+        <div className="p-3 p-lg-4 fade-in flex-grow-1 overflow-auto mobile-content-pad">
           <Outlet />
+        </div>
+
+        {/* Mobile Bottom Navigation Bar (iOS & Android) */}
+        <div className="mobile-bottom-nav d-lg-none d-flex align-items-center justify-content-around py-2 px-3 shadow-lg" style={{
+          position: 'fixed',
+          bottom: 0,
+          left: 0,
+          right: 0,
+          zIndex: 1040,
+          background: darkMode ? 'rgba(17, 24, 39, 0.95)' : 'rgba(255, 255, 255, 0.95)',
+          backdropFilter: 'blur(20px)',
+          WebkitBackdropFilter: 'blur(20px)',
+          borderTop: darkMode ? '1px solid rgba(255, 255, 255, 0.1)' : '1px solid rgba(0, 0, 0, 0.08)',
+          paddingBottom: 'calc(8px + env(safe-area-inset-bottom, 0px))'
+        }}>
+          {/* Home */}
+          <Link 
+            to="/" 
+            className={`d-flex flex-column align-items-center text-decoration-none ${location.pathname === '/' ? (darkMode ? 'text-warning' : 'text-primary') : (darkMode ? 'text-white-50' : 'text-secondary')}`}
+            style={{ fontSize: '0.72rem', fontWeight: location.pathname === '/' ? '700' : '500', transition: 'all 0.2s ease' }}
+          >
+            <i className={`bi ${location.pathname === '/' ? 'bi-house-door-fill fs-5' : 'bi-house-door fs-5'}`}></i>
+            <span>หน้าแรก</span>
+          </Link>
+
+          {/* Customers */}
+          <Link 
+            to="/customers" 
+            className={`d-flex flex-column align-items-center text-decoration-none ${location.pathname === '/customers' ? (darkMode ? 'text-warning' : 'text-primary') : (darkMode ? 'text-white-50' : 'text-secondary')}`}
+            style={{ fontSize: '0.72rem', fontWeight: location.pathname === '/customers' ? '700' : '500', transition: 'all 0.2s ease' }}
+          >
+            <i className={`bi ${location.pathname === '/customers' ? 'bi-people-fill fs-5' : 'bi-people fs-5'}`}></i>
+            <span>ลูกค้า</span>
+          </Link>
+
+          {/* Center High-Action Button: Issue Policy with AI */}
+          <Link 
+            to="/issue-policy" 
+            className="d-flex flex-column align-items-center justify-content-center text-decoration-none shadow-lg text-white"
+            style={{
+              width: '52px',
+              height: '52px',
+              borderRadius: '50%',
+              background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
+              marginTop: '-22px',
+              border: '3px solid ' + (darkMode ? '#111827' : '#ffffff'),
+              boxShadow: '0 8px 20px rgba(16, 185, 129, 0.4)'
+            }}
+            title="ออกกรมธรรม์ใหม่"
+          >
+            <i className="bi bi-camera-fill fs-4"></i>
+          </Link>
+
+          {/* Policies */}
+          <Link 
+            to="/policies" 
+            className={`d-flex flex-column align-items-center text-decoration-none ${location.pathname === '/policies' ? (darkMode ? 'text-warning' : 'text-primary') : (darkMode ? 'text-white-50' : 'text-secondary')}`}
+            style={{ fontSize: '0.72rem', fontWeight: location.pathname === '/policies' ? '700' : '500', transition: 'all 0.2s ease' }}
+          >
+            <i className={`bi ${location.pathname === '/policies' ? 'bi-shield-fill-check fs-5' : 'bi-shield-check fs-5'}`}></i>
+            <span>ประกันรถ</span>
+          </Link>
+
+          {/* More Menu Drawer Trigger */}
+          <button 
+            onClick={toggleSidebar} 
+            className={`btn btn-link p-0 d-flex flex-column align-items-center text-decoration-none ${darkMode ? 'text-white-50' : 'text-secondary'}`}
+            style={{ fontSize: '0.72rem', fontWeight: '500' }}
+          >
+            <i className="bi bi-grid-fill fs-5"></i>
+            <span>เมนู</span>
+          </button>
         </div>
       </div>
 

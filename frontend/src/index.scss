@@ -1514,3 +1514,77 @@ h1, h2, h3, h4, h5, h6 {
   }
 }
 
+// ==========================================
+// 📱 Mobile (iOS & Android) Touch & Responsive Enhancements
+// ==========================================
+
+* {
+  -webkit-tap-highlight-color: transparent;
+}
+
+html, body {
+  touch-action: manipulation;
+  -webkit-overflow-scrolling: touch;
+}
+
+@media (max-width: 991.98px) {
+  .sidebar {
+    position: fixed;
+    top: 0;
+    bottom: 0;
+    left: -300px;
+    z-index: 1060;
+    transition: left 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+    width: 290px !important;
+    
+    &.open {
+      left: 0;
+      box-shadow: 0 0 50px rgba(0, 0, 0, 0.5);
+    }
+  }
+
+  .sidebar-backdrop {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.6);
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
+    z-index: 1055;
+    opacity: 0;
+    visibility: hidden;
+    transition: all 0.3s ease;
+
+    &.show {
+      opacity: 1;
+      visibility: visible;
+    }
+  }
+
+  .mobile-content-pad {
+    padding-bottom: calc(85px + env(safe-area-inset-bottom, 16px)) !important;
+  }
+
+  // Prevent auto-zoom on iOS Safari focus
+  input, select, textarea, .form-control, .form-select {
+    font-size: 16px !important;
+  }
+
+  // Mobile Action Buttons touch targets
+  .btn {
+    min-height: 44px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  // Smooth table touch scrolling
+  .table-responsive {
+    -webkit-overflow-scrolling: touch;
+    border-radius: 12px;
+  }
+}
+
+
