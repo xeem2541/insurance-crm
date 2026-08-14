@@ -1,12 +1,11 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, memo } from 'react';
 import { Button } from 'react-bootstrap';
 
 /**
- * AiAccuracyHero Component
- * แสดงส่วนหัวข้อสแกนเอกสารด้วย AI พร้อมตัวเลขเปอร์เซ็นต์ความแม่นยำแบบ Dynamic Count-up Animation
- * และเส้น Progress Line แสดงสถานะความแม่นยำเรืองแสง (Neon Glow)
+ * Optimized AiAccuracyHero Component
+ * ปรับปรุงประสิทธิภาพสูงสุด (GPU-Accelerated 60fps/120fps & Memoized) เพื่อความลื่นไหล ไม่กระตุก
  */
-const AiAccuracyHero = ({
+const AiAccuracyHero = memo(({
   accuracyRate = 98.5,
   ocrLoading = false,
   ocrSeconds = 0,
@@ -15,76 +14,62 @@ const AiAccuracyHero = ({
   onFileClick,
   onHelpClick
 }) => {
-  const [animatedAccuracy, setAnimatedAccuracy] = useState(0);
+  const targetVal = Math.min(100, Math.max(0, Number(accuracyRate) || 98.5));
+  const [displayNumber, setDisplayNumber] = useState(0);
+  const [isLoaded, setIsLoaded] = useState(false);
 
-  // Smooth Count-up Animation Effect
+  // Smooth Throttled Count-up (Lightweight 24 ticks, zero lag on main thread)
   useEffect(() => {
-    let startTimestamp = null;
-    const duration = 1800; // 1.8 seconds animation
-    const targetValue = Math.min(100, Math.max(0, Number(accuracyRate) || 98.5));
+    setIsLoaded(true);
+    let current = 0;
+    const duration = 1200; // 1.2s
+    const totalSteps = 24; 
+    const stepTime = duration / totalSteps;
+    const increment = targetVal / totalSteps;
 
-    const step = (timestamp) => {
-      if (!startTimestamp) startTimestamp = timestamp;
-      const progress = Math.min((timestamp - startTimestamp) / duration, 1);
-      
-      // Ease-out Cubic easing curve for natural smooth slowdown
-      const easeOutProgress = 1 - Math.pow(1 - progress, 3);
-      const currentVal = easeOutProgress * targetValue;
-      
-      setAnimatedAccuracy(currentVal);
-
-      if (progress < 1) {
-        window.requestAnimationFrame(step);
+    const timer = setInterval(() => {
+      current += increment;
+      if (current >= targetVal) {
+        setDisplayNumber(targetVal);
+        clearInterval(timer);
       } else {
-        setAnimatedAccuracy(targetValue);
+        setDisplayNumber(current);
       }
-    };
+    }, stepTime);
 
-    const animId = window.requestAnimationFrame(step);
-    return () => window.cancelAnimationFrame(animId);
-  }, [accuracyRate]);
+    return () => clearInterval(timer);
+  }, [targetVal]);
 
   return (
     <div 
       className="card border-0 mb-4 overflow-hidden position-relative shadow-lg" 
       style={{ 
         background: 'linear-gradient(135deg, #09151b 0%, #0f2b35 50%, #163e4d 100%)',
-        boxShadow: '0 20px 45px rgba(0,0,0,0.35)',
+        boxShadow: '0 16px 40px rgba(0,0,0,0.3)',
         borderRadius: '24px',
-        border: '1px solid rgba(0, 255, 136, 0.15)'
+        border: '1px solid rgba(0, 255, 136, 0.15)',
+        transform: 'translateZ(0)',
+        willChange: 'transform'
       }}
     >
-      {/* Decorative Cyber Ambient Glow Orbs */}
+      {/* Decorative Glow Orb */}
       <div 
         style={{
           position: 'absolute', 
-          top: '-60px', 
-          right: '-40px', 
-          width: '260px', 
-          height: '260px',
-          background: 'radial-gradient(circle, rgba(0, 255, 136, 0.22) 0%, rgba(0, 255, 136, 0.05) 50%, rgba(0,0,0,0) 75%)',
+          top: '-50px', 
+          right: '-30px', 
+          width: '240px', 
+          height: '240px',
+          background: 'radial-gradient(circle, rgba(0, 255, 136, 0.18) 0%, rgba(0,0,0,0) 70%)',
           borderRadius: '50%', 
-          zIndex: 0,
-          pointerEvents: 'none'
-        }}
-      />
-      <div 
-        style={{
-          position: 'absolute', 
-          bottom: '-50px', 
-          left: '-30px', 
-          width: '200px', 
-          height: '200px',
-          background: 'radial-gradient(circle, rgba(13, 202, 240, 0.18) 0%, rgba(0,0,0,0) 70%)',
-          borderRadius: '50%', 
-          zIndex: 0,
-          pointerEvents: 'none'
+          pointerEvents: 'none',
+          transform: 'translateZ(0)'
         }}
       />
 
       <div className="card-body text-center py-5 px-3 px-md-4 position-relative" style={{ zIndex: 1 }}>
         
-        {/* 1. Main Header */}
+        {/* Main Header */}
         <div className="d-flex align-items-center justify-content-center gap-2 mb-2">
           <div 
             className="d-inline-flex align-items-center justify-content-center rounded-circle"
@@ -110,28 +95,26 @@ const AiAccuracyHero = ({
           </h2>
         </div>
 
-        {/* 2. Dynamic Accuracy Display Card & Count-up Animation */}
+        {/* Dynamic Accuracy Card */}
         <div 
           className="mx-auto my-3 p-3 p-md-4 rounded-4"
           style={{
             maxWidth: '560px',
-            background: 'rgba(5, 18, 24, 0.65)',
-            backdropFilter: 'blur(12px)',
-            WebkitBackdropFilter: 'blur(12px)',
+            background: 'rgba(5, 18, 24, 0.75)',
             border: '1px solid rgba(0, 255, 136, 0.22)',
-            boxShadow: 'inset 0 1px 1px rgba(255,255,255,0.1), 0 10px 30px rgba(0,0,0,0.25)'
+            boxShadow: '0 8px 24px rgba(0,0,0,0.25)',
+            transform: 'translateZ(0)'
           }}
         >
           <div className="d-flex flex-column align-items-center">
             
-            {/* Header Badge */}
             <div className="d-flex align-items-center gap-2 mb-1">
               <span className="badge rounded-pill bg-success-subtle text-success px-3 py-1 fw-semibold border border-success-subtle" style={{ fontSize: '0.78rem' }}>
                 <i className="bi bi-activity me-1"></i> AI Live Performance
               </span>
             </div>
 
-            {/* Big Neon Glow Percentage Number */}
+            {/* Big Neon Glow Percentage */}
             <div className="d-flex align-items-baseline justify-content-center my-1">
               <span 
                 className="fw-bold" 
@@ -145,7 +128,7 @@ const AiAccuracyHero = ({
                   textShadow: '0 0 20px rgba(0, 255, 136, 0.75), 0 0 45px rgba(0, 255, 136, 0.35)'
                 }}
               >
-                {animatedAccuracy.toFixed(1)}
+                {displayNumber.toFixed(1)}
               </span>
               <span 
                 className="fw-bold ms-1"
@@ -159,14 +142,12 @@ const AiAccuracyHero = ({
               </span>
             </div>
 
-            {/* Subtext */}
             <div className="text-white-50 small mt-1" style={{ fontSize: '0.86rem', letterSpacing: '0.2px' }}>
               <i className="bi bi-shield-check text-success me-1"></i> ความแม่นยำเฉลี่ยจากสถิติระบบล่าสุด (คำนวณและปรับอัตโนมัติ)
             </div>
 
-            {/* 3. Sleek Glowing Progress Line Indicator */}
+            {/* 60fps GPU-Accelerated CSS Transition Progress Line */}
             <div className="w-100 mt-3 position-relative" style={{ maxWidth: '420px' }}>
-              {/* Progress Track Background */}
               <div 
                 className="w-100 rounded-pill overflow-hidden" 
                 style={{ 
@@ -175,32 +156,32 @@ const AiAccuracyHero = ({
                   boxShadow: 'inset 0 1px 3px rgba(0,0,0,0.4)'
                 }}
               >
-                {/* Active Progress Bar */}
                 <div 
-                  className="h-100 rounded-pill position-relative"
+                  className="h-100 rounded-pill"
                   style={{ 
-                    width: `${Math.min(100, Math.max(0, animatedAccuracy))}%`,
+                    width: isLoaded ? `${targetVal}%` : '0%',
                     background: 'linear-gradient(90deg, #00b09b 0%, #00ff88 70%, #a8ff78 100%)',
-                    boxShadow: '0 0 14px rgba(0, 255, 136, 0.9), 0 0 25px rgba(0, 255, 136, 0.45)',
-                    transition: 'width 0.1s linear'
+                    boxShadow: '0 0 14px rgba(0, 255, 136, 0.9)',
+                    transition: 'width 1.4s cubic-bezier(0.16, 1, 0.3, 1)',
+                    transform: 'translateZ(0)'
                   }}
                 />
               </div>
 
-              {/* Glowing Indicator Dot at the Tip */}
+              {/* Glowing Dot at the Tip */}
               <div 
                 style={{
                   position: 'absolute',
                   top: '50%',
-                  left: `calc(${Math.min(100, Math.max(0, animatedAccuracy))}% - 6px)`,
-                  transform: 'translateY(-50%)',
+                  left: isLoaded ? `calc(${targetVal}% - 6px)` : '-6px',
+                  transform: 'translateY(-50%) translateZ(0)',
                   width: '12px',
                   height: '12px',
                   borderRadius: '50%',
                   background: '#ffffff',
                   boxShadow: '0 0 10px #00ff88, 0 0 20px #00ff88',
                   pointerEvents: 'none',
-                  transition: 'left 0.1s linear'
+                  transition: 'left 1.4s cubic-bezier(0.16, 1, 0.3, 1)'
                 }}
               />
             </div>
@@ -208,7 +189,7 @@ const AiAccuracyHero = ({
           </div>
         </div>
 
-        {/* 4. Gemini Badge & Settings Button */}
+        {/* Gemini Badge & Settings Button */}
         <div className="mb-4 d-flex justify-content-center align-items-center gap-2 flex-wrap">
           <span 
             className="badge rounded-pill px-3 py-2 shadow-sm d-inline-flex align-items-center" 
@@ -226,8 +207,8 @@ const AiAccuracyHero = ({
             type="button"
             className="btn btn-sm btn-outline-light rounded-pill px-3 shadow-sm" 
             style={{ 
-              backdropFilter: 'blur(6px)', 
               borderColor: 'rgba(255,255,255,0.35)',
+              background: 'rgba(255,255,255,0.08)',
               fontSize: '0.82rem',
               fontWeight: '500'
             }}
@@ -237,7 +218,7 @@ const AiAccuracyHero = ({
           </button>
         </div>
 
-        {/* 5. Action Buttons / Loading Status */}
+        {/* Action Buttons / Loading Status */}
         {ocrLoading ? (
           <div className="d-flex flex-column align-items-center justify-content-center fw-bold mt-4" style={{ color: '#00ff88' }}>
             <div 
@@ -264,15 +245,16 @@ const AiAccuracyHero = ({
                   border: 'none',
                   cursor: 'pointer',
                   fontSize: '1.05rem',
-                  transition: 'all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275)'
+                  transition: 'transform 0.2s ease, box-shadow 0.2s ease',
+                  transform: 'translateZ(0)'
                 }}
                 onMouseOver={(e) => { 
-                  e.currentTarget.style.transform = 'translateY(-3px) scale(1.03)'; 
-                  e.currentTarget.style.boxShadow = '0 12px 28px rgba(0, 176, 155, 0.45)'; 
+                  e.currentTarget.style.transform = 'translateY(-2px) scale(1.02)'; 
+                  e.currentTarget.style.boxShadow = '0 10px 24px rgba(0, 176, 155, 0.4)'; 
                 }}
                 onMouseOut={(e) => { 
                   e.currentTarget.style.transform = 'translateY(0) scale(1)'; 
-                  e.currentTarget.style.boxShadow = '0 8px 20px rgba(0,0,0,0.2)'; 
+                  e.currentTarget.style.boxShadow = '0 6px 16px rgba(0,0,0,0.2)'; 
                 }}
                 onClick={onCameraClick}
               >
@@ -289,18 +271,16 @@ const AiAccuracyHero = ({
                   color: '#fff', 
                   cursor: 'pointer',
                   fontSize: '1.05rem',
-                  backdropFilter: 'blur(4px)',
-                  transition: 'all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275)'
+                  transition: 'transform 0.2s ease, background 0.2s ease',
+                  transform: 'translateZ(0)'
                 }}
                 onMouseOver={(e) => { 
-                  e.currentTarget.style.transform = 'translateY(-3px) scale(1.03)'; 
-                  e.currentTarget.style.background = 'rgba(255,255,255,0.16)'; 
-                  e.currentTarget.style.borderColor = '#ffffff';
+                  e.currentTarget.style.transform = 'translateY(-2px) scale(1.02)'; 
+                  e.currentTarget.style.background = 'rgba(255,255,255,0.15)'; 
                 }}
                 onMouseOut={(e) => { 
                   e.currentTarget.style.transform = 'translateY(0) scale(1)'; 
                   e.currentTarget.style.background = 'rgba(255,255,255,0.06)'; 
-                  e.currentTarget.style.borderColor = 'rgba(255,255,255,0.45)';
                 }}
                 onClick={onFileClick}
               >
@@ -309,7 +289,6 @@ const AiAccuracyHero = ({
               </Button>
             </div>
 
-            {/* Helper tips */}
             <div className="w-100 text-center mt-3 text-white-50 small">
               <i className="bi bi-info-circle me-1 text-info"></i> 
               คำแนะนำ: ถ่ายภาพด้วยกล้องหลัก 1x เพื่อความคมชัดสูงสุด{' '}
@@ -325,6 +304,8 @@ const AiAccuracyHero = ({
       </div>
     </div>
   );
-};
+});
+
+AiAccuracyHero.displayName = 'AiAccuracyHero';
 
 export default AiAccuracyHero;
