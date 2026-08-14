@@ -78,11 +78,18 @@ router.post('/test-key', async (req, res) => {
     const errorMsg = err.response?.data?.error?.message || err.message;
     console.warn("API Key test failed:", errorMsg);
     
+    let friendlyMsg = `ไม่สามารถเชื่อมต่อ Google Gemini API ได้: ${errorMsg}`;
+    if (errorMsg.includes('invalid authentication credentials') || errorMsg.includes('OAuth 2')) {
+      friendlyMsg = 'รูปแบบ API Key ไม่ถูกต้อง (ไม่ใช่ Google AI Studio API Key): คีย์ที่ถูกต้องจะต้องขึ้นต้นด้วย "AIzaSy..." จาก Google AI Studio';
+    } else if (errorMsg.includes('API key not valid') || errorMsg.includes('API_KEY_INVALID')) {
+      friendlyMsg = 'API Key ไม่ถูกต้อง หรือถูกยกเลิกแล้ว: กรุณาตรวจสอบหรือสร้าง API Key ใหม่ที่ Google AI Studio';
+    }
+    
     return res.status(status === 400 || status === 401 || status === 403 ? 400 : 500).json({
       success: false,
       durationMs: duration,
       error: 'INVALID_API_KEY',
-      message: `ไม่สามารถเชื่อมต่อ Google Gemini API ได้: ${errorMsg}`
+      message: friendlyMsg
     });
   }
 });

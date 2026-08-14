@@ -1122,10 +1122,20 @@ const IssuePolicyForm = () => {
         message: `✅ เชื่อมต่อ Google Gemini AI สำเร็จ (${elapsed}ms) - คีย์ถูกต้องพร้อมใช้งาน!`
       });
     } catch (directErr) {
-      if (directErr.response?.data?.error?.message) {
+      const rawMsg = directErr.response?.data?.error?.message || '';
+      if (rawMsg) {
+        let friendlyMsg = `Google API แจ้งเตือน: ${rawMsg}`;
+        if (rawMsg.includes('invalid authentication credentials') || rawMsg.includes('OAuth 2') || rawMsg.includes('login cookie')) {
+          friendlyMsg = '❌ รูปแบบ API Key ไม่ถูกต้อง: กรุณาใช้ Gemini API Key จาก Google AI Studio (คีย์ที่ถูกต้องจะขึ้นต้นด้วย "AIzaSy...") ไม่ใช่ OAuth Token หรือ Token อื่น';
+        } else if (rawMsg.includes('API key not valid') || rawMsg.includes('API_KEY_INVALID')) {
+          friendlyMsg = '❌ API Key ไม่ถูกต้อง หรือถูกระงับ/ยกเลิกแล้ว: กรุณาตรวจสอบหรือสร้าง API Key ใหม่ที่ Google AI Studio';
+        } else if (rawMsg.includes('RESOURCE_EXHAUSTED') || rawMsg.includes('quota') || rawMsg.includes('RATE_LIMIT')) {
+          friendlyMsg = '⚠️ โควตาการใช้งานเต็มชั่วคราว (Quota Exceeded): กรุณารอสักครู่แล้วลองใหม่ หรือสร้าง API Key จากโปรเจกต์ใหม่ใน Google AI Studio';
+        }
+
         setApiKeyTestResult({
           success: false,
-          message: `Google API แจ้งเตือน: ${directErr.response.data.error.message}`
+          message: friendlyMsg
         });
         return;
       }
@@ -1134,7 +1144,7 @@ const IssuePolicyForm = () => {
         const serverRes = await api.post('/ai-ocr/test-key', { apiKey: key });
         setApiKeyTestResult({ success: true, message: serverRes.data.message });
       } catch (err) {
-        const msg = err.response?.data?.message || directErr.message || 'ไม่สามารถเชื่อมต่อกับ Google AI ได้';
+        const msg = err.response?.data?.message || directErr.message || 'ไม่สามารถเชื่อมต่อกับ Google AI ได้ กรุณาตรวจสอบอินเทอร์เน็ตหรือความถูกต้องของ API Key';
         setApiKeyTestResult({ success: false, message: msg });
       }
     } finally {
