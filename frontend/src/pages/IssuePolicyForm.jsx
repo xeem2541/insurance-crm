@@ -522,6 +522,20 @@ const sanitizeAIResponse = (data) => {
     if (sanitized.customer.id_card_no) {
       const cleaned = sanitized.customer.id_card_no.replace(/\D/g, '');
       sanitized.customer.id_card_no = (cleaned.length === 13) ? cleaned : '';
+      if (cleaned.length === 13) {
+        let sum = 0;
+        for (let i = 0; i < 12; i++) {
+          sum += parseInt(cleaned.charAt(i), 10) * (13 - i);
+        }
+        const checkDigit = (11 - (sum % 11)) % 10;
+        if (checkDigit !== parseInt(cleaned.charAt(12), 10)) {
+          if (!sanitized.validation) sanitized.validation = { is_clear: true, warning_message: '', is_expired: false };
+          const idWarning = 'เลขบัตรประชาชนตรวจสอบสูตร Check Digit ไม่ผ่าน (อาจมีตัวเลขผิดพลาดในรูปภาพ)';
+          sanitized.validation.warning_message = sanitized.validation.warning_message 
+            ? `${sanitized.validation.warning_message} * ${idWarning}` 
+            : idWarning;
+        }
+      }
     } else {
       sanitized.customer.id_card_no = '';
     }
@@ -1021,25 +1035,41 @@ const IssuePolicyForm = () => {
   const [zoomLevel, setZoomLevel] = useState(1);
   const [rotation, setRotation] = useState(0);
   const [previewModalUrl, setPreviewModalUrl] = useState(null);
-const [showCameraHelp, setShowCameraHelp] = useState(false);
+  const [showCameraHelp, setShowCameraHelp] = useState(false);
+  const [showApiKeyModal, setShowApiKeyModal] = useState(false);
+  const [apiKeyInput, setApiKeyInput] = useState(localStorage.getItem('geminiApiKey') || '');
+  const [showApiKeyText, setShowApiKeyText] = useState(false);
+  const [apiKeyTestLoading, setApiKeyTestLoading] = useState(false);
+  const [apiKeyTestResult, setApiKeyTestResult] = useState(null);
 
   const fileInputRef = useRef(null);
   const cameraInputRef = useRef(null);
   const cameraScanInputRef = useRef(null);
 
+  const handleTestApiKey = async (keyToTest) => {
+    const key = (keyToTest !== undefined ? keyToTest : apiKeyInput).trim();
+    if (!key) {
+      setApiKeyTestResult({ success: false, message: 'กรุณากรอก API Key ก่อนทำการทดสอบ' });
+      return;
+    }
+    setApiKeyTestLoading(true);
+    setApiKeyTestResult(null);
+    try {
+      const res = await api.post('/ai-ocr/test-key', { apiKey: key });
+      setApiKeyTestResult({ success: true, message: res.data.message });
+    } catch (err) {
+      const msg = err.response?.data?.message || err.message || 'ไม่สามารถเชื่อมต่อได้';
+      setApiKeyTestResult({ success: false, message: msg });
+    } finally {
+      setApiKeyTestLoading(false);
+    }
+  };
+
   const handleAIExtract = async (e) => {
     const rawFiles = Array.from(e.target.files);
     if (!rawFiles.length) return;
 
-    let geminiApiKey = localStorage.getItem('geminiApiKey');
-    if (!geminiApiKey) {
-      geminiApiKey = window.prompt('ระบบจำเป็นต้องใช้ Gemini API Key ในการอ่านรูปภาพ (ฟรี 100%)\nกรุณาใส่ API Key ของคุณที่ได้จาก Google AI Studio:');
-      if (!geminiApiKey) {
-        e.target.value = null;
-        return;
-      }
-      localStorage.setItem('geminiApiKey', geminiApiKey);
-    }
+    let geminiApiKey = localStorage.getItem('geminiApiKey') || '';
 
     setOcrLoading(true);
     setOcrSeconds(0);
@@ -1074,9 +1104,12 @@ const [showCameraHelp, setShowCameraHelp] = useState(false);
         const formData = new FormData();
         formData.append('images', compressedFile);
 
-        const res = await api.post('/ai-ocr/extract', formData, {
-          headers: { 'x-gemini-api-key': geminiApiKey }
-        });
+        const headers = {};
+        if (geminiApiKey) {
+          headers['x-gemini-api-key'] = geminiApiKey;
+        }
+
+        const res = await api.post('/ai-ocr/extract', formData, { headers });
 
         const data = sanitizeAIResponse(res.data);
 
@@ -1257,12 +1290,16 @@ const [showCameraHelp, setShowCameraHelp] = useState(false);
 
       alert('ดึงข้อมูลจากรูปภาพและแยกชุดเอกสารสำเร็จ! กรุณาตรวจสอบรายละเอียดความถูกต้องทีละชุดก่อนบันทึกนะครับ');
     } catch (err) {
-      if (err.response?.data?.error === 'GEMINI_API_KEY_REQUIRED' || err.response?.data?.error === 'OPENAI_API_KEY_REQUIRED') {
-        alert('API Key ของ Gemini ไม่ถูกต้องหรือหมดอายุ กรุณาตั้งค่าใหม่ครับ');
-        localStorage.removeItem('geminiApiKey');
+      const errCode = err.response?.data?.error;
+      const errMsg = err.response?.data?.message || err.response?.data?.error || err.message;
+      if (errCode === 'GEMINI_API_KEY_REQUIRED' || errCode === 'INVALID_GEMINI_API_KEY') {
+        setShowApiKeyModal(true);
+        setApiKeyTestResult({
+          success: false,
+          message: `${errMsg} กรุณากรอก Gemini API Key เพื่อเริ่มใช้งาน (ขอรับฟรีได้ที่ Google AI Studio)`
+        });
       } else {
-        const errorMsg = err.response?.data?.error || err.message || JSON.stringify(err.response?.data);
-        alert(`เกิดข้อผิดพลาดในการดึงข้อมูลด้วย AI: ${errorMsg}`);
+        alert(`เกิดข้อผิดพลาดในการดึงข้อมูลด้วย AI: ${errMsg}`);
       }
     } finally {
       setOcrLoading(false);
@@ -1831,11 +1868,16 @@ const [showCameraHelp, setShowCameraHelp] = useState(false);
             }}>
               <i className="bi bi-cpu-fill me-1"></i> ขับเคลื่อนโดย Gemini AI
             </span>
-            <button className="btn btn-sm btn-outline-light rounded-pill px-3 opacity-75 hover-opacity-100" onClick={() => {
-              const key = window.prompt('กรุณาใส่ Gemini API Key ใหม่ (ขอรับฟรีได้ที่ aistudio.google.com):', localStorage.getItem('geminiApiKey') || '');
-              if(key) localStorage.setItem('geminiApiKey', key);
-            }}>
-              <i className="bi bi-gear-fill me-1"></i> ตั้งค่า API Key
+            <button 
+              className="btn btn-sm btn-outline-light rounded-pill px-3 opacity-75 hover-opacity-100 shadow-sm" 
+              style={{ backdropFilter: 'blur(4px)', borderColor: 'rgba(255,255,255,0.4)' }}
+              onClick={() => {
+                setApiKeyInput(localStorage.getItem('geminiApiKey') || '');
+                setApiKeyTestResult(null);
+                setShowApiKeyModal(true);
+              }}
+            >
+              <i className="bi bi-gear-fill me-1"></i> ตั้งค่า / ทดสอบ API Key
             </button>
           </div>
 
@@ -2734,6 +2776,115 @@ const [showCameraHelp, setShowCameraHelp] = useState(false);
           <Button variant="secondary" onClick={() => setShowCameraHelp(false)} className="fw-bold px-4 rounded-pill">
             เข้าใจแล้ว
           </Button>
+        </Modal.Footer>
+      </Modal>
+
+      {/* Gemini API Key Settings & Test Modal */}
+      <Modal show={showApiKeyModal} onHide={() => setShowApiKeyModal(false)} centered backdrop="static">
+        <Modal.Header closeButton className="border-0 pb-0">
+          <Modal.Title className="fw-bold fs-5 text-primary">
+            <i className="bi bi-key-fill me-2"></i>ตั้งค่า Gemini AI API Key
+          </Modal.Title>
+        </Modal.Header>
+        <Modal.Body className="pt-2">
+          <p className="text-muted small mb-3">
+            ระบบใช้ Gemini AI ในการอ่านเอกสารตารางกรมธรรม์และเล่มทะเบียน สามารถขอรับ API Key ได้ฟรีจาก Google AI Studio
+          </p>
+
+          <Form.Group className="mb-3">
+            <Form.Label className="fw-bold small text-secondary">
+              Gemini API Key
+              {localStorage.getItem('geminiApiKey') && (
+                <span className="badge bg-success-subtle text-success ms-2">บันทึกอยู่ในเครื่องแล้ว</span>
+              )}
+            </Form.Label>
+            <div className="input-group">
+              <Form.Control
+                type={showApiKeyText ? "text" : "password"}
+                placeholder="วาง API Key ที่นี่ (เช่น AIzaSy...)"
+                value={apiKeyInput}
+                onChange={(e) => {
+                  setApiKeyInput(e.target.value);
+                  setApiKeyTestResult(null);
+                }}
+                className="font-monospace"
+              />
+              <Button 
+                variant="outline-secondary" 
+                onClick={() => setShowApiKeyText(!showApiKeyText)}
+                title={showApiKeyText ? "ซ่อนคีย์" : "แสดงคีย์"}
+              >
+                <i className={`bi bi-eye${showApiKeyText ? '-slash' : ''}`}></i>
+              </Button>
+            </div>
+          </Form.Group>
+
+          {apiKeyTestResult && (
+            <div className={`alert alert-${apiKeyTestResult.success ? 'success' : 'danger'} py-2 px-3 small mb-3 border-0 rounded-3`}>
+              <i className={`bi bi-${apiKeyTestResult.success ? 'check-circle-fill' : 'exclamation-circle-fill'} me-2`}></i>
+              {apiKeyTestResult.message}
+            </div>
+          )}
+
+          <div className="d-flex justify-content-between align-items-center bg-light p-3 rounded-3 mb-2">
+            <div>
+              <div className="fw-bold small text-dark"><i className="bi bi-info-circle text-primary me-1"></i>ยังไม่มี API Key?</div>
+              <div className="text-muted" style={{ fontSize: '0.8rem' }}>ขอรับฟรี 100% ไม่ต้องผูกบัตรเครดิต</div>
+            </div>
+            <a 
+              href="https://aistudio.google.com/app/apikey" 
+              target="_blank" 
+              rel="noopener noreferrer" 
+              className="btn btn-sm btn-outline-primary fw-bold"
+            >
+              รับ API Key ฟรี <i className="bi bi-box-arrow-up-right ms-1"></i>
+            </a>
+          </div>
+        </Modal.Body>
+        <Modal.Footer className="border-0 pt-0 d-flex justify-content-between">
+          <Button 
+            variant="outline-danger" 
+            size="sm"
+            onClick={() => {
+              localStorage.removeItem('geminiApiKey');
+              setApiKeyInput('');
+              setApiKeyTestResult({ success: true, message: 'ล้างค่า API Key เรียบร้อยแล้ว (จะใช้คีย์ของระบบ Server ถ้ามี)' });
+            }}
+          >
+            <i className="bi bi-trash me-1"></i> ล้างคีย์
+          </Button>
+
+          <div className="d-flex gap-2">
+            <Button 
+              variant="outline-info" 
+              size="sm"
+              disabled={apiKeyTestLoading || !apiKeyInput.trim()}
+              onClick={() => handleTestApiKey(apiKeyInput)}
+              className="fw-bold"
+            >
+              {apiKeyTestLoading ? (
+                <><span className="spinner-border spinner-border-sm me-1"></span>กำลังทดสอบ...</>
+              ) : (
+                <><i className="bi bi-broadcast me-1"></i>ทดสอบเชื่อมต่อ</>
+              )}
+            </Button>
+
+            <Button 
+              variant="primary" 
+              size="sm"
+              className="fw-bold px-3"
+              onClick={() => {
+                if (apiKeyInput.trim()) {
+                  localStorage.setItem('geminiApiKey', apiKeyInput.trim());
+                } else {
+                  localStorage.removeItem('geminiApiKey');
+                }
+                setShowApiKeyModal(false);
+              }}
+            >
+              <i className="bi bi-check-lg me-1"></i> บันทึกและปิด
+            </Button>
+          </div>
         </Modal.Footer>
       </Modal>
     </div>

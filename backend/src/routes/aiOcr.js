@@ -5,7 +5,87 @@ const { authenticateToken } = require('../middlewares/auth');
 const axios = require('axios');
 
 // Use memory storage for quick processing without saving to disk permanently
-const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 10 * 1024 * 1024 } }); // 10MB max
+const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 15 * 1024 * 1024 } }); // 15MB max
+
+// Helper function to validate Thai National ID (13 digits, Modulo 11 check digit)
+function validateThaiIdCard(idStr) {
+  if (!idStr) return { valid: false, message: '' };
+  const cleanId = idStr.toString().replace(/\D/g, '');
+  if (cleanId.length === 0) return { valid: false, message: '' };
+  if (cleanId.length !== 13) {
+    return { valid: false, message: `เลขบัตรประชาชนที่สแกนได้มี ${cleanId.length} หลัก (ต้องมี 13 หลัก)` };
+  }
+  let sum = 0;
+  for (let i = 0; i < 12; i++) {
+    sum += parseInt(cleanId.charAt(i), 10) * (13 - i);
+  }
+  const checkDigit = (11 - (sum % 11)) % 10;
+  const lastDigit = parseInt(cleanId.charAt(12), 10);
+  if (checkDigit !== lastDigit) {
+    return { valid: false, message: 'เลขบัตรประชาชนไม่ตรงตามสูตรคำนวณมาตรฐาน (Check Digit ตรวจสอบไม่ผ่าน)' };
+  }
+  return { valid: true, message: '' };
+}
+
+// Helper function to validate Vehicle Identification Number (VIN / Chassis No.)
+function validateVin(vinStr) {
+  if (!vinStr) return { valid: true, message: '' };
+  const cleanVin = vinStr.toString().replace(/[^a-zA-Z0-9]/g, '').toUpperCase();
+  if (cleanVin.length === 0) return { valid: true, message: '' };
+  if (cleanVin.length !== 17) {
+    return { valid: false, message: `เลขตัวถัง (VIN) ที่สแกนได้มี ${cleanVin.length} หลัก (มาตรฐานต้องมี 17 หลัก)` };
+  }
+  if (/[IOQ]/.test(cleanVin)) {
+    return { valid: false, message: 'เลขตัวถัง (VIN) มีตัวอักษรต้องห้ามตามมาตรฐาน ISO (I, O, Q) กรุณาตรวจสอบอีกครั้ง' };
+  }
+  return { valid: true, message: '' };
+}
+
+// Endpoint to test Gemini API Key connectivity and latency
+router.post('/test-key', async (req, res) => {
+  const start = Date.now();
+  const apiKey = (req.body?.apiKey || req.headers['x-gemini-api-key'] || process.env.GEMINI_API_KEY || '').trim();
+  
+  if (!apiKey) {
+    return res.status(400).json({ 
+      success: false, 
+      error: 'NO_KEY_PROVIDED', 
+      message: 'กรุณาระบุ Gemini API Key สำหรับทดสอบ' 
+    });
+  }
+
+  try {
+    const modelsRes = await axios.get(`https://generativelanguage.googleapis.com/v1beta/models?key=${apiKey}`, {
+      timeout: 8000
+    });
+    
+    const duration = Date.now() - start;
+    const allModels = modelsRes.data?.models || [];
+    const available = allModels
+      .filter(m => m.supportedGenerationMethods?.includes('generateContent'))
+      .map(m => m.name.replace('models/', ''));
+    
+    return res.json({
+      success: true,
+      durationMs: duration,
+      availableModelsCount: available.length,
+      availableModels: available.slice(0, 10),
+      message: `เชื่อมต่อสำเร็จ! พร้อมใช้งานกับ Google AI (เวลาตอบสนอง: ${duration} ms, รองรับ ${available.length} โมเดล)`
+    });
+  } catch (err) {
+    const duration = Date.now() - start;
+    const status = err.response?.status || 500;
+    const errorMsg = err.response?.data?.error?.message || err.message;
+    console.warn("API Key test failed:", errorMsg);
+    
+    return res.status(status === 400 || status === 401 || status === 403 ? 400 : 500).json({
+      success: false,
+      durationMs: duration,
+      error: 'INVALID_API_KEY',
+      message: `ไม่สามารถเชื่อมต่อ Google Gemini API ได้: ${errorMsg}`
+    });
+  }
+});
 
 router.post('/extract', authenticateToken, upload.array('images', 10), async (req, res) => {
   let startTime;
@@ -17,7 +97,10 @@ router.post('/extract', authenticateToken, upload.array('images', 10), async (re
 
     const apiKey = (req.headers['x-gemini-api-key'] || process.env.GEMINI_API_KEY || '').trim();
     if (!apiKey) {
-      return res.status(401).json({ error: 'GEMINI_API_KEY_REQUIRED' });
+      return res.status(401).json({ 
+        error: 'GEMINI_API_KEY_REQUIRED', 
+        message: 'กรุณาระบุ Gemini API Key ในการสแกนเอกสาร' 
+      });
     }
 
     const prompt = `คุณคือระบบ AI OCR อัจฉริยะที่เชี่ยวชาญที่สุดในการวิเคราะห์และดึงข้อมูลจากเอกสารการประกันภัยของประเทศไทย ทั้งประกันภัยรถยนต์ (Motor Insurance ได้แก่ ตารางกรมธรรม์สมัครใจ, ตารางกรมธรรม์ภาคบังคับ/พ.ร.บ., เล่มทะเบียนรถ) และประกันภัยอื่นๆ ที่ไม่ใช่รถยนต์ (Non-Motor Insurance ได้แก่ ประกันอุบัติเหตุส่วนบุคคล/PA, ประกันสุขภาพ, ประกันอัคคีภัย/ไฟไหม้, ประกันภัยขนส่งสินค้า, ประกันชีวิต ฯลฯ) รวมถึงใบเสร็จรับเงิน และสลิปการโอนเงินชำระเงินของธนาคาร (Bank Transfer Slip)
@@ -43,14 +126,14 @@ router.post('/extract', authenticateToken, upload.array('images', 10), async (re
        - **นามสกุล (last_name):** นามสกุลของบุคคลจริง (ห้ามดึงข้อมูลบริษัทประกันภัย เช่น วิริยะประกันภัย หรือเบอร์คอลเซ็นเตอร์มาใส่ และหากเป็นนิติบุคคล/บริษัท ให้ใส่สตริงว่าง "")
        - **เบอร์โทรศัพท์ (phone):** ดึงเบอร์โทรศัพท์หลักของลูกค้าผู้เอาประกันภัย/ผู้ติดต่อหลัก ส่งเฉพาะตัวเลขล้วน (ความยาว 9-10 หลัก ไม่มีขีดและช่องว่าง) *ห้ามดึงเบอร์โทรศัพท์ของบริษัทประกันภัย (เช่น 1557, 1484, 02-xxx-xxxx) หรือเบอร์ตัวแทน/นายหน้ามาใส่เป็นเบอร์โทรลูกค้าอย่างเด็ดขาด*
        - **เบอร์โทรศัพท์สำรอง/เพิ่มเติม (alt_phone):** ดึงเบอร์โทรศัพท์สำรอง เบอร์บ้าน หรือเบอร์มือถือตัวที่สองของลูกค้าที่ปรากฏอยู่ในเอกสาร (หากมี) ส่งเฉพาะตัวเลขล้วน (ความยาว 9-10 หลัก ไม่มีขีดและช่องว่าง) หากไม่มีให้ส่งเป็นสตริงว่าง ""
-               - **เลขบัตรประชาชน (id_card_no):** ดึงเฉพาะเลขบัตรประจำตัวประชาชน 13 หลักของผู้เอาประกันภัย ส่งเฉพาะตัวเลขล้วน ไม่มีขีดหรือช่องว่าง หากหาไม่พบให้ส่งเป็นสตริงว่าง ""
-                - **ข้อมูลกรณีเล่มทะเบียนรถ (ผู้ครอบครองเท่านั้น):** หากเอกสารเป็นเล่มทะเบียนรถยนต์ (หรือเอกสารที่ระบุทั้งผู้ถือกรรมสิทธิ์และผู้ครอบครอง) ให้ดึงข้อมูลลูกค้าทั้งหมด (รวมถึง ชื่อ, นามสกุล, เลขบัตรประชาชน, ที่อยู่ และโดยเฉพาะอย่างยิ่ง **วันเดือนปีเกิด 'customer.dob'**) ของ **"ผู้ครอบครอง" เท่านั้น** ห้ามดึงข้อมูลของ "ผู้ถือกรรมสิทธิ์" (เช่น ธนาคาร บริษัทไฟแนนซ์ หรือบริษัทลิสซิ่ง) มาใส่อย่างเด็ดขาด
+       - **เลขบัตรประชาชน (id_card_no):** ดึงเฉพาะเลขบัตรประจำตัวประชาชน 13 หลักของผู้เอาประกันภัย ส่งเฉพาะตัวเลขล้วน ไม่มีขีดหรือช่องว่าง หากหาไม่พบให้ส่งเป็นสตริงว่าง ""
+       - **ข้อมูลกรณีเล่มทะเบียนรถ (ผู้ครอบครองเท่านั้น):** หากเอกสารเป็นเล่มทะเบียนรถยนต์ (หรือเอกสารที่ระบุทั้งผู้ถือกรรมสิทธิ์และผู้ครอบครอง) ให้ดึงข้อมูลลูกค้าทั้งหมด (รวมถึง ชื่อ, นามสกุล, เลขบัตรประชาชน, ที่อยู่ และโดยเฉพาะอย่างยิ่ง **วันเดือนปีเกิด 'customer.dob'**) ของ **"ผู้ครอบครอง" เท่านั้น** ห้ามดึงข้อมูลของ "ผู้ถือกรรมสิทธิ์" (เช่น ธนาคาร บริษัทไฟแนนซ์ หรือบริษัทลิสซิ่ง) มาใส่อย่างเด็ดขาด
 
     4. การแยกแยะที่อยู่รายตำบล/แขวง/อำเภอ/เขต/จังหวัด (Thai Address Parser):
-        - **ตำบล/แขวง (sub_district):** ดึงเฉพาะชื่อตำบล/แขวงเท่านั้น เช่น "คลองจั่น" ตัดคำนำหน้า เช่น ต., ตำบล, แขวง ออก
-        - **อำเภอ/เขต (district):** ดึงเฉพาะชื่ออำเภอ/เขตเท่านั้น เช่น "บางกะปิ" ตัดคำนำหน้า เช่น อ., อำเภอ, เขต ออก
-        - **จังหวัด (province):** ดึงเฉพาะชื่อจังหวัดเท่านั้น เช่น "กรุงเทพมหานคร" หรือ "นนทบุรี" ตัดคำนำหน้า เช่น จ., จังหวัด ออก
-        - *กรณียกเว้นสำหรับกรุงเทพมหานคร:* ไม่มีตำบล/อำเภอ ให้ใส่ชื่อ แขวง ลงใน sub_district และชื่อ เขต ลงใน district โดยห้ามมีคำว่า แขวง หรือ เขต ปะปน (เช่น แขวงคลองเตย -> sub_district = "คลองเตย", เขตคลองเตย -> district = "คลองเตย")
+       - **ตำบล/แขวง (sub_district):** ดึงเฉพาะชื่อตำบล/แขวงเท่านั้น เช่น "คลองจั่น" ตัดคำนำหน้า เช่น ต., ตำบล, แขวง ออก
+       - **อำเภอ/เขต (district):** ดึงเฉพาะชื่ออำเภอ/เขตเท่านั้น เช่น "บางกะปิ" ตัดคำนำหน้า เช่น อ., อำเภอ, เขต ออก
+       - **จังหวัด (province):** ดึงเฉพาะชื่อจังหวัดเท่านั้น เช่น "กรุงเทพมหานคร" หรือ "นนทบุรี" ตัดคำนำหน้า เช่น จ., จังหวัด ออก
+       - *กรณียกเว้นสำหรับกรุงเทพมหานคร:* ไม่มีตำบล/อำเภอ ให้ใส่ชื่อ แขวง ลงใน sub_district และชื่อ เขต ลงใน district โดยห้ามมีคำว่า แขวง หรือ เขต ปะปน (เช่น แขวงคลองเตย -> sub_district = "คลองเตย", เขตคลองเตย -> district = "คลองเตย")
        - *กรณียกเว้นสำหรับอำเภอเมือง:* สำหรับอำเภอเมืองของจังหวัดต่างๆ ให้คงคำว่า "เมือง" เอาไว้ เช่น "เมืองนนทบุรี" หรือ "เมืองเชียงใหม่" เพราะเป็นชื่อเฉพาะของอำเภอ ไม่ใช่คำนำหน้าทั่วไป
        - **บ้านเลขที่ (address):** บ้านเลขที่เท่านั้น เช่น "123/45" หรือ "99/1" *ห้ามนำหมู่, ซอย, ถนน หรือชื่ออาคารมารวมในฟิลด์นี้* และตัดคำว่า "เลขที่" หรือ "บ้านเลขที่" ออก
        - **หมู่ (moo):** ดึงเฉพาะตัวเลขหมู่หรือข้อความ เช่น "5" หรือ "หมู่ที่ 5"
@@ -63,7 +146,7 @@ router.post('/extract', authenticateToken, upload.array('images', 10), async (re
        - **วันเริ่มต้นคุ้มครอง (start_date):** ให้ดึงจากหัวข้อ 'ระยะเวลาเอาประกันภัย' (Period of Insurance) -> 'เริ่มต้นวันที่' หรือ 'จากวันที่' ของตัวตารางหลักประกันภัยรถยนต์สมัครใจ ห้ามดึงวันจดทะเบียนรถ หรือวันออกเอกสาร หรือวันออกกรมธรรม์ หรือวันคุ้มครองของ พ.ร.บ. มาปะปน
        - **วันสิ้นสุดคุ้มครอง (expiry_date):** ให้ดึงจากหัวข้อ 'ระยะเวลาเอาประกันภัย' -> 'สิ้นสุดวันที่' หรือ 'ถึงวันที่'
        - *ห้ามสลับช่อง* ระหว่างวันที่เริ่มต้นคุ้มครอง วันสิ้นสุดคุ้มครอง วันที่ทำสัญญา (Issue Date) หรือวันภาษีหมดอายุ
-       - **การตรวจเช็คปีที่ถูกต้อง (Year Check Rule):** ตรวจสอบปี พ.ศ. ในวันที่เริ่มและสิ้นสุดให้ดี (โดยทั่วไปจะห่างกัน 1 ปีพอดี เช่น เริ่มต้น 2569 สิ้นสุด 2570 หรือวันเดียวกันแต่คนละปี หากในตารางมีเลขปีที่ดูเลือนราง ให้ใช้บริบทระยะเวลาความคุ้มครอง 1 ปีในการคำนวณและยืนยันปีที่ถูกต้อง เช่น หากเริ่มต้นเป็น 31/03/2569 สิ้นสุดย่อมเป็น 31/03/2570)
+       - **การตรวจเช็คปีที่ถูกต้อง (Year Check Rule):** ตรวจสอบปี พ.ศ. ในวันที่เริ่มและสิ้นสุดให้ดี (โดยทั่วไปจะห่างกัน 1 ปีพอดี เช่น เริ่มต้น 2569 สิ้นสุด 2570)
 
     6. การตรวจสอบตัวเลขทางการเงิน (Financial verification):
        - เอาเครื่องหมายลูกน้ำ (,) เครื่องหมายเงิน (฿) หรือช่องว่างออกให้หมด เหลือเฉพาะตัวเลขทศนิยมเพียวๆ เช่น "15,500.00" -> "15500.00"
@@ -73,7 +156,7 @@ router.post('/extract', authenticateToken, upload.array('images', 10), async (re
 
     8. การคัดแยกประเภทการรับประกันภัยและการแปลงค่ามาตรฐาน (Policy Type & Category Mapping Checklist):
        - หากเอกสารเป็นประกันภัยรถยนต์ หรือ พ.ร.บ. ให้ระบุ policy.category = "motor"
-               - หากเอกสารเป็นประกันภัยประเภทอื่นที่ไม่ใช่เกี่ยวกับรถยนต์ เช่น ประกันสุขภาพ, ประกันอุบัติเหตุส่วนบุคคล, ประกันอัคคีภัย, ประกันขนส่ง, ประกันชีวิต ให้ระบุ policy.category = "non-motor" และปล่อยฟิลด์ข้อมูลตัวรถ (vehicle) เป็นสตริงว่างทั้งหมด "" *ยกเว้นกรณี ประกันภัยขนส่งสินค้า (หรือ ประกันภัยขนส่ง) หากในเอกสารมีระบุเลขทะเบียนรถยนต์ หรือจังหวัดของทะเบียนรถที่ใช้ขนส่งสินค้า ให้ทำการสกัดและดึงข้อมูลใส่ฟิลด์ vehicle.plate_no และ vehicle.plate_province ตามที่ปรากฏจริงในเอกสาร*
+       - หากเอกสารเป็นประกันภัยประเภทอื่นที่ไม่ใช่เกี่ยวกับรถยนต์ เช่น ประกันสุขภาพ, ประกันอุบัติเหตุส่วนบุคคล, ประกันอัคคีภัย, ประกันขนส่ง, ประกันชีวิต ให้ระบุ policy.category = "non-motor" และปล่อยฟิลด์ข้อมูลตัวรถ (vehicle) เป็นสตริงว่างทั้งหมด "" *ยกเว้นกรณี ประกันภัยขนส่งสินค้า หากในเอกสารมีระบุเลขทะเบียนรถยนต์ หรือจังหวัดของทะเบียนรถที่ใช้ขนส่งสินค้า ให้ทำการสกัดและดึงข้อมูลใส่ฟิลด์ vehicle.plate_no และ vehicle.plate_province ตามที่ปรากฏจริงในเอกสาร*
        - แปลงค่าประเภทประกันภัยในฟิลด์ policy.type เป็นภาษาไทยให้ตรงกับมาตรฐานประเภทกรมธรรม์ของระบบ 100% เสมอตามเกณฑ์นี้:
          * ประกันภัยรถยนต์สมัครใจชั้น 1 ➡️ "ประกันภัยชั้น 1"
          * ประกันภัยรถยนต์สมัครใจชั้น 2+ ➡️ "ประกันภัยชั้น 2+"
@@ -112,8 +195,8 @@ router.post('/extract', authenticateToken, upload.array('images', 10), async (re
          * "มิตรแท้", "มิตรแท้ประกันภัย" ➡️ "บริษัท มิตรแท้ประกันภัย จำกัด (มหาชน)"
 
     10. การเพิ่มความแม่นยำและการสังเกตอักขระภาษาไทยอย่างละเอียดสูง (High-Precision Thai Text & Character Observation):
-        - **วิเคราะห์รูปทรงพยัญชนะไทยที่ใกล้เคียงกันอย่างถี่ถ้วน:** โปรดตรวจสอบความแตกต่างของหัวพยัญชนะและส่วนโค้งหยักอย่างรอบคอบ ห้ามสับสนระหว่าง 'ด' กับ 'ต' (เช่น "คลองเตย" ไม่ใช่ "คลองเดย"), 'ข' กับ 'ช' หรือ 'ซ', 'ค' กับ 'ด' หรือ 'ศ', 'ร' กับ 'ธ', 'พ' กับ 'ฟ' หรือ 'ฬ', 'น' กับ 'ม'
-        - **สังเกตสระและวรรณยุกต์ซ้อน (Stacked Vowels and Tones):** สังเกตวรรณยุกต์และสระบน/ล่างอย่างละเอียดที่สุด (ิ  ี  ึ  ื  ุ  ู  ่  ้  ๊  ๋  ็  ์) ห้ามสะกดตกหล่นหรือสลับตำแหน่งโดยเด็ดขาด โดยเฉพาะฟอนต์ที่มีการพิมพ์เบียดทับกัน เช่น "ดิ์", "ปิ่", "สิทธิ์", "สุทธิ์"
+        - **วิเคราะห์รูปทรงพยัญชนะไทยที่ใกล้เคียงกันอย่างถี่ถ้วน:** โปรดตรวจสอบความแตกต่างของหัวพยัญชนะและส่วนโค้งหยักอย่างรอบคอบ ห้ามสับสนระหว่าง 'ด' กับ 'ต', 'ข' กับ 'ช' หรือ 'ซ', 'ค' กับ 'ด' หรือ 'ศ', 'ร' กับ 'ธ', 'พ' กับ 'ฟ' หรือ 'ฬ', 'น' กับ 'ม'
+        - **สังเกตสระและวรรณยุกต์ซ้อน (Stacked Vowels and Tones):** สังเกตวรรณยุกต์และสระบน/ล่างอย่างละเอียดที่สุด (ิ  ี  ึ  ื  ุ  ู  ่  ้  ๊  ๋  ็  ์) ห้ามสะกดตกหล่นหรือสลับตำแหน่งโดยเด็ดขาด โดยเฉพาะฟอนต์ที่มีการพิมพ์เบียดทับกัน
         - **การดึงตัวหนังสือขนาดเล็กและสีจาง (Fine Print & Low-Contrast Text):** สแกนหาคำศัพท์ที่อยู่ตามตาราง ขอบกระดาษ หรือข้อความฟอนต์ขนาดเล็กที่เป็นเงื่อนไข และข้อความสีจาง (สีเทา) อย่างรอบคอบ ไม่ข้ามข้อมูลใดๆ
         - **การเดาและฟื้นคืนข้อความที่มีสิ่งประทับทับซ้อน (Stamped Text Reconstruction):** ในตารางประกันภัยมักมีตราประทับหมึกสีแดง/น้ำเงิน หรือลายเซ็นปั๊มทับตัวหนังสือ ให้ใช้บริบทคำศัพท์ประกันภัย ภาษาข้างเคียง และพจนานุกรมชื่อบริษัท/จังหวัด เดาคำภาษาไทยและอังกฤษที่อยู่ใต้รอยประทับกลับคืนมาให้ถูกต้อง 100%
         
@@ -121,113 +204,33 @@ router.post('/extract', authenticateToken, upload.array('images', 10), async (re
         - จงแปลงตัวอักษรหรือคำที่สแกนผิดพลาดจากลักษณะฟอนต์เอกสาร (OCR Typos) ให้เป็นคำภาษาไทยที่เป็นชื่อเรียกหรือคำศัพท์ที่เป็นทางการและถูกต้อง 100% เสมอ เช่น:
           * แก้ไขตัวสะกดทั่วไป: "บรีษัท" หรือ "บรษัท" ➡️ "บริษัท", "ห้างห้นส่วน" ➡️ "ห้างหุ้นส่วน", "ตารางกรมธรรม" ➡️ "ตารางกรมธรรม์", "ผ้อาวประกันภัย" ➡️ "ผู้เอาประกันภัย", "เลขที" ➡️ "เลขที่"
           * แก้ไขชื่อบริษัทประกันภัย: ตรวจสอบและแมปปิ้งชื่อตามตารางกฎข้อที่ 9 อย่างเคร่งครัด
-          * แก้ไขชื่อจังหวัด ทะเบียน อำเภอ และตำบล: ห้ามสะกดผิดเพี้ยนเด็ดขาด เช่น "บางกะป๊" ➡️ "บางกะปิ", "คลองเต้ย" ➡️ "คลองเตย", "คลองจ้น" ➡️ "คลองจั่น", "กรุงเทพฯ" หรือ "กรุงเทพมหานตร" ➡️ "กรุงเทพมหานคร", "ยานนาวา" ไม่ใช่ "ยานนาว๊", "ประเวศ" ไม่ใช่ "ประเวศน์"
+          * แก้ไขชื่อจังหวัด ทะเบียน อำเภอ และตำบล: ห้ามสะกดผิดเพี้ยนเด็ดขาด เช่น "บางกะป๊" ➡️ "บางกะปิ", "คลองเต้ย" ➡️ "คลองเตย", "คลองจ้น" ➡️ "คลองจั่น", "กรุงเทพฯ" หรือ "กรุงเทพมหานตร" ➡️ "กรุงเทพมหานคร"
           
     12. ความถูกต้องสมบูรณ์ของตัวเลขและรหัสและการอ่านแบบแม่นยำสูง (High-Precision Digit & Number Integrity Rules):
         - **การตรวจจับตัวเลขทุกตัวอย่างถี่ถ้วนที่สุด:** ห้ามข้ามตัวเลข ห้ามประเมินตัวเลขต่ำหรือสูงกว่าจริง และห้ามประมาณค่าโดยไม่มีข้อมูล
-        - **ห้ามสับสนรูปร่างตัวเลขที่ใกล้เคียงกัน:** โปรดวิเคราะห์ส่วนโค้งและเหลี่ยมของฟอนต์อย่างละเอียด ห้ามสับสนระหว่างเลข 0 กับ 8, 3 กับ 8, 1 กับ 7, 5 กับ 6, 9 กับ 0, 9 กับ 8
-        - **เลขตัวถัง/เลขตัวรถ (vin):** ต้องมีจำนวนหลักอักษรผสมตัวเลขรวมกันครบ 17 หลักพอดิบพอดีเท่านั้น (ห้ามขาดหรือเกิน) และโปรดตรวจเช็คความคล้ายคลึงอย่างรอบคอบ เช่น ห้ามสับสนระหว่างเลข 0 กับอักษร O หรือ Q, เลข 1 กับอักษร I, เลข 8 กับอักษร B, เลข 2 กับอักษร Z, เลข 5 กับอักษร S
-        - **เลขบัตรประชาชน (id_card_no):** ต้องมีจำนวนตัวเลขครบ 13 หลักเท่านั้น ห้ามสับสนระหว่างเลข 1 กับ 7 หรือ 0 กับ 8 หรือ 3 กับ 8
+        - **ห้ามสับสนรูปร่างตัวเลขที่ใกล้เคียงกัน:** ห้ามสับสนระหว่างเลข 0 กับ 8, 3 กับ 8, 1 กับ 7, 5 กับ 6, 9 กับ 0, 9 กับ 8
+        - **เลขตัวถัง/เลขตัวรถ (vin):** ต้องมีจำนวนหลักอักษรผสมตัวเลขรวมกันครบ 17 หลักพอดิบพอดีเท่านั้น (ห้ามขาดหรือเกิน) และห้ามสับสนระหว่างเลข 0 กับอักษร O หรือ Q, เลข 1 กับอักษร I, เลข 8 กับอักษร B, เลข 2 กับอักษร Z, เลข 5 กับอักษร S
+        - **เลขบัตรประชาชน (id_card_no):** ต้องมีจำนวนตัวเลขครบ 13 หลักเท่านั้น
         - **เบอร์โทรศัพท์ (phone / alt_phone):** ต้องระบุเป็นตัวเลข 9-10 หลัก ไม่มีขีดหรือช่องว่าง และต้องเริ่มด้วยหมายเลขเบอร์โทรศัพท์ที่ถูกต้องในประเทศไทย (เช่น 08, 09, 06, 02)
         - **ความสอดคล้องของตัวเลขทางการเงิน (Financial Decimal & Math Precision):** 
-          * ตรวจจับจุดทศนิยมของจำนวนเงินอย่างถูกต้อง 100% เช่น เบี้ยประกันภัย 15500.00 หรือ 15500.25 ห้ามเลื่อนจุดทศนิยม ห้ามนำจุดทศนิยมออก
-          * ทำการตรวจสอบความสอดคล้องตามหลักคณิตศาสตร์เสมอ: (เบี้ยสุทธิ net_premium + อากรแสตมป์ stamp_duty + ภาษี vat = เบี้ยรวม total_premium). หากมีตัวเลขจุดทศนิยมหรือหลักใดหลักหนึ่งของค่าเหล่านี้ถูกบดบังหรือสแกนผิดพลาด ให้คำนวณเปรียบเทียบหาตัวเลขที่สูญหายเพื่อให้สมการนี้ถูกต้อง 100%
-        - **เลขทะเบียนรถ (Plate Number):** สกัดเฉพาะส่วนของตัวเลขและตัวอักษรของเลขทะเบียนให้ครบทุกตัว เช่น "1กข 1234" หรือ "กข 12" อ่านหลักตัวเลขและตัวอักษรให้คมชัด ไม่ขาดตกหล่น และห้ามสับเปลี่ยนลำดับตัวเลข
-        - **เลขที่กรมธรรม์ (policy_no) และเลขที่อ้างอิงสลิป (ref_no):** ให้คงรูปแบบเครื่องหมายขีด (-) เครื่องหมายทับ (/) หรือตัวอักษรภาษาอังกฤษที่ปนอยู่ตามเอกสารต้นฉบับไว้อย่างครบถ้วน ห้ามทำการลบเครื่องหมายคั่นเหล่านี้ออก เพราะเลขที่กรมธรรม์ต้องการโครงสร้างรูปแบบเดิมที่ถูกต้อง
-        - **รหัสไปรษณีย์ (zipcode):** ต้องเป็นตัวเลขความยาว 5 หลักพอดิบพอดีเท่านั้น ห้ามมีขีดคั่นหรือตัวอักษรปน
-        - **เลขเครื่องยนต์ (engine_no):** มักสั้นกว่าเลขตัวถัง (ความยาวประมาณ 6-12 หลัก) และอาจขึ้นต้นด้วยรหัสเครื่องยนต์ภาษาอังกฤษที่เป็นตัวพิมพ์ใหญ่ (เช่น 1NZ, 4JK, 2AR) ให้สแกนและดึงตัวเลขผสมอักษรนี้ออกมาให้ครบถ้วน
+          * ตรวจจับจุดทศนิยมของจำนวนเงินอย่างถูกต้อง 100% เช่น เบี้ยประกันภัย 15500.00 หรือ 15500.25 ห้ามเลื่อนจุดทศนิยม
+          * ทำการตรวจสอบความสอดคล้องตามหลักคณิตศาสตร์เสมอ: (เบี้ยสุทธิ net_premium + อากรแสตมป์ stamp_duty + ภาษี vat = เบี้ยรวม total_premium).
+        - **เลขทะเบียนรถ (Plate Number):** สกัดเฉพาะส่วนของตัวเลขและตัวอักษรของเลขทะเบียนให้ครบทุกตัว เช่น "1กข 1234" หรือ "กข 12"
+        - **เลขที่กรมธรรม์ (policy_no) และเลขที่อ้างอิงสลิป (ref_no):** ให้คงรูปแบบเครื่องหมายขีด (-) เครื่องหมายทับ (/) หรือตัวอักษรภาษาอังกฤษที่ปนอยู่ตามเอกสารต้นฉบับไว้อย่างครบถ้วน
+        - **รหัสไปรษณีย์ (zipcode):** ต้องเป็นตัวเลขความยาว 5 หลักพอดิบพอดีเท่านั้น
+        - **เลขเครื่องยนต์ (engine_no):** มักสั้นกว่าเลขตัวถัง (ความยาวประมาณ 6-12 หลัก)
         
     13. การเพิ่มความแม่นยำภาษาอังกฤษและการสะกดคำ (English OCR Accuracy & Alphanumeric Spellchecking Rule):
-        - **วิเคราะห์อักษรภาษาอังกฤษและคำเฉพาะอย่างแม่นยำที่สุด (High-Precision English Character Recognition):** 
-          * โดยเฉพาะรหัสตัวอักษรผสมตัวเลข (Alphanumeric codes) เช่น เลขตัวถัง (vin) หรือเลขเครื่องยนต์ (engine_no) ที่เป็นภาษาอังกฤษ 
-          * ตรวจสอบรูปร่างของฟอนต์ภาษาอังกฤษที่มีลักษณะคล้ายคลึงกันอย่างรอบคอบที่สุด ห้ามสับสนระหว่างอักษร O กับเลข 0 หรืออักษร Q, อักษร I กับเลข 1 หรืออักษร L เล็ก (l), อักษร U กับ V หรือ Y, อักษร D กับอักษร O หรือเลข 0, อักษร B กับเลข 8, อักษร S กับเลข 5, อักษร Z กับเลข 2
-          * ยี่ห้อรถและรุ่นรถยนต์ (Vehicle Brand & Model Names) มักพิมพ์เป็นภาษาอังกฤษ ให้สะกดคำภาษาอังกฤษของแบรนด์รถยนต์หลักและรุ่นรถยนต์ให้ถูกต้องตามมาตรฐานสากลด้วยอักษรตัวพิมพ์ใหญ่ (UPPERCASE) เสมอ เช่น TOYOTA, HONDA, ISUZU, MAZDA, NISSAN, MITSUBISHI, MG, FORD, CHEVROLET, HILUX REVO, CIVIC, CITY, D-MAX, FORTUNER เป็นต้น
-          * ห้ามใส่ชื่อยี่ห้อ (Brand) ซ้ำซ้อนลงในช่องรุ่น (Model) ของยานพาหนะเด็ดขาด เช่น หากยี่ห้อ (brand) คือ TOYOTA ในช่องรุ่น (model) ให้กรอกเฉพาะ HILUX REVO หรือ YARIS เท่านั้น ห้ามกรอกเป็น TOYOTA HILUX REVO หรือ TOYOTA YARIS (หากในภาพสแกนมีคำยี่ห้อปนอยู่ ให้ทำการแยกและตัดออกเหลือเพียงชื่อรุ่นเพียวๆ)
-          * คำย่อและคำศัพท์ภาษาอังกฤษในตารางประกันภัยและใบเสร็จ เช่น VAT, Net Premium, Stamp Duty, Total Premium, Policy No., Chassis No., Engine No. ต้องวิเคราะห์ตัวสะกดภาษาอังกฤษให้ถูกต้องสมบูรณ์ ห้ามอ่านบิดเบือนหรือเพี้ยนตัวอักษร
+        - **วิเคราะห์อักษรภาษาอังกฤษและคำเฉพาะอย่างแม่นยำที่สุด:** 
+          * รหัสตัวอักษรผสมตัวเลข เช่น เลขตัวถัง (vin) หรือเลขเครื่องยนต์ (engine_no)
+          * ยี่ห้อรถและรุ่นรถยนต์ (Vehicle Brand & Model Names) ให้สะกดคำภาษาอังกฤษของแบรนด์รถยนต์หลักและรุ่นรถยนต์ให้ถูกต้องตามมาตรฐานสากลด้วยอักษรตัวพิมพ์ใหญ่ (UPPERCASE) เสมอ เช่น TOYOTA, HONDA, ISUZU, MAZDA, NISSAN, MITSUBISHI, MG, FORD, CHEVROLET, HILUX REVO, CIVIC, CITY, D-MAX, FORTUNER เป็นต้น
+          * ห้ามใส่ชื่อยี่ห้อ (Brand) ซ้ำซ้อนลงในช่องรุ่น (Model) ของยานพาหนะเด็ดขาด เช่น หากยี่ห้อ (brand) คือ TOYOTA ในช่องรุ่น (model) ให้กรอกเฉพาะ HILUX REVO หรือ YARIS เท่านั้น
           
-        14. ขั้นตอนการตรวจสอบตัวเองรอบที่สอง (Self-Verification Reflection Loop):
+    14. ขั้นตอนการตรวจสอบตัวเองรอบที่สอง (Self-Verification Reflection Loop):
         - ก่อนที่จะสร้างผลลัพธ์ JSON ส่งกลับมา ให้ทำการตรวจทาน (Double Check) ข้อมูล JSON ทุกฟิลด์ที่คุณดึงมาได้เปรียบเทียบกับภาพเอกสารต้นฉบับอย่างละเอียดอีก 2 รอบ 
-        - หากพบว่ามีสะกดตกหล่น ตัวอักษรบิดเบือน หรือคำสะกดภาษาไทย/อังกฤษที่สะกดผิดเพี้ยน ให้ทำการสะกดแก้ไขปรับปรุงให้ถูกต้องตรงกับชื่อเรียกที่เป็นทางการก่อนนำเสนอข้อมูลออกมา
         
     15. กฎการแปลงคำย่อจังหวัดของไทย 77 จังหวัดเป็นชื่อเต็มสำหรับจังหวัดทะเบียนรถและที่อยู่ (Thai 77 Province Abbreviation Resolution Rule):
-        - หากในรูปเอกสารระบุจังหวัดของทะเบียนรถ (vehicle.plate_province) หรือที่อยู่จังหวัด (customer.province) เป็นชื่อย่อหรือตัวย่อ ให้ทำการตรวจสอบและแปลงเป็นชื่อเต็มจังหวัดของไทย 100% เสมอตามตารางอักษรย่อต่อไปนี้:
-          * กทม, กทม., กท ➡️ กรุงเทพมหานคร
-          * กบ ➡️ กระบี่
-          * กจ ➡️ กาญจนบุรี
-          * กส ➡️ กาฬสินธุ์
-          * กพ ➡️ กำแพงเพชร
-          * ขก ➡️ ขอนแก่น
-          * จบ ➡️ จันทบุรี
-          * ฉช ➡️ ฉะเชิงเทรา
-          * ชบ ➡️ ชลบุรี
-          * ชน ➡️ ชัยนาท
-          * ชย ➡️ ชัยภูมิ
-          * ชพ ➡️ ชุมพร
-          * ชร ➡️ เชียงราย
-          * ชม ➡️ เชียงใหม่
-          * ตง ➡️ ตรัง
-          * ตร ➡️ ตราด
-          * ตก ➡️ ตาก
-          * นย ➡️ นครนายก
-          * นฐ ➡️ นครปฐม
-          * นพ ➡️ นครพนม
-          * นม ➡️ นครราชสีมา
-          * นศ ➡️ นครศรีธรรมราช
-          * นว ➡️ นครสวรรค์
-          * นบ ➡️ นนทบุรี
-          * นธ ➡️ นราธิวาส
-          * นน ➡️ น่าน
-          * บก ➡️ บึงกาฬ
-          * บร ➡️ บุรีรัมย์
-          * ปท ➡️ ปทุมธานี
-          * ปข ➡️ ประจวบคีรีขันธ์
-          * ปจ ➡️ ปราจีนบุรี
-          * ปน ➡️ ปัตตานี
-          * พย ➡️ พะเยา
-          * อย ➡️ พระนครศรีอยุธยา
-          * พง ➡️ พังงา
-          * พท ➡️ พัทลุง
-          * พจ ➡️ พิจิตร
-          * พล ➡️ พิษณุโลก
-          * พบ ➡️ เพชรบุรี
-          * พช ➡️ เพชรบูรณ์
-          * พร ➡️ แพร่
-          * ภก ➡️ ภูเก็ต
-          * มค ➡️ มหาสารคาม
-          * มห ➡️ มุกดาหาร
-          * มส ➡️ แม่ฮ่องสอน
-          * ยส ➡️ ยโสธร
-          * ยล ➡️ ยะลา
-          * รอ ➡️ ร้อยเอ็ด
-          * รน ➡️ ระนอง
-          * รย ➡️ ระยอง
-          * รบ ➡️ ราชบุรี
-          * ลบ ➡️ ลพบุรี
-          * ลป ➡️ ลำปาง
-          * ลพ ➡️ ลำพูน
-          * ลย ➡️ เลย
-          * ศก ➡️ ศรีสะเกษ
-          * สน ➡️ สกลนคร
-          * สข ➡️ สงขลา
-          * สต ➡️ สตูล
-          * สป ➡️ สมุทรปราการ
-          * สส ➡️ สมุทรสงคราม
-          * สค ➡️ สมุทรสาคร
-          * สก ➡️ สระแก้ว
-          * สบ ➡️ สระบุรี
-          * สห ➡️ สิงห์บุรี
-          * สท ➡️ สุโขทัย
-          * สพ ➡️ สุพรรณบุรี
-          * สฎ ➡️ สุราษฎร์ธานี
-          * สร ➡️ สุรินทร์
-          * นค ➡️ หนองคาย
-          * นภ ➡️ หนองบัวลำภู
-          * อท ➡️ อ่างทอง
-          * อจ ➡️ อำนาจเจริญ
-          * อด ➡️ อุดรธานี
-          * อต ➡️ อุตรดิตถ์
-          * อน ➡️ อุทัยธานี
-          * อบ ➡️ อุบลราชธานี
+        - หากในรูปเอกสารระบุจังหวัดของทะเบียนรถ (vehicle.plate_province) หรือที่อยู่จังหวัด (customer.province) เป็นชื่อย่อหรือตัวย่อ ให้ทำการตรวจสอบและแปลงเป็นชื่อเต็มจังหวัดของไทย 100% เสมอ เช่น กทม ➡️ กรุงเทพมหานคร, ชบ ➡️ ชลบุรี, นม ➡️ นครราชสีมา, ชม ➡️ เชียงใหม่
 
     โครงสร้าง JSON ที่ต้องการส่งกลับ (ห้ามเปลี่ยนชื่อ Key เด็ดขาด):
     {
@@ -249,9 +252,9 @@ router.post('/extract', authenticateToken, upload.array('images', 10), async (re
         "prefix": "คำนำหน้า",
         "first_name": "ชื่อจริง หรือ ชื่อบริษัท",
         "last_name": "นามสกุล (ถ้าเป็นบริษัทให้เว้นว่าง)",
-        "phone": "เบอร์โทรศัพท์ของผู้เอาประกันภัย/ลูกค้า (**เน้นย้ำ: ให้กรอกเฉพาะตัวเลขล้วน ไม่มีขีดหรือช่องว่าง ห้ามดึงเบอร์บริษัทประกันภัย เช่น 1557, 1484 หรือเบอร์ตัวแทน/นายหน้ามาใส่เด็ดขาด หากหาจากข้อมูลผู้เอาประกันภัยไม่ได้ ให้ใส่เป็นสตริงว่าง \"\"**)",
-        "alt_phone": "เบอร์โทรศัพท์สำรองหรือเบอร์ติดต่อเพิ่มเติมของลูกค้า/ผู้ติดต่อสำรอง (**เน้นย้ำ: ส่งเฉพาะตัวเลขล้วน 9-10 หลัก ไม่มีขีดหรือช่องว่าง หากหาไม่พบหรือไม่มีให้ส่งเป็นสตริงว่าง \"\"**)",
-        "id_card_no": "เลขบัตรประจำตัวประชาชน 13 หลักของผู้เอาประกันภัย (**เน้นย้ำ: ส่งเฉพาะตัวเลขล้วน 13 หลักเท่านั้น ไม่มีขีดหรือช่องว่าง หากหาไม่พบให้ส่งเป็นสตริงว่าง \"\"**)",
+        "phone": "เบอร์โทรศัพท์ของผู้เอาประกันภัย/ลูกค้า (เฉพาะตัวเลขล้วน ไม่มีขีดหรือช่องว่าง ห้ามดึงเบอร์บริษัทประกันภัย 1557 1484 หรือเบอร์ตัวแทน หากหาไม่ได้ให้ใส่สตริงว่าง \"\")",
+        "alt_phone": "เบอร์โทรศัพท์สำรองหรือเบอร์ติดต่อเพิ่มเติม (เฉพาะตัวเลขล้วน 9-10 หลัก ไม่มีขีดหรือช่องว่าง หากไม่มีให้ส่งเป็นสตริงว่าง \"\")",
+        "id_card_no": "เลขบัตรประจำตัวประชาชน 13 หลักของผู้เอาประกันภัย (เฉพาะตัวเลขล้วน 13 หลักเท่านั้น ไม่มีขีดหรือช่องว่าง หากหาไม่พบให้ส่งเป็นสตริงว่าง \"\")",
         "dob": "วันเดือนปีเกิด (YYYY-MM-DD)",
         "address": "บ้านเลขที่ (เฉพาะบ้านเลขที่เท่านั้น ห้ามมีคำว่า หมู่ หรือซอย ถนน ปนอยู่ และตัดคำว่า เลขที่ หรือ บ้านเลขที่ ออก)",
         "moo": "หมู่ หรือ หมู่ที่ (เช่น 5 หรือ หมู่ที่ 5)",
@@ -299,10 +302,7 @@ router.post('/extract', authenticateToken, upload.array('images', 10), async (re
 
     let availableModels = [];
     try {
-      const modelsRes = await axios.get(`https://generativelanguage.googleapis.com/v1beta/models`, {
-        headers: {
-          'x-goog-api-key': apiKey
-        },
+      const modelsRes = await axios.get(`https://generativelanguage.googleapis.com/v1beta/models?key=${apiKey}`, {
         timeout: 5000
       });
       if (modelsRes.data && Array.isArray(modelsRes.data.models)) {
@@ -315,10 +315,13 @@ router.post('/extract', authenticateToken, upload.array('images', 10), async (re
       console.warn("Failed to fetch available Gemini models:", e.response?.data?.error?.message || e.message);
     }
 
+    // Modern Gemini model hierarchy (prioritizing ultra-fast 3.5-flash-lite -> 3.5-flash -> 3.1-flash-lite)
     const preferredModels = [
+      'gemini-3.5-flash-lite',
       'gemini-3.5-flash',
-      'gemini-2.5-flash',
-      'gemini-3.1-flash-lite'
+      'gemini-3.1-flash-lite',
+      'gemini-3.7-flash',
+      'gemini-flash-latest'
     ];
 
     let modelsToTry = preferredModels
@@ -327,9 +330,10 @@ router.post('/extract', authenticateToken, upload.array('images', 10), async (re
 
     if (modelsToTry.length === 0) {
       modelsToTry = [
+        { name: 'gemini-3.5-flash-lite', timeout: 35000 },
         { name: 'gemini-3.5-flash', timeout: 35000 },
-        { name: 'gemini-2.5-flash', timeout: 35000 },
-        { name: 'gemini-3.1-flash-lite', timeout: 35000 }
+        { name: 'gemini-3.1-flash-lite', timeout: 35000 },
+        { name: 'gemini-3.7-flash', timeout: 35000 }
       ];
     }
 
@@ -341,7 +345,7 @@ router.post('/extract', authenticateToken, upload.array('images', 10), async (re
       try {
         console.log(`Trying Gemini model: ${modelConfig.name}`);
         const response = await axios.post(
-          `https://generativelanguage.googleapis.com/v1beta/models/${modelConfig.name}:generateContent`,
+          `https://generativelanguage.googleapis.com/v1beta/models/${modelConfig.name}:generateContent?key=${apiKey}`,
           {
             contents: [
               {
@@ -368,7 +372,6 @@ router.post('/extract', authenticateToken, upload.array('images', 10), async (re
           },
           {
             headers: {
-              'x-goog-api-key': apiKey,
               'Content-Type': 'application/json'
             },
             timeout: modelConfig.timeout
@@ -387,10 +390,12 @@ router.post('/extract', authenticateToken, upload.array('images', 10), async (re
         const msg = error.response?.data?.error?.message || error.message;
         console.warn(`Failed with model ${modelConfig.name}:`, msg);
         
-        // If it's a key/auth issue (400 Bad Request (often invalid key), 401 Unauthorized, 403 Forbidden), 
-        // fail immediately since other models will also fail
+        // If it's an auth issue (400 Bad Request / 401 Unauthorized / 403 Forbidden), fail immediately
         if (status === 400 || status === 401 || status === 403) {
-          throw error;
+          return res.status(401).json({
+            error: 'INVALID_GEMINI_API_KEY',
+            message: `Gemini API Key ไม่ถูกต้องหรือหมดอายุ: ${msg}`
+          });
         }
       }
     }
@@ -415,7 +420,31 @@ router.post('/extract', authenticateToken, upload.array('images', 10), async (re
       return res.status(500).json({ error: 'Failed to parse AI response into JSON. Please try again with a clearer image.' });
     }
 
-    // Verify Premium Math Formula: net_premium + stamp_duty + vat = total_premium
+    if (!parsedData.validation) {
+      parsedData.validation = { is_clear: true, warning_message: '', is_expired: false };
+    }
+
+    // 1. Verify Thai ID Card 13-digit Checksum
+    if (parsedData?.customer?.id_card_no) {
+      const idCheck = validateThaiIdCard(parsedData.customer.id_card_no);
+      if (!idCheck.valid && idCheck.message) {
+        parsedData.validation.warning_message = parsedData.validation.warning_message 
+          ? `${parsedData.validation.warning_message} * ${idCheck.message}`
+          : idCheck.message;
+      }
+    }
+
+    // 2. Verify Vehicle VIN (Chassis Number) 17-digit ISO format
+    if (parsedData?.vehicle?.vin) {
+      const vinCheck = validateVin(parsedData.vehicle.vin);
+      if (!vinCheck.valid && vinCheck.message) {
+        parsedData.validation.warning_message = parsedData.validation.warning_message 
+          ? `${parsedData.validation.warning_message} * ${vinCheck.message}`
+          : vinCheck.message;
+      }
+    }
+
+    // 3. Verify Premium Math Formula: net_premium + stamp_duty + vat = total_premium
     if (parsedData && parsedData.policy) {
       let net = parseFloat(parsedData.policy.net_premium || 0);
       let stamp = parseFloat(parsedData.policy.stamp_duty || 0);
@@ -433,38 +462,18 @@ router.post('/extract', authenticateToken, upload.array('images', 10), async (re
             vat = total - net - stamp;
             parsedData.policy.vat = vat.toFixed(2);
             
-            if (!parsedData.validation) {
-              parsedData.validation = { is_clear: true, warning_message: '', is_expired: false };
-            }
             const adjustMsg = "ระบบตรวจสอบคำนวณปรับทศนิยมเบี้ยและภาษีมูลค่าเพิ่มให้ถูกต้องตรงกับยอดชำระแล้ว";
             parsedData.validation.warning_message = parsedData.validation.warning_message 
               ? `${parsedData.validation.warning_message} (${adjustMsg})`
               : adjustMsg;
           } else {
             // Significant mismatch, add a warning
-            if (!parsedData.validation) {
-              parsedData.validation = { is_clear: true, warning_message: '', is_expired: false };
-            }
             const mismatchMsg = `ยอดเบี้ยคำนวณสแกน (สุทธิ ${net} + อากร ${stamp} + VAT ${vat} = ${calculatedTotal.toFixed(2)}) ไม่ตรงกับเบี้ยรวมจริงในรูป (${total})`;
             parsedData.validation.warning_message = parsedData.validation.warning_message 
               ? `${parsedData.validation.warning_message} * ${mismatchMsg}`
               : mismatchMsg;
           }
         }
-      }
-    }
-
-    // Check if ID card is present but invalid in length
-    if (parsedData?.customer?.id_card_no) {
-      const cleanId = parsedData.customer.id_card_no.replace(/\D/g, '');
-      if (cleanId.length > 0 && cleanId.length !== 13) {
-        if (!parsedData.validation) {
-          parsedData.validation = { is_clear: true, warning_message: '', is_expired: false };
-        }
-        const idMsg = `เลขบัตรประชาชนที่สแกนได้มี ${cleanId.length} หลัก (ไม่ครบ 13 หลัก)`;
-        parsedData.validation.warning_message = parsedData.validation.warning_message 
-          ? `${parsedData.validation.warning_message} * ${idMsg}`
-          : idMsg;
       }
     }
 
