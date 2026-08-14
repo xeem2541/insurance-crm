@@ -90,8 +90,8 @@ const Layout = () => {
               <img src="/logo.png" alt="Logo" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
             </div>
             <div className="d-flex flex-column justify-content-center">
-              <span className="fw-bold" style={{ fontFamily: 'Prompt, sans-serif', fontSize: '1.05rem', lineHeight: '1.1', color: '#f8f9fa' }}>สำนักงาน</span>
-              <span className="fw-bold" style={{ fontFamily: 'Prompt, sans-serif', fontSize: '1.4rem', lineHeight: '1.2', color: '#cba153', textShadow: '0 2px 8px rgba(203, 161, 83, 0.4)' }}>เปิ้ลประกัน</span>
+              <span className="fw-bold" style={{ fontFamily: "'IBM Plex Sans Thai', 'Sarabun', sans-serif", fontSize: '1.05rem', lineHeight: '1.1', color: '#f8f9fa' }}>สำนักงาน</span>
+              <span className="fw-bold" style={{ fontFamily: "'IBM Plex Sans Thai', 'Sarabun', sans-serif", fontSize: '1.35rem', lineHeight: '1.2', color: '#cba153', textShadow: '0 2px 8px rgba(203, 161, 83, 0.4)' }}>เปิ้ลประกัน</span>
             </div>
           </Link>
           <button className="btn btn-link text-white d-lg-none p-0" onClick={() => setIsSidebarOpen(false)}>
@@ -103,7 +103,7 @@ const Layout = () => {
         <div className="mx-3 my-2 p-2 rounded-3 text-center" style={{ background: 'rgba(255, 255, 255, 0.04)', border: '1px solid rgba(255, 255, 255, 0.08)' }}>
           <div className="d-flex align-items-center justify-content-center gap-2">
             <span className="pulse-dot-online"></span>
-            <span style={{ color: '#00ff88', fontSize: '0.76rem', fontWeight: '600', letterSpacing: '0.3px' }}>AI OCR Gemini 3.5 Ready</span>
+            <span style={{ color: '#00ff88', fontSize: '0.76rem', fontWeight: '600', letterSpacing: '0.3px', fontFamily: "'Inter', sans-serif" }}>AI OCR Gemini 3.5 Ready</span>
           </div>
         </div>
         
@@ -163,10 +163,10 @@ const Layout = () => {
                 <i className="bi bi-list fs-4"></i>
               </button>
               <div className="d-flex align-items-center gap-2">
-                <span className={`navbar-brand mb-0 h5 fw-bold ${darkMode ? 'text-light' : 'text-dark'} d-none d-sm-block`} style={{ fontFamily: 'Prompt, sans-serif' }}>
+                <span className={`navbar-brand mb-0 h5 fw-bold ${darkMode ? 'text-light' : 'text-dark'} d-none d-sm-block`} style={{ fontFamily: "'IBM Plex Sans Thai', 'Sarabun', sans-serif" }}>
                   Apple Insurance CRM
                 </span>
-                <span className={`navbar-brand mb-0 h6 fw-bold ${darkMode ? 'text-light' : 'text-dark'} d-sm-none`} style={{ fontFamily: 'Prompt, sans-serif' }}>
+                <span className={`navbar-brand mb-0 h6 fw-bold ${darkMode ? 'text-light' : 'text-dark'} d-sm-none`} style={{ fontFamily: "'IBM Plex Sans Thai', 'Sarabun', sans-serif" }}>
                   Apple Insurance
                 </span>
               </div>

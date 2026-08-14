@@ -146,7 +146,7 @@ const Dashboard = () => {
                 {currentDate.toLocaleDateString('th-TH', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
               </span>
             </div>
-            <h2 className="fw-bold mb-2" style={{ fontFamily: 'Prompt, sans-serif', color: '#f8f9fa', letterSpacing: '-0.5px' }}>
+            <h2 className="fw-bold mb-2" style={{ fontFamily: "'IBM Plex Sans Thai', 'Sarabun', sans-serif", color: '#f8f9fa', letterSpacing: '-0.5px' }}>
               ภาพรวมระบบและการบริหารงาน
             </h2>
             <p className="text-white-50 mb-0 small" style={{ maxWidth: '560px' }}>
@@ -361,7 +361,7 @@ const Dashboard = () => {
           <div className="card shadow-sm border-0 rounded-4 h-100 p-3">
             <div className="card-body">
               <div className="d-flex justify-content-between align-items-center mb-3">
-                <h5 className="card-title fw-bold mb-0" style={{ fontFamily: 'Prompt, sans-serif' }}>
+                <h5 className="card-title fw-bold mb-0" style={{ fontFamily: "'IBM Plex Sans Thai', 'Sarabun', sans-serif" }}>
                   <i className="bi bi-bar-chart-line-fill text-primary me-2"></i> ยอดขายรายเดือน (ปี {filterYear})
                 </h5>
                 <span className="badge bg-primary-subtle text-primary px-3 py-1 rounded-pill">กราฟแท่งเปรียบเทียบ</span>
@@ -387,7 +387,7 @@ const Dashboard = () => {
           <div className="card shadow-sm border-0 rounded-4 h-100 p-3">
             <div className="card-body">
               <div className="d-flex justify-content-between align-items-center mb-3">
-                <h5 className="card-title fw-bold mb-0" style={{ fontFamily: 'Prompt, sans-serif' }}>
+                <h5 className="card-title fw-bold mb-0" style={{ fontFamily: "'IBM Plex Sans Thai', 'Sarabun', sans-serif" }}>
                   <i className="bi bi-pie-chart-fill text-info me-2"></i> สัดส่วนบริษัท (ปี {filterYear})
                 </h5>
               </div>
@@ -403,7 +403,7 @@ const Dashboard = () => {
         <div className="col-lg-6">
           <div className="card shadow-sm border-0 rounded-4 h-100 overflow-hidden">
             <div className="card-header bg-danger-subtle border-bottom py-3">
-              <h5 className="mb-0 fw-bold text-danger d-flex align-items-center gap-2" style={{ fontFamily: 'Prompt, sans-serif' }}>
+              <h5 className="mb-0 fw-bold text-danger d-flex align-items-center gap-2" style={{ fontFamily: "'IBM Plex Sans Thai', 'Sarabun', sans-serif" }}>
                 <i className="bi bi-bell-fill"></i>
                 <span>แจ้งเตือนประกันใกล้หมดอายุ (ภายใน 90 วัน)</span>
               </h5>
@@ -429,7 +429,7 @@ const Dashboard = () => {
         <div className="col-lg-6">
           <div className="card shadow-sm border-0 rounded-4 h-100 overflow-hidden">
             <div className="card-header bg-warning-subtle border-bottom py-3">
-              <h5 className="mb-0 fw-bold text-dark d-flex align-items-center gap-2" style={{ fontFamily: 'Prompt, sans-serif' }}>
+              <h5 className="mb-0 fw-bold text-dark d-flex align-items-center gap-2" style={{ fontFamily: "'IBM Plex Sans Thai', 'Sarabun', sans-serif" }}>
                 <i className="bi bi-trophy-fill text-warning"></i>
                 <span>Top 10 พนักงานขาย (ปี {filterYear})</span>
               </h5>
@@ -460,7 +460,7 @@ const Dashboard = () => {
         <div className="col-12">
           <div className="card shadow-sm border-0 rounded-4 overflow-hidden h-100">
             <div className="card-header border-bottom py-3 d-flex justify-content-between align-items-center" style={{ background: 'linear-gradient(135deg, #0f172a, #1e293b)', color: '#ffffff' }}>
-              <h5 className="mb-0 fw-bold d-flex align-items-center gap-2" style={{ fontFamily: 'Prompt, sans-serif' }}>
+              <h5 className="mb-0 fw-bold d-flex align-items-center gap-2" style={{ fontFamily: "'IBM Plex Sans Thai', 'Sarabun', sans-serif" }}>
                 <i className="bi bi-cpu-fill text-info"></i> 
                 <span>สถิติการใช้งาน AI OCR {filterMonth === 'all' ? `ประจำปี ${filterYear}` : `ประจำเดือน ${months.find(m => m.value == filterMonth)?.label} ปี ${filterYear}`}</span>
               </h5>
@@ -606,7 +606,7 @@ const Dashboard = () => {
         <div className="col-12">
           <div className="card shadow-sm border-0 rounded-4 overflow-hidden h-100">
             <div className="card-header bg-primary text-white border-bottom py-3 d-flex justify-content-between align-items-center" style={{ background: 'linear-gradient(135deg, #1d4ed8, #2563eb)' }}>
-              <h5 className="mb-0 fw-bold d-flex align-items-center gap-2" style={{ fontFamily: 'Prompt, sans-serif' }}>
+              <h5 className="mb-0 fw-bold d-flex align-items-center gap-2" style={{ fontFamily: "'IBM Plex Sans Thai', 'Sarabun', sans-serif" }}>
                 <i className="bi bi-people-fill"></i> 
                 <span>รายชื่อลูกค้า{filterMonth === 'all' ? `ประจำปี ${filterYear}` : `ประจำเดือน ${months.find(m => m.value == filterMonth)?.label} ปี ${filterYear}`}</span>
               </h5>
