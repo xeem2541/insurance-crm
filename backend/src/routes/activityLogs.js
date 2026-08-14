@@ -27,8 +27,8 @@ async function ensureActivityTable(db) {
   `);
 }
 
-// GET /api/activity-logs (Admin & Manager only)
-router.get('/', authenticateToken, authorizeRole(['Admin', 'Manager']), async (req, res) => {
+// GET /api/activity-logs (Admin, Manager, Sales, Staff)
+router.get('/', authenticateToken, authorizeRole(['Admin', 'Manager', 'Sales', 'Staff']), async (req, res) => {
   try {
     await ensureActivityTable(req.db);
 
@@ -124,7 +124,7 @@ router.get('/', authenticateToken, authorizeRole(['Admin', 'Manager']), async (r
 });
 
 // GET /api/activity-logs/users (List users for filter dropdown)
-router.get('/users', authenticateToken, authorizeRole(['Admin', 'Manager']), async (req, res) => {
+router.get('/users', authenticateToken, authorizeRole(['Admin', 'Manager', 'Sales', 'Staff']), async (req, res) => {
   try {
     const [users] = await req.db.query('SELECT id, name, username, role FROM users ORDER BY name ASC');
     res.json(users);
