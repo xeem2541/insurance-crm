@@ -159,49 +159,97 @@ h1, h2, h3, h4, h5, h6 {
   }
 }
 
-// Premium Sidebar
+// ==========================================
+// 🚀 High-Tech Futuristic Sidebar (Cyberpunk / Luxury SaaS)
+// ==========================================
 .sidebar {
-  background: $dark-glass;
-  backdrop-filter: blur(25px);
-  -webkit-backdrop-filter: blur(25px);
+  background: linear-gradient(180deg, #090d16 0%, #0e1628 50%, #070a12 100%) !important;
+  backdrop-filter: blur(30px);
+  -webkit-backdrop-filter: blur(30px);
   color: rgba(255, 255, 255, 0.85);
   min-height: 100vh;
-  box-shadow: 15px 0 40px rgba(0,0,0,0.15);
-  border-right: 1px solid rgba(255,255,255,0.08);
-  padding: 1.5rem 0;
+  box-shadow: 10px 0 35px rgba(0, 0, 0, 0.45);
+  border-right: 1px solid rgba(255, 255, 255, 0.08) !important;
+  padding: 1.25rem 0;
+  position: relative;
+  overflow-y: auto;
+
+  // Ambient top/bottom radial glows
+  &::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0; height: 180px;
+    background: radial-gradient(circle at 50% -20%, rgba(59, 130, 246, 0.15), transparent 70%);
+    pointer-events: none;
+  }
 
   .nav-link {
-    color: rgba(255,255,255,0.6);
-    border-radius: 12px;
-    margin: 0.3rem 1.25rem;
-    padding: 0.65rem 1.1rem;
-    font-weight: 400;
-    font-size: 0.9rem;
-    transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+    color: #94a3b8;
+    border-radius: 14px;
+    margin: 4px 12px;
+    padding: 9px 14px;
+    font-weight: 500;
+    font-size: 0.91rem;
+    transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
     display: flex;
     align-items: center;
+    border: 1px solid transparent;
+    position: relative;
 
-    i {
+    .menu-icon-box {
+      width: 34px;
+      height: 34px;
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-right: 12px;
+      flex-shrink: 0;
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid rgba(255, 255, 255, 0.06);
       font-size: 1.1rem;
-      margin-right: 0.75rem;
-      opacity: 0.7;
-      transition: all 0.4s ease;
+      transition: all 0.25s ease;
+      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
     }
 
     &:hover {
-      background-color: rgba(255,255,255,0.06);
-      color: white;
-      transform: translateX(6px);
-      i { opacity: 1; transform: scale(1.1); color: $accent-gold-light; }
+      background: rgba(255, 255, 255, 0.06);
+      color: #ffffff;
+      transform: translateX(5px);
+      border-color: rgba(255, 255, 255, 0.08);
+
+      .menu-icon-box {
+        transform: scale(1.1);
+        background: rgba(255, 255, 255, 0.1);
+        box-shadow: 0 0 12px rgba(255, 255, 255, 0.15);
+      }
     }
 
     &.active {
-      background: linear-gradient(135deg, rgba(255,255,255,0.1), rgba(255,255,255,0.02));
-      color: $accent-gold-light;
-      box-shadow: inset 2px 0 0 $accent-gold;
-      font-weight: 500;
-      border: 1px solid rgba(255, 255, 255, 0.05);
-      i { opacity: 1; color: $accent-gold-light; }
+      color: #ffffff !important;
+      background: linear-gradient(90deg, rgba(59, 130, 246, 0.22) 0%, rgba(99, 102, 241, 0.12) 100%) !important;
+      border: 1px solid rgba(96, 165, 250, 0.45) !important;
+      box-shadow: 0 4px 20px rgba(37, 99, 235, 0.25), inset 0 1px 0 rgba(255, 255, 255, 0.18) !important;
+      font-weight: 600;
+
+      .menu-icon-box {
+        background: linear-gradient(135deg, #3b82f6, #6366f1) !important;
+        color: #ffffff !important;
+        box-shadow: 0 0 15px rgba(59, 130, 246, 0.55);
+        border-color: rgba(255, 255, 255, 0.25) !important;
+        transform: scale(1.05);
+      }
+
+      &::after {
+        content: '';
+        position: absolute;
+        right: 12px;
+        width: 6px;
+        height: 6px;
+        border-radius: 50%;
+        background-color: #38bdf8;
+        box-shadow: 0 0 10px #38bdf8;
+      }
     }
   }
 

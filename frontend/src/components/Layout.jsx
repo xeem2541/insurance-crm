@@ -61,16 +61,16 @@ const Layout = () => {
   };
 
   const menuItems = [
-    { path: '/', label: 'ภาพรวมระบบ', icon: 'bi-grid-1x2-fill', roles: ['Admin', 'Manager', 'Staff', 'Sales', 'Viewer'] },
-    { path: '/issue-policy', label: 'ออกกรมธรรม์ใหม่', icon: 'bi-file-earmark-plus-fill', roles: ['Admin', 'Manager', 'Staff', 'Sales'] },
-    { path: '/calendar', label: 'ปฏิทินงาน', icon: 'bi-calendar3', roles: ['Admin', 'Manager', 'Staff', 'Sales', 'Viewer'] },
-    { path: '/customers', label: 'ข้อมูลลูกค้า', icon: 'bi-people-fill', roles: ['Admin', 'Manager', 'Staff', 'Sales', 'Viewer'] },
-    { path: '/policies', label: 'Motor Insurance (รถยนต์)', icon: 'bi-shield-fill-check', roles: ['Admin', 'Manager', 'Staff', 'Sales', 'Viewer'] },
-    { path: '/non-motor', label: 'Non-Motor (ประกันอื่น)', icon: 'bi-shield-plus', roles: ['Admin', 'Manager', 'Staff', 'Sales', 'Viewer'] },
-    { path: '/payments', label: 'ระบบรับชำระเงิน', icon: 'bi-wallet2', roles: ['Admin', 'Manager', 'Staff', 'Sales'] },
-    { path: '/documents', label: 'ระบบเอกสาร', icon: 'bi-file-earmark-medical-fill', roles: ['Admin', 'Manager', 'Staff', 'Sales', 'Viewer'] },
-    { path: '/reports', label: 'รายงาน', icon: 'bi-bar-chart-line-fill', roles: ['Admin', 'Manager', 'Sales'] },
-    { path: '/master-data', label: 'ตั้งค่าระบบ', icon: 'bi-gear-fill', roles: ['Admin', 'Manager'] }
+    { path: '/', label: 'ภาพรวมระบบ', icon: 'bi-grid-1x2-fill', color: '#38bdf8', roles: ['Admin', 'Manager', 'Staff', 'Sales', 'Viewer'] },
+    { path: '/issue-policy', label: 'ออกกรมธรรม์ใหม่', icon: 'bi-file-earmark-plus-fill', color: '#34d399', badge: 'AI 100%', badgeBg: 'linear-gradient(45deg, #10b981, #059669)', roles: ['Admin', 'Manager', 'Staff', 'Sales'] },
+    { path: '/calendar', label: 'ปฏิทินงาน', icon: 'bi-calendar3', color: '#fbbf24', roles: ['Admin', 'Manager', 'Staff', 'Sales', 'Viewer'] },
+    { path: '/customers', label: 'ข้อมูลลูกค้า', icon: 'bi-people-fill', color: '#a78bfa', roles: ['Admin', 'Manager', 'Staff', 'Sales', 'Viewer'] },
+    { path: '/policies', label: 'Motor Insurance (รถยนต์)', icon: 'bi-shield-fill-check', color: '#60a5fa', roles: ['Admin', 'Manager', 'Staff', 'Sales', 'Viewer'] },
+    { path: '/non-motor', label: 'Non-Motor (ประกันอื่น)', icon: 'bi-shield-plus', color: '#f472b6', roles: ['Admin', 'Manager', 'Staff', 'Sales', 'Viewer'] },
+    { path: '/payments', label: 'ระบบรับชำระเงิน', icon: 'bi-wallet2', color: '#4ade80', roles: ['Admin', 'Manager', 'Staff', 'Sales'] },
+    { path: '/documents', label: 'ระบบเอกสาร', icon: 'bi-file-earmark-medical-fill', color: '#2dd4bf', roles: ['Admin', 'Manager', 'Staff', 'Sales', 'Viewer'] },
+    { path: '/reports', label: 'รายงาน', icon: 'bi-bar-chart-line-fill', color: '#fb923c', roles: ['Admin', 'Manager', 'Sales'] },
+    { path: '/master-data', label: 'ตั้งค่าระบบ', icon: 'bi-gear-fill', color: '#94a3b8', roles: ['Admin', 'Manager'] }
   ];
 
   const filteredMenuItems = menuItems.filter(item => item.roles.includes(user?.role));
@@ -83,7 +83,7 @@ const Layout = () => {
         onClick={() => setIsSidebarOpen(false)}
       ></div>
 
-      <div className={`sidebar d-flex flex-column ${isSidebarOpen ? 'open' : ''} ${darkMode ? 'border-end border-secondary' : ''}`} style={{ width: '280px', backgroundColor: darkMode ? '#111827' : '#0f172a' }}>
+      <div className={`sidebar d-flex flex-column ${isSidebarOpen ? 'open' : ''} ${darkMode ? 'border-end border-secondary' : ''}`} style={{ width: '280px' }}>
         <div className="d-flex align-items-center justify-content-between mb-2 px-4 mt-2 pt-3">
           <Link to="/" className="d-flex align-items-center text-white text-decoration-none">
             <div className="bg-white rounded-circle p-1 me-3 flex-shrink-0 d-flex align-items-center justify-content-center shadow-lg" style={{ width: '50px', height: '50px', border: '2px solid rgba(203, 161, 83, 0.5)' }}>
@@ -117,10 +117,16 @@ const Layout = () => {
                 to={item.path} 
                 className={`nav-link ${location.pathname === item.path ? 'active' : ''}`}
                 onClick={() => setIsSidebarOpen(false)}
-                style={{ borderRadius: '12px', transition: 'all 0.25s ease' }}
               >
-                <i className={`bi ${item.icon}`}></i>
-                <span>{item.label}</span>
+                <span className="menu-icon-box" style={{ color: item.color }}>
+                  <i className={`bi ${item.icon}`}></i>
+                </span>
+                <span className="flex-grow-1 text-truncate">{item.label}</span>
+                {item.badge && (
+                  <span className="badge rounded-pill px-2 py-1 ms-auto shadow-sm" style={{ background: item.badgeBg || '#3b82f6', fontSize: '0.68rem', color: '#ffffff', fontWeight: '700', letterSpacing: '0.3px' }}>
+                    {item.badge}
+                  </span>
+                )}
               </Link>
             </li>
           ))}
