@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import axios from 'axios';
 import api from '../services/api';
 import { Form, Button, Row, Col, Accordion, Card, Badge, Modal } from 'react-bootstrap';
 import Select from 'react-select';
@@ -8,6 +9,59 @@ import { useDropzone } from 'react-dropzone';
 import ThaiAddressSelect from '../components/ThaiAddressSelect';
 import { carBrands, carModels } from '../data/carData';
 import thaiData from '../data/thai_address.json';
+
+const DEFAULT_SERVER_KEY = import.meta.env.VITE_GEMINI_API_KEY || '';
+
+const GEMINI_EXTRACT_PROMPT = `คุณคือระบบ AI OCR อัจฉริยะที่เชี่ยวชาญที่สุดในการวิเคราะห์และดึงข้อมูลจากเอกสารการประกันภัยของประเทศไทย ทั้งประกันภัยรถยนต์ (Motor Insurance ได้แก่ ตารางกรมธรรม์สมัครใจ, ตารางกรมธรรม์ภาคบังคับ/พ.ร.บ., เล่มทะเบียนรถ) และประกันภัยอื่นๆ ที่ไม่ใช่รถยนต์ (Non-Motor Insurance) รวมถึงใบเสร็จรับเงิน และสลิปการโอนเงิน
+จงวิเคราะห์ภาพถ่ายที่ส่งมาอย่างละเอียด ดึงข้อมูลด้วยความถูกต้องแม่นยำสูงสุด 100% ตอบกลับในรูปแบบ JSON Object ตามโครงสร้างที่กำหนดเท่านั้น
+โครงสร้าง JSON:
+{
+  "document_type": "voluntary_policy | prb_policy | non_motor_policy | vehicle_book | payment_slip | unknown",
+  "customer": {
+    "prefix": "",
+    "first_name": "",
+    "last_name": "",
+    "phone": "",
+    "alt_phone": "",
+    "id_card_no": "",
+    "dob": "",
+    "age": null,
+    "address": "",
+    "moo": "",
+    "soi": "",
+    "road": "",
+    "sub_district": "",
+    "district": "",
+    "province": "",
+    "zipcode": ""
+  },
+  "vehicle": {
+    "vehicle_type": "",
+    "brand": "",
+    "model": "",
+    "year": "",
+    "color": "",
+    "plate_no": "",
+    "plate_province": "",
+    "vin": "",
+    "engine_no": "",
+    "registration_date": "",
+    "sum_insured": ""
+  },
+  "policy": {
+    "company": "",
+    "type": "",
+    "category": "motor หรือ non-motor",
+    "policy_no": "",
+    "sum_insured": "",
+    "net_premium": "",
+    "stamp_duty": "",
+    "vat": "",
+    "total_premium": "",
+    "start_date": "YYYY-MM-DD",
+    "expiry_date": "YYYY-MM-DD"
+  }
+}`;
 
 const formatPhone = (val) => {
   if (!val) return '';
@@ -1047,22 +1101,95 @@ const IssuePolicyForm = () => {
   const cameraScanInputRef = useRef(null);
 
   const handleTestApiKey = async (keyToTest) => {
-    const key = (keyToTest !== undefined ? keyToTest : apiKeyInput).trim();
+    const key = (keyToTest !== undefined ? keyToTest : apiKeyInput || DEFAULT_SERVER_KEY).trim();
     if (!key) {
       setApiKeyTestResult({ success: false, message: 'กรุณากรอก API Key ก่อนทำการทดสอบ' });
       return;
     }
     setApiKeyTestLoading(true);
     setApiKeyTestResult(null);
+    const start = Date.now();
     try {
-      const res = await api.post('/ai-ocr/test-key', { apiKey: key });
-      setApiKeyTestResult({ success: true, message: res.data.message });
-    } catch (err) {
-      const msg = err.response?.data?.message || err.message || 'ไม่สามารถเชื่อมต่อได้';
-      setApiKeyTestResult({ success: false, message: msg });
+      // 1. Direct Ping to Google Gemini API (Works everywhere on web & mobile without server dependency)
+      const res = await axios.get(
+        `https://generativelanguage.googleapis.com/v1beta/models?key=${encodeURIComponent(key)}`,
+        { timeout: 8000 }
+      );
+      const elapsed = Date.now() - start;
+      const models = res.data?.models || [];
+      setApiKeyTestResult({
+        success: true,
+        message: `✅ เชื่อมต่อ Google Gemini AI สำเร็จ (${elapsed}ms) - คีย์ถูกต้องพร้อมใช้งาน!`
+      });
+    } catch (directErr) {
+      if (directErr.response?.data?.error?.message) {
+        setApiKeyTestResult({
+          success: false,
+          message: `Google API แจ้งเตือน: ${directErr.response.data.error.message}`
+        });
+        return;
+      }
+      // 2. Server fallback if available
+      try {
+        const serverRes = await api.post('/ai-ocr/test-key', { apiKey: key });
+        setApiKeyTestResult({ success: true, message: serverRes.data.message });
+      } catch (err) {
+        const msg = err.response?.data?.message || directErr.message || 'ไม่สามารถเชื่อมต่อกับ Google AI ได้';
+        setApiKeyTestResult({ success: false, message: msg });
+      }
     } finally {
       setApiKeyTestLoading(false);
     }
+  };
+
+  const extractDirectFromGemini = async (file, apiKey) => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = async () => {
+        try {
+          const base64Data = reader.result.split(',')[1];
+          const mimeType = file.type || 'image/jpeg';
+          const modelsToTry = ['gemini-3.5-flash-lite', 'gemini-3.5-flash', 'gemini-3.1-flash-lite', 'gemini-flash-latest'];
+          let lastErr = null;
+          
+          for (const modelName of modelsToTry) {
+            try {
+              const res = await axios.post(
+                `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${encodeURIComponent(apiKey)}`,
+                {
+                  contents: [
+                    {
+                      parts: [
+                        { text: GEMINI_EXTRACT_PROMPT },
+                        { inline_data: { mime_type: mimeType, data: base64Data } }
+                      ]
+                    }
+                  ],
+                  generationConfig: {
+                    responseMimeType: "application/json",
+                    temperature: 0.0
+                  }
+                },
+                { timeout: 35000 }
+              );
+              const jsonText = res.data?.candidates?.[0]?.content?.parts?.[0]?.text;
+              if (jsonText) {
+                const parsed = JSON.parse(jsonText);
+                return resolve(parsed);
+              }
+            } catch (err) {
+              lastErr = err;
+              console.warn(`Direct model ${modelName} error:`, err.response?.data || err.message);
+            }
+          }
+          reject(lastErr || new Error('Direct Gemini extraction failed'));
+        } catch (e) {
+          reject(e);
+        }
+      };
+      reader.onerror = reject;
+      reader.readAsDataURL(file);
+    });
   };
 
   const handleAIExtract = async (e) => {
@@ -1109,9 +1236,17 @@ const IssuePolicyForm = () => {
           headers['x-gemini-api-key'] = geminiApiKey;
         }
 
-        const res = await api.post('/ai-ocr/extract', formData, { headers });
+        let rawAiRes = null;
+        try {
+          const res = await api.post('/ai-ocr/extract', formData, { headers });
+          rawAiRes = res.data;
+        } catch (serverErr) {
+          console.warn('Server OCR route not available, falling back to direct client-side Gemini Vision...', serverErr.message);
+          const activeKey = geminiApiKey || DEFAULT_SERVER_KEY;
+          rawAiRes = await extractDirectFromGemini(compressedFile, activeKey);
+        }
 
-        const data = sanitizeAIResponse(res.data);
+        const data = sanitizeAIResponse(rawAiRes);
 
         let detectedTypeId = 1; 
         if (data.document_type === 'vehicle_book') detectedTypeId = 4;
