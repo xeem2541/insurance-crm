@@ -2,36 +2,9 @@ const express = require('express');
 const router = express.Router();
 const { authenticateToken, authorizeRole } = require('../middlewares/auth');
 
-// Ensure table exists on first query
-async function ensureActivityTable(db) {
-  await db.query(`
-    CREATE TABLE IF NOT EXISTS activity_logs (
-      id INT PRIMARY KEY AUTO_INCREMENT,
-      user_id INT NULL,
-      user_name VARCHAR(100) NULL,
-      user_role VARCHAR(50) NULL,
-      action VARCHAR(100) NOT NULL,
-      entity_type VARCHAR(50) NOT NULL DEFAULT 'general',
-      entity_id INT NULL,
-      description TEXT NULL,
-      old_values JSON NULL,
-      new_values JSON NULL,
-      ip_address VARCHAR(50) NULL,
-      user_agent TEXT NULL,
-      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-      INDEX (user_id),
-      INDEX (action),
-      INDEX (entity_type),
-      INDEX (created_at)
-    )
-  `);
-}
-
 // GET /api/activity-logs (Admin, Manager, Sales, Staff)
 router.get('/', authenticateToken, authorizeRole(['Admin', 'Manager', 'Sales', 'Staff']), async (req, res) => {
   try {
-    await ensureActivityTable(req.db);
-
     const {
       startDate,
       endDate,
@@ -47,27 +20,27 @@ router.get('/', authenticateToken, authorizeRole(['Admin', 'Manager', 'Sales', '
     let params = [];
 
     if (startDate) {
-      conditions.push('DATE(created_at) >= ?');
+      conditions.push('DATE(a.created_at) >= ?');
       params.push(startDate);
     }
     if (endDate) {
-      conditions.push('DATE(created_at) <= ?');
+      conditions.push('DATE(a.created_at) <= ?');
       params.push(endDate);
     }
     if (userId && userId !== 'all') {
-      conditions.push('user_id = ?');
+      conditions.push('a.user_id = ?');
       params.push(userId);
     }
     if (action && action !== 'all') {
-      conditions.push('action = ?');
+      conditions.push('a.action = ?');
       params.push(action);
     }
     if (entityType && entityType !== 'all') {
-      conditions.push('entity_type = ?');
+      conditions.push('(a.target_table = ?)');
       params.push(entityType);
     }
     if (search && search.trim()) {
-      conditions.push('(description LIKE ? OR user_name LIKE ? OR action LIKE ?)');
+      conditions.push('(a.details LIKE ? OR u.name LIKE ? OR a.action LIKE ?)');
       const term = `%${search.trim()}%`;
       params.push(term, term, term);
     }
@@ -77,14 +50,29 @@ router.get('/', authenticateToken, authorizeRole(['Admin', 'Manager', 'Sales', '
 
     // Total Count
     const [countResult] = await req.db.query(
-      `SELECT COUNT(*) as total FROM activity_logs WHERE ${whereClause}`,
+      `SELECT COUNT(*) as total FROM activity_logs a LEFT JOIN users u ON a.user_id = u.id WHERE ${whereClause}`,
       params
     );
-    const total = countResult[0].total;
+    const total = countResult[0]?.total || 0;
 
-    // Logs query
+    // Logs query with JOIN on users table
     const [logs] = await req.db.query(
-      `SELECT * FROM activity_logs WHERE ${whereClause} ORDER BY created_at DESC LIMIT ? OFFSET ?`,
+      `SELECT 
+        a.id,
+        a.user_id,
+        COALESCE(u.name, 'System') as user_name,
+        COALESCE(u.role, 'Admin') as user_role,
+        a.action,
+        COALESCE(a.target_table, 'general') as entity_type,
+        a.target_id as entity_id,
+        COALESCE(a.details, '') as description,
+        a.created_at,
+        '127.0.0.1' as ip_address
+      FROM activity_logs a 
+      LEFT JOIN users u ON a.user_id = u.id 
+      WHERE ${whereClause} 
+      ORDER BY a.created_at DESC, a.id DESC 
+      LIMIT ? OFFSET ?`,
       [...params, parseInt(limit), offset]
     );
 
@@ -99,10 +87,13 @@ router.get('/', authenticateToken, authorizeRole(['Admin', 'Manager', 'Sales', '
     `);
 
     const [userStats] = await req.db.query(`
-      SELECT user_name, user_role, COUNT(*) as action_count 
-      FROM activity_logs 
-      WHERE user_name IS NOT NULL 
-      GROUP BY user_name, user_role 
+      SELECT 
+        COALESCE(u.name, 'System') as user_name, 
+        COALESCE(u.role, 'Admin') as user_role, 
+        COUNT(*) as action_count 
+      FROM activity_logs a
+      LEFT JOIN users u ON a.user_id = u.id
+      GROUP BY u.name, u.role 
       ORDER BY action_count DESC 
       LIMIT 5
     `);
@@ -113,13 +104,13 @@ router.get('/', authenticateToken, authorizeRole(['Admin', 'Manager', 'Sales', '
       total,
       page: parseInt(page),
       limit: parseInt(limit),
-      totalPages: Math.ceil(total / parseInt(limit)),
-      stats: statsResult[0] || {},
+      totalPages: Math.ceil(total / parseInt(limit)) || 1,
+      stats: statsResult[0] || { today_count: 0, create_count: 0, update_count: 0, delete_count: 0 },
       topUsers: userStats || []
     });
   } catch (err) {
     console.error('Error fetching activity logs:', err);
-    res.status(500).json({ error: 'Failed to retrieve activity logs' });
+    res.status(500).json({ error: 'Failed to retrieve activity logs: ' + err.message });
   }
 });
 
