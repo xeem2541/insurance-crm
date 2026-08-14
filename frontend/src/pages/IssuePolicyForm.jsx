@@ -2002,7 +2002,7 @@ const IssuePolicyForm = () => {
         
         <div className="card-body text-center py-5 position-relative" style={{ zIndex: 1 }}>
           <h3 className="fw-bold mb-3" style={{ color: '#00ff88', textShadow: '0 0 15px rgba(0,255,136,0.4)', letterSpacing: '0.5px' }}>
-            <i className="bi bi-magic me-2"></i> สแกนรูปด้วย AI แม่นยำ 100%
+            <i className="bi bi-magic me-2"></i> สแกนรูปด้วย AI (ปรับความแม่นยำอัตโนมัติ)
           </h3>
           
           <div className="mb-4 d-flex justify-content-center align-items-center gap-2">
