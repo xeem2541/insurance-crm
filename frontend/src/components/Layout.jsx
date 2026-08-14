@@ -84,14 +84,58 @@ const Layout = () => {
       ></div>
 
       <div className={`sidebar d-flex flex-column ${isSidebarOpen ? 'open' : ''} ${darkMode ? 'border-end border-secondary' : ''}`} style={{ width: '280px' }}>
-        <div className="d-flex align-items-center justify-content-between mb-2 px-4 mt-2 pt-3">
-          <Link to="/" className="d-flex align-items-center text-white text-decoration-none">
-            <div className="bg-white rounded-circle p-1 me-3 flex-shrink-0 d-flex align-items-center justify-content-center shadow-lg" style={{ width: '50px', height: '50px', border: '2px solid rgba(203, 161, 83, 0.5)' }}>
-              <img src="/logo.png" alt="Logo" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
+        <div className="d-flex align-items-center justify-content-between mb-3 px-4 pt-3">
+          <Link to="/" className="d-flex align-items-center text-white text-decoration-none w-100">
+            <div 
+              className="rounded-circle me-3 flex-shrink-0 d-flex align-items-center justify-content-center shadow-lg position-relative" 
+              style={{ 
+                width: '46px', 
+                height: '46px', 
+                backgroundColor: '#ffffff',
+                border: '2px solid rgba(212, 175, 55, 0.7)',
+                boxShadow: '0 0 14px rgba(212, 175, 55, 0.3)',
+                overflow: 'hidden',
+                padding: '3px'
+              }}
+            >
+              <img 
+                src="/logo.png" 
+                alt="Logo" 
+                style={{ 
+                  width: '100%', 
+                  height: '100%', 
+                  objectFit: 'contain',
+                  display: 'block'
+                }} 
+              />
             </div>
             <div className="d-flex flex-column justify-content-center">
-              <span className="fw-bold" style={{ fontFamily: "'IBM Plex Sans Thai', 'Sarabun', sans-serif", fontSize: '1.05rem', lineHeight: '1.1', color: '#f8f9fa' }}>สำนักงาน</span>
-              <span className="fw-bold" style={{ fontFamily: "'IBM Plex Sans Thai', 'Sarabun', sans-serif", fontSize: '1.35rem', lineHeight: '1.2', color: '#cba153', textShadow: '0 2px 8px rgba(203, 161, 83, 0.4)' }}>เปิ้ลประกัน</span>
+              <div 
+                style={{ 
+                  fontSize: '0.78rem', 
+                  fontWeight: '500', 
+                  color: '#94a3b8', 
+                  letterSpacing: '1px', 
+                  lineHeight: '1.1',
+                  marginBottom: '1px'
+                }}
+              >
+                สำนักงาน
+              </div>
+              <div 
+                style={{ 
+                  fontSize: '1.38rem', 
+                  fontWeight: '800', 
+                  lineHeight: '1.15',
+                  background: 'linear-gradient(135deg, #fff7c2 0%, #d4af37 60%, #b45309 100%)',
+                  WebkitBackgroundClip: 'text',
+                  WebkitTextFillColor: 'transparent',
+                  filter: 'drop-shadow(0 2px 6px rgba(212, 175, 55, 0.35))',
+                  letterSpacing: '0.3px'
+                }}
+              >
+                เปิ้ลประกัน
+              </div>
             </div>
           </Link>
           <button className="btn btn-link text-white d-lg-none p-0" onClick={() => setIsSidebarOpen(false)}>
