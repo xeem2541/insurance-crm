@@ -88,24 +88,26 @@ const Layout = () => {
         <div className="d-flex align-items-center justify-content-between mb-3 px-4 pt-3">
           <Link to="/" className="d-flex align-items-center text-white text-decoration-none w-100">
             <div 
-              className="rounded-circle me-3 flex-shrink-0 d-flex align-items-center justify-content-center shadow-lg position-relative" 
+              className="me-3 flex-shrink-0 d-flex align-items-center justify-content-center shadow-lg position-relative" 
               style={{ 
-                width: '46px', 
-                height: '46px', 
-                backgroundColor: '#ffffff',
-                border: '2px solid rgba(212, 175, 55, 0.7)',
-                boxShadow: '0 0 14px rgba(212, 175, 55, 0.3)',
+                width: '48px', 
+                height: '48px', 
+                backgroundColor: '#020617',
+                border: '2px solid rgba(212, 175, 55, 0.75)',
+                boxShadow: '0 0 14px rgba(212, 175, 55, 0.35)',
+                borderRadius: '14px',
                 overflow: 'hidden',
-                padding: '3px'
+                padding: '2px'
               }}
             >
               <img 
                 src="/logo.png" 
-                alt="Logo" 
+                alt="สำนักงานเปิ้ล ประกันภัยครบวงจร" 
                 style={{ 
                   width: '100%', 
                   height: '100%', 
-                  objectFit: 'contain',
+                  objectFit: 'cover',
+                  borderRadius: '10px',
                   display: 'block'
                 }} 
               />

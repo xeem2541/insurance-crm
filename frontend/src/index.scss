@@ -1129,46 +1129,33 @@ button, input, select, textarea, .form-control, .form-select, .table, .badge, .n
       flex-direction: column;
       align-items: center;
       justify-content: center;
-      margin-bottom: 0.9rem;
+      margin-bottom: 1.1rem;
 
-      .apple-logo-svg {
-        width: 72px;
-        height: 72px;
-        filter: drop-shadow(0 6px 12px rgba(212, 175, 55, 0.35));
-        transition: transform 0.3s ease;
+      .logo-badge-container {
+        width: 135px;
+        height: 135px;
+        border-radius: 24px;
+        overflow: hidden;
+        background: #020617;
+        border: 2px solid rgba(212, 175, 55, 0.75);
+        box-shadow: 0 12px 28px rgba(0, 0, 0, 0.5), 0 0 25px rgba(212, 175, 55, 0.35);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 4px;
+        transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275), box-shadow 0.3s ease;
+
+        img {
+          width: 100%;
+          height: 100%;
+          object-fit: cover;
+          border-radius: 18px;
+          display: block;
+        }
 
         &:hover {
-          transform: scale(1.05);
-        }
-      }
-
-      .brand-logo-text {
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        margin-top: 0.15rem;
-
-        .logo-title-apple {
-          font-family: 'Outfit', 'Prompt', sans-serif;
-          font-size: 1.25rem;
-          font-weight: 800;
-          letter-spacing: 0.12em;
-          color: #f1c40f;
-          background: linear-gradient(180deg, #fff2a8 0%, #e6b800 60%, #b8860b 100%);
-          -webkit-background-clip: text;
-          -webkit-text-fill-color: transparent;
-          text-shadow: 0 2px 10px rgba(230, 184, 0, 0.3);
-          line-height: 1.1;
-        }
-
-        .logo-subtitle-ins {
-          font-family: 'Outfit', sans-serif;
-          font-size: 0.72rem;
-          font-weight: 500;
-          letter-spacing: 0.15em;
-          color: #e2e8f0;
-          opacity: 0.9;
-          margin-top: -1px;
+          transform: translateY(-3px) scale(1.05);
+          box-shadow: 0 16px 36px rgba(0, 0, 0, 0.6), 0 0 35px rgba(212, 175, 55, 0.5);
         }
       }
     }

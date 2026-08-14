@@ -72,69 +72,13 @@ const Login = () => {
       <div className="login-glass-card">
         {/* Brand Logo & Header */}
         <div className="brand-header">
-          {/* High-definition Golden Apple Insurance Logo */}
+          {/* Official Ple Insurance Logo Badge */}
           <div className="brand-logo-wrap">
-            <svg
-              className="apple-logo-svg"
-              viewBox="0 0 120 120"
-              fill="none"
-              xmlns="http://www.w3.org/2000/svg"
-            >
-              <defs>
-                <linearGradient id="goldGrad1" x1="0%" y1="0%" x2="100%" y2="100%">
-                  <stop offset="0%" stopColor="#ffd700" />
-                  <stop offset="40%" stopColor="#d4af37" />
-                  <stop offset="70%" stopColor="#aa771c" />
-                  <stop offset="100%" stopColor="#ffd700" />
-                </linearGradient>
-                <linearGradient id="goldGrad2" x1="100%" y1="0%" x2="0%" y2="100%">
-                  <stop offset="0%" stopColor="#fff1a8" />
-                  <stop offset="50%" stopColor="#d4af37" />
-                  <stop offset="100%" stopColor="#8a5a00" />
-                </linearGradient>
-                <linearGradient id="redGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-                  <stop offset="0%" stopColor="#ef4444" />
-                  <stop offset="40%" stopColor="#b91c1c" />
-                  <stop offset="100%" stopColor="#7f1d1d" />
-                </linearGradient>
-                <filter id="goldGlow" x="-20%" y="-20%" width="140%" height="140%">
-                  <feDropShadow dx="0" dy="2" stdDeviation="3" floodColor="#d4af37" floodOpacity="0.4" />
-                </filter>
-              </defs>
-
-              {/* Apple Leaf */}
-              <path
-                d="M 64 12 C 68 18 64 26 56 28 C 54 22 58 14 64 12 Z"
-                fill="url(#goldGrad1)"
-                filter="url(#goldGlow)"
+            <div className="logo-badge-container">
+              <img
+                src="/logo.png"
+                alt="สำนักงานเปิ้ล ประกันภัยครบวงจร"
               />
-
-              {/* Apple Left Half Contour */}
-              <path
-                d="M 52 28 C 42 28 32 36 28 48 C 24 64 30 84 42 98 C 48 104 54 105 60 102 C 54 96 46 86 46 72 C 46 54 56 36 66 30 C 62 28 57 28 52 28 Z"
-                fill="url(#goldGrad1)"
-                filter="url(#goldGlow)"
-              />
-
-              {/* Apple Right Half Contour */}
-              <path
-                d="M 68 28 C 76 28 84 34 88 44 C 94 58 92 78 82 92 C 78 98 72 102 66 102 C 74 96 80 82 80 68 C 80 50 72 36 64 30 C 65 29 66.5 28.5 68 28 Z"
-                fill="url(#goldGrad2)"
-                filter="url(#goldGlow)"
-              />
-
-              {/* Golden/Red Checkmark Inside Apple */}
-              <path
-                d="M 38 62 L 52 78 L 88 32 L 80 32 L 50 70 L 44 62 Z"
-                fill="url(#redGrad)"
-                stroke="url(#goldGrad1)"
-                strokeWidth="1.5"
-                strokeLinejoin="round"
-              />
-            </svg>
-            <div className="brand-logo-text">
-              <span className="logo-title-apple">APPLE</span>
-              <span className="logo-subtitle-ins">Insurance</span>
             </div>
           </div>
 
