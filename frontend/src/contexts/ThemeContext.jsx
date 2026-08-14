@@ -9,17 +9,20 @@ export const ThemeProvider = ({ children }) => {
     const savedTheme = localStorage.getItem('theme');
     if (savedTheme === 'dark') {
       setDarkMode(true);
-      document.body.classList.add('bg-dark', 'text-light');
+      document.body.classList.add('bg-dark', 'text-light', 'dark-mode');
+      document.documentElement.classList.add('dark-mode');
     }
   }, []);
 
   const toggleTheme = () => {
     setDarkMode(!darkMode);
     if (!darkMode) {
-      document.body.classList.add('bg-dark', 'text-light');
+      document.body.classList.add('bg-dark', 'text-light', 'dark-mode');
+      document.documentElement.classList.add('dark-mode');
       localStorage.setItem('theme', 'dark');
     } else {
-      document.body.classList.remove('bg-dark', 'text-light');
+      document.body.classList.remove('bg-dark', 'text-light', 'dark-mode');
+      document.documentElement.classList.remove('dark-mode');
       localStorage.setItem('theme', 'light');
     }
   };
