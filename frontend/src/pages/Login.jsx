@@ -1,7 +1,7 @@
 import React, { useState, useContext } from 'react';
 import { AuthContext } from '../contexts/AuthContext';
 import { ThemeContext } from '../contexts/ThemeContext';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 
 const Login = () => {
   const { login } = useContext(AuthContext);
@@ -181,6 +181,17 @@ const Login = () => {
             >
               ลืมรหัสผ่าน? (Forgot Password?)
             </button>
+          </div>
+
+          {/* Employee Register Link */}
+          <div className="text-center mt-3 pt-3 border-top border-white border-opacity-10">
+            <span className="text-white-50 small me-1">ยังไม่มีบัญชีพนักงาน?</span>
+            <Link 
+              to="/register" 
+              className="text-info fw-bold text-decoration-none small hover-underline"
+            >
+              สมัครสมาชิกพนักงาน <i className="bi bi-arrow-right ms-1"></i>
+            </Link>
           </div>
         </form>
       </div>

@@ -52,6 +52,54 @@ router.post('/login', loginLimiter, async (req, res) => {
   }
 });
 
+// Employee Registration Endpoint
+router.post('/register', async (req, res) => {
+  const { username, password, name, role, email, phone } = req.body;
+  if (!username || !password || !name) {
+    return res.status(400).json({ error: 'กรุณากรอกข้อมูลที่จำเป็นให้ครบถ้วน (ชื่อ-นามสกุล, ชื่อผู้ใช้, รหัสผ่าน)' });
+  }
+
+  try {
+    const cleanUsername = username.trim();
+    const [existing] = await req.db.query('SELECT id FROM users WHERE username = ?', [cleanUsername]);
+    if (existing.length > 0) {
+      return res.status(400).json({ error: 'ชื่อผู้ใช้งาน (Username) นี้ถูกใช้ไปแล้ว กรุณาเลือกชื่อผู้ใช้งานอื่น' });
+    }
+
+    const hashedPassword = await bcrypt.hash(password, 10);
+    const assignedRole = role || 'Staff';
+
+    const [result] = await req.db.query(
+      'INSERT INTO users (username, password, name, role) VALUES (?, ?, ?, ?)',
+      [cleanUsername, hashedPassword, name.trim(), assignedRole]
+    );
+
+    // Record Register Activity
+    try {
+      const { logActivity } = require('../utils/activityLogger');
+      await logActivity(req.db, {
+        user: { id: result.insertId, name: name.trim(), role: assignedRole },
+        headers: req.headers,
+        socket: req.socket
+      }, {
+        action: 'REGISTER',
+        entity_type: 'users',
+        entity_id: result.insertId,
+        description: `พนักงานใหม่ ${name.trim()} (@${cleanUsername} - ${assignedRole}) สมัครสมาชิกสำเร็จ`
+      });
+    } catch (e) {}
+
+    res.status(201).json({
+      success: true,
+      message: 'ลงทะเบียนพนักงานสำเร็จเรียบร้อย! สามารถเข้าสู่ระบบได้ทันที',
+      userId: result.insertId
+    });
+  } catch (error) {
+    console.error('Register error:', error);
+    res.status(500).json({ error: 'เกิดข้อผิดพลาดจากเซิร์ฟเวอร์ กรุณาลองใหม่อีกครั้ง' });
+  }
+});
+
 router.get('/me', authenticateToken, async (req, res) => {
   try {
     const [users] = await req.db.query('SELECT id, username, name, role FROM users WHERE id = ?', [req.user.id]);
