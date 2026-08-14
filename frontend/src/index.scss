@@ -1,6 +1,6 @@
-@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@300;400;500;600;700&family=Inter:wght@400;500;600;700;800&family=Sarabun:wght@300;400;500;600;700;800&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Sarabun:ital,wght@0,200;0,300;0,400;0,500;0,600;0,700;0,800;1,400;1,600;1,700&display=swap');
 
-// 💎 Formal Enterprise & Corporate Design Tokens
+// 💎 Official TH Sarabun PSK Design Tokens
 $primary: #991b1b; // Deep Red
 $primary-light: #dc2626; // Crimson
 $primary-dark: #7f1d1d; // Dark Red
@@ -13,31 +13,36 @@ $light: #fdfdfd; // Pristine White
 $text-main: #1e293b;
 $text-muted: #64748b;
 
-$font-en: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-$font-th: 'IBM Plex Sans Thai', 'Sarabun', -apple-system, BlinkMacSystemFont, sans-serif;
-$font-formal: 'Sarabun', 'IBM Plex Sans Thai', -apple-system, BlinkMacSystemFont, sans-serif;
+$font-sarabun: 'TH Sarabun PSK', 'THSarabunNew', 'TH Sarabun New', 'Sarabun', -apple-system, BlinkMacSystemFont, 'Segoe UI', Tahoma, sans-serif;
+$font-en: $font-sarabun;
+$font-th: $font-sarabun;
+$font-formal: $font-sarabun;
 
-// Global Setup (Clean, Formal, Enterprise-Grade)
+// Global Setup (Official TH-Sarabun-PSK Standard)
+*, html, body {
+  font-family: $font-sarabun !important;
+}
+
 body {
-  font-family: $font-th;
+  font-family: $font-sarabun !important;
+  font-size: 1.05rem;
   background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
   background-attachment: fixed;
   color: $text-main;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   min-height: 100vh;
-  letter-spacing: 0.01em;
+  line-height: 1.5;
 }
 
 // Typography mixing
 h1, h2, h3, h4, h5, h6, .display-1, .display-2, .display-3, .display-4, .brand-text {
-  font-family: $font-th;
-  font-weight: 600;
-  letter-spacing: -0.01em;
+  font-family: $font-sarabun !important;
+  font-weight: 700;
 }
 
-button, input, select, textarea, .form-control, .form-select, .table, .badge, .nav-link, .modal, .card-title {
-  font-family: $font-th !important;
+button, input, select, textarea, .form-control, .form-select, .table, .badge, .nav-link, .modal, .card-title, label, p, span, a, div {
+  font-family: $font-sarabun !important;
 }
 
 // Glassmorphism Panels
