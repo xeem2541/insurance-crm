@@ -83,73 +83,108 @@ const Layout = () => {
         onClick={() => setIsSidebarOpen(false)}
       ></div>
 
-      <div className={`sidebar d-flex flex-column ${isSidebarOpen ? 'open' : ''} ${darkMode ? 'border-end border-secondary' : ''}`} style={{ width: '280px', backgroundColor: darkMode ? '#1e1e1e' : '' }}>
-        <div className="d-flex align-items-center justify-content-between mb-4 px-4 mt-2 pt-3">
+      <div className={`sidebar d-flex flex-column ${isSidebarOpen ? 'open' : ''} ${darkMode ? 'border-end border-secondary' : ''}`} style={{ width: '280px', backgroundColor: darkMode ? '#111827' : '#0f172a' }}>
+        <div className="d-flex align-items-center justify-content-between mb-2 px-4 mt-2 pt-3">
           <Link to="/" className="d-flex align-items-center text-white text-decoration-none">
-            <div className="bg-white rounded-circle p-1 me-3 flex-shrink-0 d-flex align-items-center justify-content-center shadow" style={{ width: '52px', height: '52px' }}>
+            <div className="bg-white rounded-circle p-1 me-3 flex-shrink-0 d-flex align-items-center justify-content-center shadow-lg" style={{ width: '50px', height: '50px', border: '2px solid rgba(203, 161, 83, 0.5)' }}>
               <img src="/logo.png" alt="Logo" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
             </div>
             <div className="d-flex flex-column justify-content-center">
-              <span className="fw-bold" style={{ fontFamily: 'Kanit, sans-serif', fontSize: '1.1rem', lineHeight: '1.1', color: '#f8f9fa' }}>สำนักงาน</span>
-              <span className="fw-bold" style={{ fontFamily: 'Kanit, sans-serif', fontSize: '1.45rem', lineHeight: '1.2', color: '#cba153', textShadow: '0 2px 4px rgba(0,0,0,0.3)' }}>เปิ้ลประกัน</span>
+              <span className="fw-bold" style={{ fontFamily: 'Prompt, sans-serif', fontSize: '1.05rem', lineHeight: '1.1', color: '#f8f9fa' }}>สำนักงาน</span>
+              <span className="fw-bold" style={{ fontFamily: 'Prompt, sans-serif', fontSize: '1.4rem', lineHeight: '1.2', color: '#cba153', textShadow: '0 2px 8px rgba(203, 161, 83, 0.4)' }}>เปิ้ลประกัน</span>
             </div>
           </Link>
           <button className="btn btn-link text-white d-lg-none p-0" onClick={() => setIsSidebarOpen(false)}>
             <i className="bi bi-x-lg fs-4"></i>
           </button>
         </div>
+
+        {/* AI Engine Status Capsule */}
+        <div className="mx-3 my-2 p-2 rounded-3 text-center" style={{ background: 'rgba(255, 255, 255, 0.04)', border: '1px solid rgba(255, 255, 255, 0.08)' }}>
+          <div className="d-flex align-items-center justify-content-center gap-2">
+            <span className="pulse-dot-online"></span>
+            <span style={{ color: '#00ff88', fontSize: '0.76rem', fontWeight: '600', letterSpacing: '0.3px' }}>AI OCR Gemini 3.5 Ready</span>
+          </div>
+        </div>
         
         <ul className="nav flex-column mb-auto px-2 mt-2">
-          <li className="nav-item mb-3 px-3">
-            <small className="text-muted fw-bold text-uppercase" style={{ letterSpacing: '1px' }}>Menu</small>
+          <li className="nav-item mb-2 px-3">
+            <small className="text-white-50 fw-bold text-uppercase" style={{ letterSpacing: '1.2px', fontSize: '0.7rem' }}>เมนูหลัก</small>
           </li>
           {filteredMenuItems.map(item => (
-            <li className="nav-item w-100" key={item.path}>
+            <li className="nav-item w-100 mb-1" key={item.path}>
               <Link 
                 to={item.path} 
                 className={`nav-link ${location.pathname === item.path ? 'active' : ''}`}
                 onClick={() => setIsSidebarOpen(false)}
+                style={{ borderRadius: '12px', transition: 'all 0.25s ease' }}
               >
                 <i className={`bi ${item.icon}`}></i>
-                {item.label}
+                <span>{item.label}</span>
               </Link>
             </li>
           ))}
         </ul>
         
-        <div className="px-4 mb-4 mt-auto">
-          <hr className="border-secondary" />
-          <div className="d-flex align-items-center text-white mb-3">
-            <div className="bg-primary rounded-circle d-flex align-items-center justify-content-center me-2 shadow-sm" style={{width: '35px', height: '35px'}}>
-              <span className="fw-bold">{user?.name ? user.name.charAt(0) : 'U'}</span>
+        <div className="px-3 mb-4 mt-auto">
+          <div className="p-3 rounded-4 mb-3" style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.08)' }}>
+            <div className="d-flex align-items-center text-white mb-2">
+              <div className="rounded-circle d-flex align-items-center justify-content-center me-2 shadow-sm text-white fw-bold" style={{ width: '36px', height: '36px', background: 'linear-gradient(135deg, #3b82f6, #6366f1)' }}>
+                {user?.name ? user.name.charAt(0) : 'U'}
+              </div>
+              <div className="overflow-hidden">
+                <strong className="d-block lh-1 mb-1 text-truncate" style={{ maxWidth: '140px', fontSize: '0.9rem' }}>{user?.name || 'ผู้ใช้งาน'}</strong>
+                <span className="badge bg-primary-subtle text-primary-emphasis px-2 py-0" style={{ fontSize: '0.7rem' }}>{user?.role}</span>
+              </div>
             </div>
-            <div>
-              <strong className="d-block lh-1 mb-1 text-truncate" style={{maxWidth: '120px'}}>{user?.name}</strong>
-              <small className="text-white-50">{user?.role}</small>
+            <div className="d-flex gap-1 mt-2">
+              <button className="btn btn-sm btn-outline-light flex-grow-1 py-1" style={{ fontSize: '0.78rem', borderRadius: '8px' }} onClick={() => setShowPwdModal(true)}>
+                <i className="bi bi-key-fill me-1"></i>รหัสผ่าน
+              </button>
+              <button className="btn btn-sm btn-outline-danger py-1 px-2" style={{ fontSize: '0.78rem', borderRadius: '8px' }} onClick={handleLogout} title="ออกจากระบบ">
+                <i className="bi bi-box-arrow-right"></i>
+              </button>
             </div>
           </div>
-          <button className="btn btn-sm btn-outline-light w-100 mb-2" onClick={() => setShowPwdModal(true)}>
-            <i className="bi bi-key-fill me-2"></i>เปลี่ยนรหัสผ่าน
-          </button>
-          <button className="btn btn-outline-danger w-100 d-flex align-items-center justify-content-center" onClick={handleLogout}>
-            <i className="bi bi-box-arrow-right me-2"></i>ออกจากระบบ
-          </button>
         </div>
       </div>
       
       <div className="flex-grow-1 d-flex flex-column" style={{ overflowX: 'hidden' }}>
-        <nav className={`navbar navbar-expand-lg border-bottom px-4 py-3 shadow-sm glass-nav fade-in ${darkMode ? 'navbar-dark bg-dark border-secondary' : 'navbar-light bg-white'}`}>
+        <nav className={`navbar navbar-expand-lg border-bottom px-3 px-lg-4 py-2 py-lg-3 shadow-sm glass-nav fade-in ${darkMode ? 'navbar-dark bg-dark border-secondary' : 'navbar-light bg-white'}`}>
           <div className="container-fluid d-flex justify-content-between align-items-center">
             <div className="d-flex align-items-center">
               <button className={`btn btn-sm d-lg-none me-3 ${darkMode ? 'btn-outline-light' : 'btn-outline-dark'}`} onClick={toggleSidebar}>
                 <i className="bi bi-list fs-4"></i>
               </button>
-              <span className={`navbar-brand mb-0 h5 fw-bold ${darkMode ? 'text-light' : 'text-dark'} d-none d-sm-block`}>Apple Insurance & Services</span>
-              <span className={`navbar-brand mb-0 h6 fw-bold ${darkMode ? 'text-light' : 'text-dark'} d-sm-none`}>Apple Insurance</span>
+              <div className="d-flex align-items-center gap-2">
+                <span className={`navbar-brand mb-0 h5 fw-bold ${darkMode ? 'text-light' : 'text-dark'} d-none d-sm-block`} style={{ fontFamily: 'Prompt, sans-serif' }}>
+                  Apple Insurance CRM
+                </span>
+                <span className={`navbar-brand mb-0 h6 fw-bold ${darkMode ? 'text-light' : 'text-dark'} d-sm-none`} style={{ fontFamily: 'Prompt, sans-serif' }}>
+                  Apple Insurance
+                </span>
+              </div>
             </div>
-            <div className="d-flex align-items-center">
-              <Dropdown align="end" className="me-3">
-                <Dropdown.Toggle variant={darkMode ? 'outline-light' : 'outline-dark'} className="rounded-circle p-2 position-relative d-flex align-items-center justify-content-center" style={{ width: '40px', height: '40px' }} id="dropdown-notifications">
+
+            <div className="d-flex align-items-center gap-2">
+              {/* Fast Action: Issue Policy Button */}
+              <Link 
+                to="/issue-policy" 
+                className="btn btn-sm btn-success rounded-pill px-3 py-2 fw-bold shadow-sm d-none d-md-flex align-items-center gap-1"
+                style={{ fontSize: '0.85rem' }}
+              >
+                <i className="bi bi-plus-circle-fill"></i>
+                <span>ออกกรมธรรม์ใหม่</span>
+              </Link>
+
+              {/* Notification Dropdown */}
+              <Dropdown align="end">
+                <Dropdown.Toggle 
+                  variant={darkMode ? 'outline-light' : 'outline-dark'} 
+                  className="rounded-circle p-2 position-relative d-flex align-items-center justify-content-center" 
+                  style={{ width: '40px', height: '40px', border: '1px solid rgba(0,0,0,0.1)' }} 
+                  id="dropdown-notifications"
+                >
                   <i className="bi bi-bell-fill"></i>
                   {notifications.total > 0 && (
                     <span className="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger border border-light">
@@ -158,9 +193,10 @@ const Layout = () => {
                   )}
                 </Dropdown.Toggle>
 
-                <Dropdown.Menu className={`shadow-lg border-0 ${darkMode ? 'bg-dark' : 'bg-white'}`} style={{ width: '350px', maxHeight: '500px', overflowY: 'auto', borderRadius: '16px' }}>
-                  <div className={`px-3 py-2 border-bottom fw-bold ${darkMode ? 'text-light' : 'text-dark'}`}>
-                    การแจ้งเตือนทั้งหมด ({notifications.total})
+                <Dropdown.Menu className={`shadow-lg border-0 ${darkMode ? 'bg-dark text-light' : 'bg-white'}`} style={{ width: '350px', maxHeight: '500px', overflowY: 'auto', borderRadius: '18px' }}>
+                  <div className={`px-3 py-2 border-bottom fw-bold d-flex justify-content-between align-items-center ${darkMode ? 'text-light border-secondary' : 'text-dark'}`}>
+                    <span><i className="bi bi-bell-fill text-warning me-1"></i> การแจ้งเตือน</span>
+                    <span className="badge bg-primary rounded-pill">{notifications.total}</span>
                   </div>
                   
                   {notifications.total === 0 ? (
@@ -219,8 +255,13 @@ const Layout = () => {
                 </Dropdown.Menu>
               </Dropdown>
 
-              <button className={`btn btn-outline-${darkMode ? 'light' : 'dark'} rounded-pill`} onClick={toggleTheme}>
-                {darkMode ? <><i className="bi bi-sun-fill text-warning"></i> โหมดสว่าง</> : <><i className="bi bi-moon-fill"></i> โหมดมืด</>}
+              {/* Theme Toggle Pill */}
+              <button 
+                className={`btn btn-sm btn-outline-${darkMode ? 'light' : 'dark'} rounded-pill px-3 py-2 d-flex align-items-center gap-1 shadow-sm`} 
+                onClick={toggleTheme}
+                style={{ fontSize: '0.85rem' }}
+              >
+                {darkMode ? <><i className="bi bi-sun-fill text-warning"></i> <span className="d-none d-sm-inline">สว่าง</span></> : <><i className="bi bi-moon-stars-fill text-primary"></i> <span className="d-none d-sm-inline">มืด</span></>}
               </button>
             </div>
           </div>

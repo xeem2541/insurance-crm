@@ -1,6 +1,6 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Prompt:wght@300;400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=Prompt:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&display=swap');
 
-// 💎 Luxury / Expensive UI Design Tokens
+// 💎 Luxury / Modern High-Tech UI Design Tokens
 $primary: #991b1b; // Deep Red
 $primary-light: #dc2626; // Crimson
 $primary-dark: #7f1d1d; // Dark Red
@@ -8,13 +8,13 @@ $accent-gold: #cba153; // Champagne Gold
 $accent-gold-light: #dfb66c;
 $secondary: #ea580c; // Vibrant Orange
 $dark: #09090b; // Pure Premium Dark
-$dark-glass: rgba(9, 9, 11, 0.9);
+$dark-glass: rgba(9, 9, 11, 0.94);
 $light: #fdfdfd; // Pristine White
-$text-main: #27272a;
-$text-muted: #71717a;
+$text-main: #1e293b;
+$text-muted: #64748b;
 
-$font-en: 'Inter', sans-serif;
-$font-th: 'Prompt', sans-serif;
+$font-en: 'Plus Jakarta Sans', 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+$font-th: 'Prompt', -apple-system, BlinkMacSystemFont, sans-serif;
 
 // Global Setup
 body {
@@ -1431,3 +1431,86 @@ h1, h2, h3, h4, h5, h6 {
     }
   }
 }
+
+// ==========================================
+// 🚀 Modern Futuristic UI / UX Styles & Animations
+// ==========================================
+
+@keyframes pulseDot {
+  0% {
+    transform: scale(0.95);
+    box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7);
+  }
+  70% {
+    transform: scale(1);
+    box-shadow: 0 0 0 6px rgba(16, 185, 129, 0);
+  }
+  100% {
+    transform: scale(0.95);
+    box-shadow: 0 0 0 0 rgba(16, 185, 129, 0);
+  }
+}
+
+.pulse-dot-online {
+  width: 8px;
+  height: 8px;
+  background-color: #10b981;
+  border-radius: 50%;
+  display: inline-block;
+  animation: pulseDot 2s infinite;
+}
+
+.card-stat-modern {
+  border-radius: 20px;
+  border: 1px solid rgba(226, 232, 240, 0.8);
+  background: #ffffff;
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.04), 0 8px 10px -6px rgba(0, 0, 0, 0.02);
+  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  position: relative;
+  overflow: hidden;
+
+  &:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 20px 35px -5px rgba(0, 0, 0, 0.08), 0 10px 15px -5px rgba(0, 0, 0, 0.04);
+  }
+
+  &::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 3px;
+    background: linear-gradient(90deg, #3b82f6, #6366f1);
+  }
+
+  &.stat-emerald::before { background: linear-gradient(90deg, #10b981, #059669); }
+  &.stat-amber::before { background: linear-gradient(90deg, #f59e0b, #d97706); }
+  &.stat-rose::before { background: linear-gradient(90deg, #f43f5e, #e11d48); }
+  &.stat-purple::before { background: linear-gradient(90deg, #8b5cf6, #6d28d9); }
+}
+
+.icon-capsule {
+  width: 48px;
+  height: 48px;
+  border-radius: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.35rem;
+  transition: transform 0.3s ease;
+
+  &:hover {
+    transform: scale(1.08) rotate(5deg);
+  }
+}
+
+// Dark Mode overrides for modern cards
+.bg-dark {
+  .card-stat-modern {
+    background: #1e293b !important;
+    border-color: rgba(255, 255, 255, 0.08) !important;
+    color: #f8fafc !important;
+  }
+}
+
