@@ -112,27 +112,26 @@ const Layout = () => {
             <div className="d-flex flex-column justify-content-center">
               <div 
                 style={{ 
-                  fontSize: '0.78rem', 
-                  fontWeight: '500', 
-                  color: '#94a3b8', 
-                  letterSpacing: '1px', 
-                  lineHeight: '1.1',
-                  marginBottom: '1px'
+                  fontSize: '0.88rem', 
+                  fontWeight: '600', 
+                  color: '#cbd5e1', 
+                  letterSpacing: '0.5px', 
+                  lineHeight: '1.3',
+                  marginBottom: '2px'
                 }}
               >
                 สำนักงาน
               </div>
               <div 
                 style={{ 
-                  fontSize: '1.28rem', 
+                  fontSize: '1.45rem', 
                   fontWeight: '800', 
-                  lineHeight: '1.15',
-                  background: 'linear-gradient(135deg, #fff7c2 0%, #d4af37 60%, #b45309 100%)',
-                  WebkitBackgroundClip: 'text',
-                  WebkitTextFillColor: 'transparent',
-                  filter: 'drop-shadow(0 2px 6px rgba(212, 175, 55, 0.35))',
+                  lineHeight: '1.35',
+                  color: '#fbbf24',
+                  textShadow: '0 0 16px rgba(251, 191, 36, 0.4), 0 2px 4px rgba(0, 0, 0, 0.8)',
                   letterSpacing: '0.2px',
-                  whiteSpace: 'nowrap'
+                  whiteSpace: 'nowrap',
+                  paddingTop: '2px'
                 }}
               >
                 เปิ้ลประกันภัย
