@@ -30,6 +30,7 @@ const Documents = () => {
   const [policies, setPolicies] = useState([]);
   const [vehicles, setVehicles] = useState([]);
   const [search, setSearch] = useState('');
+  const [viewMode, setViewMode] = useState('active'); // 'active' or 'trash'
   
   const [showUploadModal, setShowUploadModal] = useState(false);
   const [showPreviewModal, setShowPreviewModal] = useState(false);
@@ -46,7 +47,8 @@ const Documents = () => {
 
   const fetchDocuments = async () => {
     try {
-      const res = await api.get(`/documents?search=${search}`);
+      const statusParam = viewMode === 'trash' ? '&status=deleted' : '';
+      const res = await api.get(`/documents?search=${search}${statusParam}`);
       setDocuments(Array.isArray(res.data) ? res.data : []);
     } catch (error) {
       console.error(error);
@@ -72,7 +74,7 @@ const Documents = () => {
 
   useEffect(() => {
     fetchDocuments();
-  }, [search]);
+  }, [search, viewMode]);
 
   useEffect(() => {
     fetchDependencies();
@@ -135,12 +137,23 @@ const Documents = () => {
   };
 
   const handleDelete = async (id) => {
-    if (window.confirm('คุณแน่ใจหรือไม่ว่าต้องการลบเอกสารนี้?')) {
+    if (window.confirm('คุณแน่ใจหรือไม่ว่าต้องการลบเอกสารนี้? (สามารถกู้คืนได้ภายหลัง)')) {
       try {
         await api.delete(`/documents/${id}`);
         fetchDocuments();
       } catch (error) {
         alert('เกิดข้อผิดพลาดในการลบเอกสาร');
+      }
+    }
+  };
+
+  const handleRestore = async (id) => {
+    if (window.confirm('ยืนยันการกู้คืนเอกสารนี้กลับสู่ระบบปกติ?')) {
+      try {
+        await api.put(`/documents/${id}/restore`);
+        fetchDocuments();
+      } catch (error) {
+        alert('เกิดข้อผิดพลาดในการกู้คืนเอกสาร');
       }
     }
   };
@@ -208,10 +221,29 @@ const Documents = () => {
   return (
     <div>
       <div className="d-flex justify-content-between align-items-center mb-4">
-        <h2 className="fw-bold">ระบบเอกสาร (Documents)</h2>
-        <button className="btn btn-primary fw-bold" onClick={() => setShowUploadModal(true)}>
-          <i className="bi bi-cloud-arrow-up-fill me-2"></i> อัปโหลดเอกสาร
-        </button>
+        <h2 className="fw-bold">
+          {viewMode === 'trash' ? (
+            <><i className="bi bi-trash-fill text-danger me-2"></i> ถังขยะเอกสาร (Recycle Bin)</>
+          ) : (
+            'ระบบเอกสาร (Documents)'
+          )}
+        </h2>
+        <div className="d-flex gap-2">
+          {viewMode === 'active' ? (
+            <>
+              <button className="btn btn-outline-danger fw-bold" onClick={() => setViewMode('trash')}>
+                <i className="bi bi-trash-fill me-2"></i> ถังขยะ
+              </button>
+              <button className="btn btn-primary fw-bold" onClick={() => setShowUploadModal(true)}>
+                <i className="bi bi-cloud-arrow-up-fill me-2"></i> อัปโหลดเอกสาร
+              </button>
+            </>
+          ) : (
+            <button className="btn btn-outline-primary fw-bold" onClick={() => setViewMode('active')}>
+              <i className="bi bi-folder-fill me-2"></i> กลับหน้าระบบเอกสาร
+            </button>
+          )}
+        </div>
       </div>
 
       <div className="card shadow-sm border-0 mb-4">
@@ -231,8 +263,8 @@ const Documents = () => {
         <Card key={group.key} className="border-0 shadow-sm rounded-4 mb-4 overflow-hidden">
           <Card.Header className="bg-dark text-white py-3 px-4 d-flex flex-wrap justify-content-between align-items-center gap-2">
             <div>
-              <h5 className="mb-0 fw-bold text-success" style={{ textShadow: '0 0 10px rgba(0,255,136,0.2)' }}>
-                <i className="bi bi-folder2-open me-2 text-warning"></i>
+              <h5 className={`mb-0 fw-bold ${viewMode === 'trash' ? 'text-danger' : 'text-success'}`} style={{ textShadow: viewMode === 'trash' ? '0 0 10px rgba(220,53,69,0.2)' : '0 0 10px rgba(0,255,136,0.2)' }}>
+                <i className={`bi bi-folder2-open me-2 ${viewMode === 'trash' ? 'text-danger' : 'text-warning'}`}></i>
                 {group.title}
               </h5>
               {group.subtitle && (
@@ -315,9 +347,15 @@ const Documents = () => {
                           >
                             <i className="bi bi-download"></i>
                           </a>
-                          <Button size="sm" variant="outline-danger" className="px-2 py-1 rounded-pill" onClick={() => handleDelete(d.id)} title="ลบ">
-                            <i className="bi bi-trash"></i>
-                          </Button>
+                          {viewMode === 'trash' ? (
+                            <Button size="sm" variant="success" className="px-2 py-1 rounded-pill" onClick={() => handleRestore(d.id)} title="กู้คืนเอกสาร">
+                              <i className="bi bi-arrow-counterclockwise"></i> กู้คืน
+                            </Button>
+                          ) : (
+                            <Button size="sm" variant="outline-danger" className="px-2 py-1 rounded-pill" onClick={() => handleDelete(d.id)} title="ย้ายลงถังขยะ">
+                              <i className="bi bi-trash"></i>
+                            </Button>
+                          )}
                         </div>
                       </div>
                     </div>

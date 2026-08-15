@@ -48,13 +48,13 @@ router.get('/types', authenticateToken, async (req, res) => {
 
 // Get documents (by customer or policy)
 router.get('/', authenticateToken, async (req, res) => {
-  const { customer_id, policy_id, search } = req.query;
+  const { customer_id, policy_id, search, status } = req.query;
   let query = `
     SELECT d.*, dt.name as document_type_name, u.name as uploader_name 
     FROM documents d
     JOIN document_types dt ON d.document_type_id = dt.id
     LEFT JOIN users u ON d.uploaded_by = u.id
-    WHERE d.deleted_at IS NULL
+    WHERE ${status === 'deleted' ? 'd.deleted_at IS NOT NULL' : 'd.deleted_at IS NULL'}
   `;
   let params = [];
   
@@ -121,6 +121,21 @@ router.delete('/:id', authenticateToken, async (req, res) => {
     await req.db.query('INSERT INTO activity_logs (user_id, action, target_table, target_id, details) VALUES (?, ?, ?, ?, ?)',
       [req.user.id, 'DELETE', 'documents', req.params.id, `Deleted document ID ${req.params.id}`]);
     res.json({ message: 'Document deleted successfully' });
+  } catch (error) {
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+// Restore deleted document
+router.put('/:id/restore', authenticateToken, async (req, res) => {
+  if (req.user.role !== 'Admin' && req.user.role !== 'Manager') {
+    return res.status(403).json({ error: 'Forbidden' });
+  }
+  try {
+    await req.db.query('UPDATE documents SET deleted_at = NULL WHERE id = ?', [req.params.id]);
+    await req.db.query('INSERT INTO activity_logs (user_id, action, target_table, target_id, details) VALUES (?, ?, ?, ?, ?)',
+      [req.user.id, 'UPDATE', 'documents', req.params.id, `Restored document ID ${req.params.id}`]);
+    res.json({ message: 'Document restored successfully' });
   } catch (error) {
     res.status(500).json({ error: 'Server error' });
   }
