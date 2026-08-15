@@ -28,7 +28,7 @@ router.get('/', [authenticateToken, authorizeRole(['Admin', 'Manager', 'Sales'])
           FROM policies p
           JOIN customers c ON p.customer_id = c.id
           WHERE p.status = 'สำเร็จ' AND p.start_date BETWEEN ? AND ?
-          ORDER BY p.start_date ASC
+          ORDER BY p.start_date ASC LIMIT 3000
         `;
         break;
       case 'motor_renewal':
@@ -38,7 +38,7 @@ router.get('/', [authenticateToken, authorizeRole(['Admin', 'Manager', 'Sales'])
           JOIN customers c ON p.customer_id = c.id
           LEFT JOIN vehicles v ON p.vehicle_id = v.id
           WHERE p.status = 'สำเร็จ' AND p.expiry_date BETWEEN ? AND ?
-          ORDER BY p.expiry_date ASC
+          ORDER BY p.expiry_date ASC LIMIT 3000
         `;
         break;
       case 'motor_arrears':
@@ -48,7 +48,7 @@ router.get('/', [authenticateToken, authorizeRole(['Admin', 'Manager', 'Sales'])
           JOIN customers c ON p.customer_id = c.id
           LEFT JOIN vehicles v ON p.vehicle_id = v.id
           WHERE p.status = 'รอผ่อนชำระ' AND p.start_date BETWEEN ? AND ?
-          ORDER BY p.start_date DESC
+          ORDER BY p.start_date DESC LIMIT 3000
         `;
         break;
       case 'non_motor_sales_daily':
@@ -65,7 +65,7 @@ router.get('/', [authenticateToken, authorizeRole(['Admin', 'Manager', 'Sales'])
           JOIN customers c ON p.customer_id = c.id
           LEFT JOIN non_motor_types t ON p.non_motor_type_id = t.id
           WHERE p.status = 'สำเร็จ' AND p.start_date BETWEEN ? AND ?
-          ORDER BY p.start_date ASC
+          ORDER BY p.start_date ASC LIMIT 3000
         `;
         break;
       case 'non_motor_renewal':
@@ -75,7 +75,7 @@ router.get('/', [authenticateToken, authorizeRole(['Admin', 'Manager', 'Sales'])
           JOIN customers c ON p.customer_id = c.id
           LEFT JOIN non_motor_types t ON p.non_motor_type_id = t.id
           WHERE p.status = 'สำเร็จ' AND p.expiry_date BETWEEN ? AND ?
-          ORDER BY p.expiry_date ASC
+          ORDER BY p.expiry_date ASC LIMIT 3000
         `;
         break;
       case 'non_motor_arrears':
@@ -85,7 +85,7 @@ router.get('/', [authenticateToken, authorizeRole(['Admin', 'Manager', 'Sales'])
           JOIN customers c ON p.customer_id = c.id
           LEFT JOIN non_motor_types t ON p.non_motor_type_id = t.id
           WHERE p.status = 'รอผ่อนชำระ' AND p.start_date BETWEEN ? AND ?
-          ORDER BY p.start_date DESC
+          ORDER BY p.start_date DESC LIMIT 3000
         `;
         break;
       case 'sales_by_person':
@@ -105,7 +105,7 @@ router.get('/', [authenticateToken, authorizeRole(['Admin', 'Manager', 'Sales'])
             AND pol.start_date BETWEEN ? AND ?
           GROUP BY u.id, u.name
           HAVING COUNT(pol.id) > 0
-          ORDER BY SUM(pol.total_premium) DESC
+          ORDER BY SUM(pol.total_premium) DESC LIMIT 3000
         `;
         break;
       case 'sales_by_company':
@@ -121,7 +121,7 @@ router.get('/', [authenticateToken, authorizeRole(['Admin', 'Manager', 'Sales'])
           ) as all_pol
           WHERE status IN ('สำเร็จ', 'ชำระครบแล้ว') AND start_date BETWEEN ? AND ?
           GROUP BY company
-          ORDER BY SUM(total_premium) DESC
+          ORDER BY SUM(total_premium) DESC LIMIT 3000
         `;
         break;
       case 'sales_by_type':
@@ -139,7 +139,7 @@ router.get('/', [authenticateToken, authorizeRole(['Admin', 'Manager', 'Sales'])
           ) as all_types
           WHERE status IN ('สำเร็จ', 'ชำระครบแล้ว') AND start_date BETWEEN ? AND ?
           GROUP BY type_name
-          ORDER BY SUM(total_premium) DESC
+          ORDER BY SUM(total_premium) DESC LIMIT 3000
         `;
         break;
       default:
