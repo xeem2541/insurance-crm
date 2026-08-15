@@ -798,6 +798,46 @@ button, input, select, textarea, .form-control, .form-select, .table, .badge, .n
 }
 
 // ========================================================
+
+// ==========================================
+// 📱 Native App Mobile Optimizations (iOS/Android)
+// ==========================================
+
+/* 1. Momentum Scrolling for iOS */
+body, .sidebar, .table-responsive, .modal-dialog, .rbc-calendar, .offcanvas {
+  -webkit-overflow-scrolling: touch !important;
+}
+
+/* 2. Remove 300ms tap delay & highlight */
+*, a, button, input, select, textarea, .nav-link, .btn, .card {
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent !important;
+}
+
+/* 3. Smooth Hardware Acceleration for Animations */
+.sidebar, .modal, .card, .btn, .glass-panel {
+  -webkit-transform: translateZ(0);
+  transform: translateZ(0);
+  will-change: transform, opacity;
+  backface-visibility: hidden;
+}
+
+/* 4. Fix iOS Input Zooming & Styling */
+input[type='text'], input[type='number'], input[type='date'], select, textarea {
+  font-size: 16px !important; /* Prevents auto-zoom on iOS */
+  -webkit-appearance: none;
+}
+
+/* 5. Hide Scrollbar on Mobile for cleaner UI */
+@media (max-width: 768px) {
+  ::-webkit-scrollbar {
+    display: none;
+  }
+  body, .sidebar, .table-responsive {
+    -ms-overflow-style: none;  /* IE and Edge */
+    scrollbar-width: none;  /* Firefox */
+  }
+}
 // Futuristic Glassmorphic Login - Exact Mockup Alignment
 // ========================================================
 
