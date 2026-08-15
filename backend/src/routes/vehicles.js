@@ -28,7 +28,7 @@ router.get('/', authenticateToken, async (req, res) => {
     query += ' WHERE ' + conditions.join(' AND ');
   }
   
-  query += ' ORDER BY v.created_at DESC';
+  query += ' ORDER BY v.created_at DESC LIMIT 150';
 
   try {
     const [vehicles] = await req.db.query(query, params);

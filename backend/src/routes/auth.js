@@ -2,7 +2,7 @@ const express = require('express');
 const router = express.Router();
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
-const { authenticateToken } = require('../middlewares/auth');
+const { authenticateToken, authorizeRole } = require('../middlewares/auth');
 const rateLimit = require('express-rate-limit');
 
 const loginLimiter = rateLimit({
@@ -25,9 +25,15 @@ router.post('/login', loginLimiter, async (req, res) => {
       return res.status(400).json({ error: 'Invalid username or password' });
     }
 
+    // Check if secret is the default fallback, issue a warning in logs
+    const secret = process.env.JWT_SECRET;
+    if (!secret) {
+      console.warn('[SECURITY WARNING] JWT_SECRET is not set in environment variables! Using default fallback.');
+    }
+
     const token = jwt.sign(
       { id: user.id, username: user.username, role: user.role, name: user.name },
-      process.env.JWT_SECRET || 'super_secret_key_123',
+      secret || 'super_secret_key_123',
       { expiresIn: '1d' }
     );
 
@@ -52,8 +58,8 @@ router.post('/login', loginLimiter, async (req, res) => {
   }
 });
 
-// Employee Registration Endpoint
-router.post('/register', async (req, res) => {
+// Employee Registration Endpoint (Admin Only)
+router.post('/register', authenticateToken, authorizeRole(['Admin']), async (req, res) => {
   const { username, password, name, role, email, phone } = req.body;
   if (!username || !password || !name) {
     return res.status(400).json({ error: 'กรุณากรอกข้อมูลที่จำเป็นให้ครบถ้วน (ชื่อ-นามสกุล, ชื่อผู้ใช้, รหัสผ่าน)' });

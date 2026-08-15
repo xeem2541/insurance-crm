@@ -2850,7 +2850,7 @@ const IssuePolicyForm = () => {
             <li className="mb-2">เปิดแอป <strong>กล้องถ่ายรูป (Camera)</strong></li>
             <li className="mb-2">แตะเลือกสัญลักษณ์อัตราส่วนรูปภาพ (ปกติเขียนว่า <strong>[4:3]</strong> หรือ <strong>[3:4]</strong>) ที่แถบเครื่องมือด่วนด้านบน</li>
             <li className="mb-2">แตะเลือก <strong>[4:3 50MP]</strong>, <strong>[4:3 48MP]</strong>, หรือ <strong>[108MP/200MP]</strong> เพื่อเปิดใช้งานโหมดกล้องหลักความละเอียดเต็มพิกเซล</li>
-            <li className="mb-2"><em>*หรือเลื่อนไปที่โหมด <strong>"เพิ่มเติม" (More)</strong> &gt; เลือกโหมด <strong>"ความละเอียดสูง" (Hi-Res / Ultra HD)</strong></em></li>
+            <li className="mb-2"><em>*หรือเลื่อนไปที่โหมด <strong>&quot;เพิ่มเติม&quot; (More)</strong> &gt; เลือกโหมด <strong>&quot;ความละเอียดสูง&quot; (Hi-Res / Ultra HD)</strong></em></li>
           </ol>
         </Modal.Body>
         <Modal.Footer>

@@ -177,7 +177,9 @@ const MasterData = () => {
           let extra = {};
           try {
             if (p.additional_data) extra = typeof p.additional_data === 'string' ? JSON.parse(p.additional_data) : p.additional_data;
-          } catch(e) {}
+          } catch(e) {
+            // ignore
+          }
           const { additional_data, ...rest } = p;
           return { ...rest, ...extra };
         });
@@ -432,7 +434,7 @@ const MasterData = () => {
               <h3 className="fw-bold text-danger mt-3 mb-3">ล้างข้อมูลระบบ (Clear Data)</h3>
               <p className="text-muted mb-4 mx-auto" style={{ maxWidth: '600px' }}>
                 เลือกประเภทข้อมูลที่คุณต้องการลบออกจากฐานข้อมูลอย่างถาวร 
-                (เหมาะสำหรับใช้ล้าง "ข้อมูลจำลอง" เพื่อเตรียมเริ่มต้นกรอกข้อมูลลูกค้าจริง)
+                (เหมาะสำหรับใช้ล้าง &quot;ข้อมูลจำลอง&quot; เพื่อเตรียมเริ่มต้นกรอกข้อมูลลูกค้าจริง)
               </p>
               
               <div className="bg-light p-4 rounded-3 text-start mx-auto shadow-sm mb-4" style={{ maxWidth: '400px' }}>
