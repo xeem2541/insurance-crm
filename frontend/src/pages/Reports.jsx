@@ -107,6 +107,36 @@ const Reports = () => {
     ));
   };
 
+  const getChartData = () => {
+    if (!reportData || reportData.length === 0) return [];
+    
+    // Check if it's already aggregated (e.g. from other report types)
+    if (reportData[0].total_sales !== undefined) return reportData;
+
+    // Aggregate based on reportType for the detailed list
+    const aggregated = {};
+    reportData.forEach(row => {
+      // Find the date column
+      const d = row['วันที่'] || row['date'] || row['month'] || row.date;
+      if (!d) return;
+      
+      let key = String(d);
+      if (reportType.includes('monthly')) {
+        // extract YYYY-MM if it's a date string
+        key = key.substring(0, 7);
+      }
+      if (!aggregated[key]) {
+        aggregated[key] = {
+          date: key,
+          month: key,
+          total_sales: 0
+        };
+      }
+      aggregated[key].total_sales += Number(row['ยอดขาย (บาท)'] || row.total_sales || 0);
+    });
+    return Object.values(aggregated).sort((a, b) => a.date.localeCompare(b.date));
+  };
+
   return (
     <div>
       <div className="d-flex justify-content-between align-items-center mb-4">
@@ -163,7 +193,7 @@ const Reports = () => {
               <h5 className="fw-bold mb-4 text-primary">แนวโน้มยอดขายรวม</h5>
               <div style={{ width: '100%', height: 350 }}>
                 <ResponsiveContainer>
-                  <LineChart data={reportData} margin={{ top: 5, right: 30, left: 20, bottom: 5 }}>
+                  <LineChart data={getChartData()} margin={{ top: 5, right: 30, left: 20, bottom: 5 }}>
                     <CartesianGrid strokeDasharray="3 3" />
                     <XAxis dataKey={reportType.includes('daily') ? 'date' : 'month'} />
                     <YAxis />

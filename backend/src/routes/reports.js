@@ -16,21 +16,19 @@ router.get('/', [authenticateToken, authorizeRole(['Admin', 'Manager', 'Sales'])
 
     switch(type) {
       case 'motor_sales_daily':
-        query = `
-          SELECT DATE(start_date) as date, SUM(total_premium) as total_sales, COUNT(id) as policy_count, SUM(commission_baht) as total_commission
-          FROM policies 
-          WHERE status = 'สำเร็จ' AND start_date BETWEEN ? AND ?
-          GROUP BY DATE(start_date)
-          ORDER BY date ASC
-        `;
-        break;
       case 'motor_sales_monthly':
         query = `
-          SELECT DATE_FORMAT(start_date, '%Y-%m') as month, SUM(total_premium) as total_sales, COUNT(id) as policy_count, SUM(commission_baht) as total_commission
-          FROM policies 
-          WHERE status = 'สำเร็จ' AND start_date BETWEEN ? AND ?
-          GROUP BY DATE_FORMAT(start_date, '%Y-%m')
-          ORDER BY month ASC
+          SELECT 
+            DATE_FORMAT(p.start_date, '%Y-%m-%d') as 'วันที่',
+            CONCAT(IFNULL(c.prefix, ''), IFNULL(c.first_name, ''), ' ', IFNULL(c.last_name, '')) as 'ชื่อลูกค้า',
+            p.company as 'บริษัทประกันภัย',
+            p.type as 'ประเภทประกันภัย',
+            p.total_premium as 'ยอดขาย (บาท)',
+            p.commission_baht as 'คอมมิชชัน (บาท)'
+          FROM policies p
+          JOIN customers c ON p.customer_id = c.id
+          WHERE p.status = 'สำเร็จ' AND p.start_date BETWEEN ? AND ?
+          ORDER BY p.start_date ASC
         `;
         break;
       case 'motor_renewal':
@@ -54,21 +52,20 @@ router.get('/', [authenticateToken, authorizeRole(['Admin', 'Manager', 'Sales'])
         `;
         break;
       case 'non_motor_sales_daily':
-        query = `
-          SELECT DATE(start_date) as date, SUM(total_premium) as total_sales, COUNT(id) as policy_count, SUM(commission_baht) as total_commission
-          FROM non_motor_policies 
-          WHERE status = 'สำเร็จ' AND start_date BETWEEN ? AND ?
-          GROUP BY DATE(start_date)
-          ORDER BY date ASC
-        `;
-        break;
       case 'non_motor_sales_monthly':
         query = `
-          SELECT DATE_FORMAT(start_date, '%Y-%m') as month, SUM(total_premium) as total_sales, COUNT(id) as policy_count, SUM(commission_baht) as total_commission
-          FROM non_motor_policies 
-          WHERE status = 'สำเร็จ' AND start_date BETWEEN ? AND ?
-          GROUP BY DATE_FORMAT(start_date, '%Y-%m')
-          ORDER BY month ASC
+          SELECT 
+            DATE_FORMAT(p.start_date, '%Y-%m-%d') as 'วันที่',
+            CONCAT(IFNULL(c.prefix, ''), IFNULL(c.first_name, ''), ' ', IFNULL(c.last_name, '')) as 'ชื่อลูกค้า',
+            p.company as 'บริษัทประกันภัย',
+            t.name as 'ประเภทประกันภัย',
+            p.total_premium as 'ยอดขาย (บาท)',
+            p.commission_baht as 'คอมมิชชัน (บาท)'
+          FROM non_motor_policies p
+          JOIN customers c ON p.customer_id = c.id
+          LEFT JOIN non_motor_types t ON p.non_motor_type_id = t.id
+          WHERE p.status = 'สำเร็จ' AND p.start_date BETWEEN ? AND ?
+          ORDER BY p.start_date ASC
         `;
         break;
       case 'non_motor_renewal':

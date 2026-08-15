@@ -23,6 +23,8 @@ router.get('/', authenticateToken, async (req, res) => {
     conditions.push(`(
       c.first_name LIKE ? OR 
       c.last_name LIKE ? OR 
+      CONCAT(IFNULL(c.prefix, ''), IFNULL(c.first_name, ''), ' ', IFNULL(c.last_name, '')) LIKE ? OR
+      CONCAT(IFNULL(c.first_name, ''), ' ', IFNULL(c.last_name, '')) LIKE ? OR
       c.phone LIKE ? OR 
       c.customer_code LIKE ? OR 
       c.id_card_no LIKE ? OR 
@@ -36,7 +38,11 @@ router.get('/', authenticateToken, async (req, res) => {
           )
       )
     )`);
-    params.push(searchParam, searchParam, searchParam, searchParam, searchParam, cleanSearch, cleanSearch, cleanSearch);
+    params.push(
+      searchParam, searchParam, searchParam, searchParam, 
+      searchParam, searchParam, searchParam, 
+      cleanSearch, cleanSearch, cleanSearch
+    );
   }
   
   if (month) {
@@ -48,7 +54,7 @@ router.get('/', authenticateToken, async (req, res) => {
     query += ` WHERE ` + conditions.join(' AND ');
   }
   
-  query += ` ORDER BY c.created_at DESC`;
+  query += ` ORDER BY c.created_at DESC LIMIT 150`;
 
   try {
     const [customers] = await req.db.query(query, params);
