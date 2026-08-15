@@ -6,7 +6,7 @@ const { authenticateToken, authorizeRole } = require('../middlewares/auth');
 router.get('/', authenticateToken, async (req, res) => {
   try {
     const category = req.query.category;
-    let query = 'SELECT * FROM master_data';
+    let query = 'SELECT * FROM master_data LIMIT 500';
     let params = [];
     
     if (category) {

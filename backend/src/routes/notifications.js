@@ -21,7 +21,7 @@ router.get('/', authenticateToken, async (req, res) => {
         LEFT JOIN non_motor_policies npol ON p.non_motor_policy_id = npol.id
         JOIN customers c ON (c.id = pol.customer_id OR c.id = npol.customer_id)
         WHERE i.status = 'ค้างชำระ' OR (i.status IN ('รอชำระ', 'ชำระบางส่วน') AND i.due_date < CURRENT_DATE())
-        ORDER BY i.due_date ASC
+        ORDER BY i.due_date ASC LIMIT 100
       `);
       notifications.overdue = overdue;
     } catch (e) {
@@ -38,7 +38,7 @@ router.get('/', authenticateToken, async (req, res) => {
         LEFT JOIN non_motor_policies npol ON p.non_motor_policy_id = npol.id
         JOIN customers c ON (c.id = pol.customer_id OR c.id = npol.customer_id)
         WHERE i.status IN ('รอชำระ', 'ชำระบางส่วน') AND i.due_date BETWEEN CURRENT_DATE() AND DATE_ADD(CURRENT_DATE(), INTERVAL 3 DAY)
-        ORDER BY i.due_date ASC
+        ORDER BY i.due_date ASC LIMIT 100
       `);
       notifications.upcoming = upcoming;
     } catch (e) {
@@ -60,7 +60,7 @@ router.get('/', authenticateToken, async (req, res) => {
         JOIN customers c ON np.customer_id = c.id
         WHERE np.status = 'สำเร็จ' AND np.expiry_date BETWEEN CURRENT_DATE() AND DATE_ADD(CURRENT_DATE(), INTERVAL 30 DAY)
         
-        ORDER BY days_left ASC
+        ORDER BY days_left ASC LIMIT 100
       `);
       notifications.expiring = expiring;
     } catch (e) {

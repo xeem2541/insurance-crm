@@ -7,7 +7,7 @@ const { authenticateToken } = require('../middlewares/auth');
 router.get('/', authenticateToken, async (req, res) => {
   if (req.user.role !== 'Admin') return res.status(403).json({ error: 'Forbidden' });
   try {
-    const [users] = await req.db.query('SELECT id, username, name, role, created_at FROM users ORDER BY created_at DESC');
+    const [users] = await req.db.query('SELECT id, username, name, role, created_at FROM users ORDER BY created_at DESC LIMIT 500');
     res.json(users);
   } catch (error) {
     res.status(500).json({ error: 'Server error' });

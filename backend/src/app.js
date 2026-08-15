@@ -90,8 +90,13 @@ async function initDb() {
         'INSERT INTO users (username, password, name, role) VALUES (?, ?, ?, ?)',
         ['admin', hashedPassword, 'System Administrator', 'Admin']
       );
-      console.log('Seed Admin user created');
     }
+
+    // Create Performance Indexes
+    try { await connection.query('CREATE INDEX idx_policies_dates ON policies (start_date, expiry_date)'); console.log('Created index idx_policies_dates'); } catch(e) {}
+    try { await connection.query('CREATE INDEX idx_non_motor_dates ON non_motor_policies (start_date, expiry_date)'); console.log('Created index idx_non_motor_dates'); } catch(e) {}
+    try { await connection.query('CREATE INDEX idx_documents_deleted ON documents (deleted_at, created_at)'); console.log('Created index idx_documents_deleted'); } catch(e) {}
+    try { await connection.query('CREATE INDEX idx_customers_code ON customers (customer_code)'); console.log('Created index idx_customers_code'); } catch(e) {}
 
     // Auto-migrate tables for Document Upload feature
     await connection.query(`
