@@ -16,7 +16,7 @@ router.get('/', authenticateToken, async (req, res) => {
       LEFT JOIN policies pol ON p.policy_id = pol.id
       LEFT JOIN non_motor_policies npol ON p.non_motor_policy_id = npol.id
       LEFT JOIN customers c ON c.id = pol.customer_id OR c.id = npol.customer_id
-      ORDER BY p.created_at DESC
+      ORDER BY p.created_at DESC LIMIT 150
     `;
     const [rows] = await req.db.query(query);
     res.json(rows);

@@ -72,7 +72,7 @@ router.get('/', authenticateToken, async (req, res) => {
     params.push(s, s);
   }
   
-  query += ' ORDER BY d.created_at DESC';
+  query += ' ORDER BY d.created_at DESC LIMIT 150';
 
   try {
     const [documents] = await req.db.query(query, params);
