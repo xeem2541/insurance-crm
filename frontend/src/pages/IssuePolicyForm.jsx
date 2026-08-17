@@ -1438,7 +1438,10 @@ const IssuePolicyForm = () => {
       alert('ดึงข้อมูลจากรูปภาพและแยกชุดเอกสารสำเร็จ! กรุณาตรวจสอบรายละเอียดความถูกต้องทีละชุดก่อนบันทึกนะครับ');
     } catch (err) {
       const errCode = err.response?.data?.error;
-      const errMsg = err.response?.data?.message || err.response?.data?.error || err.message;
+      let errMsg = err.response?.data?.message || err.response?.data?.error || err.message;
+      if (typeof errMsg === 'object') {
+        errMsg = errMsg.message || JSON.stringify(errMsg);
+      }
       if (errCode === 'GEMINI_API_KEY_REQUIRED' || errCode === 'INVALID_GEMINI_API_KEY') {
         setShowApiKeyModal(true);
         setApiKeyTestResult({
