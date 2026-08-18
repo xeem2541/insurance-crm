@@ -1432,25 +1432,6 @@ const IssuePolicyMotorForm = () => {
       setOcrLoading(false);
       if (e.target) e.target.value = null; // reset input
     }
-  } catch (err) {
-      const errCode = err.response?.data?.error;
-      let errMsg = err.response?.data?.message || err.response?.data?.error || err.message;
-      if (typeof errMsg === 'object') {
-        errMsg = errMsg.message || JSON.stringify(errMsg);
-      }
-      if (errCode === 'GEMINI_API_KEY_REQUIRED' || errCode === 'INVALID_GEMINI_API_KEY') {
-        setShowApiKeyModal(true);
-        setApiKeyTestResult({
-          success: false,
-          message: `${errMsg} กรุณากรอก Gemini API Key เพื่อเริ่มใช้งาน (ขอรับฟรีได้ที่ Google AI Studio)`
-        });
-      } else {
-        alert(`เกิดข้อผิดพลาดในการดึงข้อมูลด้วย AI: ${errMsg}`);
-      }
-    } finally {
-      setOcrLoading(false);
-      e.target.value = null;
-    }
   };
 
   useEffect(() => {
@@ -2060,7 +2041,7 @@ const IssuePolicyMotorForm = () => {
             <Accordion.Body>
               <div className="mb-4 bg-light p-3 rounded border">
                 <Form.Label className="fw-bold text-primary"><i className="bi bi-search"></i> ค้นหาและดึงข้อมูลลูกค้าเก่าอัตโนมัติ (พิมพ์ชื่อ, เบอร์โทร หรือทะเบียนรถ)</Form.Label>
-                <AsyncSelect noOptionsMessage={() => "ไม่พบข้อมูล"} 
+                <AsyncSelect 
                   cacheOptions 
                   loadOptions={loadCustomerOptions} 
                   defaultOptions={false}
@@ -2182,7 +2163,7 @@ const IssuePolicyMotorForm = () => {
               <Accordion.Body>
                 <div className="mb-4 bg-light p-3 rounded border">
                   <Form.Label className="fw-bold text-primary"><i className="bi bi-search"></i> ค้นหาและดึงข้อมูลรถยนต์เก่าอัตโนมัติ (พิมพ์เลขทะเบียน)</Form.Label>
-                  <AsyncSelect noOptionsMessage={() => "ไม่พบข้อมูล"} 
+                  <AsyncSelect 
                     cacheOptions 
                     loadOptions={loadVehicleOptions} 
                     defaultOptions={false}
