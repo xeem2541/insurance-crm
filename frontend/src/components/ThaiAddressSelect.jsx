@@ -62,7 +62,7 @@ const ThaiAddressSelect = ({ province, district, sub_district, zipcode, onChange
     <>
       <div className="col-md-3">
         <label className="form-label">จังหวัด</label>
-        <Select 
+        <Select noOptionsMessage={() => "ไม่พบข้อมูล"} 
           options={provinces} 
           value={provinces.find(p => p.value === province) || null} 
           onChange={handleProvinceChange}
@@ -72,7 +72,7 @@ const ThaiAddressSelect = ({ province, district, sub_district, zipcode, onChange
       </div>
       <div className="col-md-3">
         <label className="form-label">อำเภอ / เขต</label>
-        <Select 
+        <Select noOptionsMessage={() => "ไม่พบข้อมูล"} 
           options={districts} 
           value={districts.find(d => d.value === district) || null} 
           onChange={handleDistrictChange}
@@ -83,7 +83,7 @@ const ThaiAddressSelect = ({ province, district, sub_district, zipcode, onChange
       </div>
       <div className="col-md-3">
         <label className="form-label">ตำบล / แขวง</label>
-        <Select 
+        <Select noOptionsMessage={() => "ไม่พบข้อมูล"} 
           options={subDistricts} 
           value={subDistricts.find(s => s.value === sub_district) || null} 
           onChange={handleSubDistrictChange}

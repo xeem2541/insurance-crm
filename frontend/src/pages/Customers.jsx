@@ -368,7 +368,7 @@ const Customers = () => {
               <h5 className="text-primary border-bottom pb-2 mt-4">การจัดการงานขาย (CRM)</h5>
               <div className="col-md-4">
                 <Form.Label>สถานะลูกค้า</Form.Label>
-                <Select
+                <Select noOptionsMessage={() => "ไม่พบข้อมูล"}
                   options={statusOptions}
                   value={statusOptions.find(s => s.value === formData.customer_status)}
                   onChange={option => setFormData({...formData, customer_status: option?.value || 'ลูกค้าใหม่'})}
@@ -376,7 +376,7 @@ const Customers = () => {
               </div>
               <div className="col-md-4">
                 <Form.Label>สถานะการขาย (Lead Tracking)</Form.Label>
-                <Select
+                <Select noOptionsMessage={() => "ไม่พบข้อมูล"}
                   options={leadOptions}
                   value={leadOptions.find(l => l.value === formData.lead_status)}
                   onChange={option => setFormData({...formData, lead_status: option?.value || 'สนใจ'})}
@@ -384,7 +384,7 @@ const Customers = () => {
               </div>
               <div className="col-md-4">
                 <Form.Label>แหล่งที่มา (Source)</Form.Label>
-                <Select
+                <Select noOptionsMessage={() => "ไม่พบข้อมูล"}
                   options={leadSources}
                   value={leadSources.find(l => l.value === formData.source)}
                   onChange={option => setFormData({...formData, source: option?.value || ''})}

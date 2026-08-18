@@ -2064,7 +2064,7 @@ const IssuePolicyForm = () => {
             <Accordion.Body>
               <div className="mb-4 bg-light p-3 rounded border">
                 <Form.Label className="fw-bold text-primary"><i className="bi bi-search"></i> ค้นหาและดึงข้อมูลลูกค้าเก่าอัตโนมัติ (พิมพ์ชื่อ, เบอร์โทร หรือทะเบียนรถ)</Form.Label>
-                <AsyncSelect 
+                <AsyncSelect noOptionsMessage={() => "ไม่พบข้อมูล"} 
                   cacheOptions 
                   loadOptions={loadCustomerOptions} 
                   defaultOptions={false}
@@ -2186,7 +2186,7 @@ const IssuePolicyForm = () => {
               <Accordion.Body>
                 <div className="mb-4 bg-light p-3 rounded border">
                   <Form.Label className="fw-bold text-primary"><i className="bi bi-search"></i> ค้นหาและดึงข้อมูลรถยนต์เก่าอัตโนมัติ (พิมพ์เลขทะเบียน)</Form.Label>
-                  <AsyncSelect 
+                  <AsyncSelect noOptionsMessage={() => "ไม่พบข้อมูล"} 
                     cacheOptions 
                     loadOptions={loadVehicleOptions} 
                     defaultOptions={false}
@@ -2214,11 +2214,11 @@ const IssuePolicyForm = () => {
                 <Row className="g-3 mb-4">
                   <Col md={2}>
                     <Form.Label>ประเภทรถ</Form.Label>
-                    <Select options={vehicleTypes} value={vehicleTypes.find(t => t.value === vehicle.vehicle_type)} onChange={opt => setVehicle({...vehicle, vehicle_type: opt?.value || ''})} isClearable />
+                    <Select noOptionsMessage={() => "ไม่พบข้อมูล"} options={vehicleTypes} value={vehicleTypes.find(t => t.value === vehicle.vehicle_type)} onChange={opt => setVehicle({...vehicle, vehicle_type: opt?.value || ''})} isClearable />
                   </Col>
                   <Col md={3}>
                     <Form.Label>ยี่ห้อรถ (Brand)</Form.Label>
-                    <CreatableSelect
+                    <CreatableSelect noOptionsMessage={() => "ไม่พบข้อมูล"}
                       options={carBrands.map(b => ({ value: b, label: b }))}
                       value={vehicle.brand ? { value: vehicle.brand, label: vehicle.brand } : null}
                       onChange={opt => setVehicle({...vehicle, brand: opt?.value || '', model: ''})}
@@ -2229,7 +2229,7 @@ const IssuePolicyForm = () => {
                   </Col>
                   <Col md={3}>
                     <Form.Label>รุ่นรถ (Model)</Form.Label>
-                    <CreatableSelect
+                    <CreatableSelect noOptionsMessage={() => "ไม่พบข้อมูล"}
                       options={(carModels[vehicle.brand] || []).map(m => ({ value: m, label: m }))}
                       value={vehicle.model ? { value: vehicle.model, label: vehicle.model } : null}
                       onChange={opt => setVehicle({...vehicle, model: opt?.value || ''})}
@@ -2249,7 +2249,7 @@ const IssuePolicyForm = () => {
                   </Col>
                   <Col md={2}>
                     <Form.Label>สีรถ</Form.Label>
-                    <CreatableSelect
+                    <CreatableSelect noOptionsMessage={() => "ไม่พบข้อมูล"}
                       options={['ขาว', 'ดำ', 'เทา', 'บรอนซ์เงิน', 'บรอนซ์ทอง', 'แดง', 'น้ำเงิน', 'ฟ้า', 'น้ำตาล', 'เขียว', 'เหลือง', 'ส้ม', 'ชมพู'].map(c => ({ value: c, label: c }))}
                       value={vehicle.color ? { value: vehicle.color, label: vehicle.color } : null}
                       onChange={opt => setVehicle({...vehicle, color: opt?.value || ''})}
@@ -2264,7 +2264,7 @@ const IssuePolicyForm = () => {
                   </Col>
                   <Col md={3}>
                     <Form.Label>จังหวัดทะเบียนรถ</Form.Label>
-                    <Select options={provinces} value={provinces.find(p => p.value === vehicle.plate_province)} onChange={opt => setVehicle({...vehicle, plate_province: opt?.value || ''})} isClearable />
+                    <Select noOptionsMessage={() => "ไม่พบข้อมูล"} options={provinces} value={provinces.find(p => p.value === vehicle.plate_province)} onChange={opt => setVehicle({...vehicle, plate_province: opt?.value || ''})} isClearable />
                   </Col>
                 </Row>
 
@@ -2329,7 +2329,7 @@ const IssuePolicyForm = () => {
               <Row className="g-3 mb-4">
                 <Col md={4}>
                   <Form.Label>บริษัทประกัน <span className="text-danger">*</span></Form.Label>
-                  <CreatableSelect 
+                  <CreatableSelect noOptionsMessage={() => "ไม่พบข้อมูล"} 
                     options={companies} 
                     value={policy.company ? { value: policy.company, label: policy.company } : null} 
                     onChange={opt => setPolicy({...policy, company: opt?.value || ''})} 
@@ -2340,7 +2340,7 @@ const IssuePolicyForm = () => {
                 </Col>
                 <Col md={4}>
                   <Form.Label>ประเภทประกันภัย <span className="text-danger">*</span></Form.Label>
-                  <Select 
+                  <Select noOptionsMessage={() => "ไม่พบข้อมูล"} 
                     options={[
                       { label: 'ประกันภัยรถยนต์ (Motor)', options: policyTypes },
                       { label: 'ประกันภัยอื่นๆ (Non-Motor)', options: nonMotorTypes }
@@ -2549,7 +2549,7 @@ const IssuePolicyForm = () => {
               <Row className="g-3">
                 <Col md={4}>
                   <Form.Label>สถานะงาน (Policy Status) <span className="text-danger">*</span></Form.Label>
-                  <Select options={jobStatuses} value={jobStatuses.find(j => j.value === followUp.status)} onChange={opt => setFollowUp({...followUp, status: opt?.value || 'รอดำเนินการ'})} />
+                  <Select noOptionsMessage={() => "ไม่พบข้อมูล"} options={jobStatuses} value={jobStatuses.find(j => j.value === followUp.status)} onChange={opt => setFollowUp({...followUp, status: opt?.value || 'รอดำเนินการ'})} />
                 </Col>
                 <Col md={4}>
                   <Form.Label>วันที่ติดตามครั้งถัดไป</Form.Label>

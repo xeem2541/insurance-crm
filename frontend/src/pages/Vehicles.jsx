@@ -172,7 +172,7 @@ const Vehicles = () => {
             <div className="row g-3">
               <div className="col-md-12">
                 <Form.Label>ลูกค้า <span className="text-danger">*</span></Form.Label>
-                <Select
+                <Select noOptionsMessage={() => "ไม่พบข้อมูล"}
                   options={customerOptions}
                   value={customerOptions.find(c => c.value === formData.customer_id)}
                   onChange={option => setFormData({...formData, customer_id: option?.value || ''})}
@@ -189,7 +189,7 @@ const Vehicles = () => {
               </div>
               <div className="col-md-6">
                 <Form.Label>จังหวัดทะเบียน</Form.Label>
-                <Select 
+                <Select noOptionsMessage={() => "ไม่พบข้อมูล"} 
                   options={provincesList} 
                   value={provincesList.find(p => p.value === formData.plate_province)} 
                   onChange={opt => setFormData({...formData, plate_province: opt?.value || ''})} 
@@ -199,7 +199,7 @@ const Vehicles = () => {
               </div>
               <div className="col-md-6">
                 <Form.Label>ประเภทรถ <span className="text-danger">*</span></Form.Label>
-                <Select
+                <Select noOptionsMessage={() => "ไม่พบข้อมูล"}
                   options={vehicleTypes}
                   value={vehicleTypes.find(t => t.value === formData.vehicle_type)}
                   onChange={option => setFormData({...formData, vehicle_type: option?.value || ''})}

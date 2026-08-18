@@ -341,7 +341,7 @@ const Policies = () => {
             <div className="row g-3">
               <div className="col-md-5">
                 <Form.Label>ลูกค้า <span className="text-danger">*</span></Form.Label>
-                <Select
+                <Select noOptionsMessage={() => "ไม่พบข้อมูล"}
                   options={customerOptions}
                   value={customerOptions.find(c => c.value === formData.customer_id)}
                   onChange={option => setFormData({...formData, customer_id: option?.value || '', vehicle_id: '', plate_no: ''})}
@@ -354,7 +354,7 @@ const Policies = () => {
               </div>
               <div className="col-md-4">
                 <Form.Label>รถยนต์ (อ้างอิงจากลูกค้า)</Form.Label>
-                <Select
+                <Select noOptionsMessage={() => "ไม่พบข้อมูล"}
                   options={vehicleOptions}
                   value={vehicleOptions.find(v => v.value === formData.vehicle_id)}
                   onChange={option => {
@@ -386,7 +386,7 @@ const Policies = () => {
               </div>
               <div className="col-md-3">
                 <Form.Label>จังหวัดทะเบียนรถ</Form.Label>
-                <Select
+                <Select noOptionsMessage={() => "ไม่พบข้อมูล"}
                   options={provincesList}
                   value={provincesList.find(p => p.value === formData.plate_province)}
                   onChange={opt => setFormData({...formData, plate_province: opt?.value || ''})}
@@ -445,7 +445,7 @@ const Policies = () => {
               </div>
               <div className="col-md-4">
                 <Form.Label>บริษัทประกัน <span className="text-danger">*</span></Form.Label>
-                <Select
+                <Select noOptionsMessage={() => "ไม่พบข้อมูล"}
                   options={companies}
                   value={companies.find(c => c.value === formData.company)}
                   onChange={option => setFormData({...formData, company: option?.value || ''})}
@@ -457,7 +457,7 @@ const Policies = () => {
               </div>
               <div className="col-md-4">
                 <Form.Label>ประเภทประกัน <span className="text-danger">*</span></Form.Label>
-                <Select
+                <Select noOptionsMessage={() => "ไม่พบข้อมูล"}
                   options={policyTypes}
                   value={policyTypes.find(p => p.value === formData.type)}
                   onChange={option => {
@@ -521,7 +521,7 @@ const Policies = () => {
               </div>
               <div className="col-md-3">
                 <Form.Label>สถานะงาน</Form.Label>
-                <Select
+                <Select noOptionsMessage={() => "ไม่พบข้อมูล"}
                   options={jobStatuses}
                   value={jobStatuses.find(j => j.value === formData.status)}
                   onChange={option => setFormData({...formData, status: option?.value || ''})}
@@ -566,7 +566,7 @@ const Policies = () => {
               </div>
               <div className="col-md-6">
                 <Form.Label>วิธีชำระเงิน</Form.Label>
-                <Select
+                <Select noOptionsMessage={() => "ไม่พบข้อมูล"}
                   options={paymentMethods}
                   value={paymentMethods.find(m => m.value === formData.payment_method)}
                   onChange={option => setFormData({...formData, payment_method: option?.value || ''})}

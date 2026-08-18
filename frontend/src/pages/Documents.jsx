@@ -384,7 +384,7 @@ const Documents = () => {
             <div className="row g-3">
               <div className="col-md-12">
                 <Form.Label>เลือกลูกค้า <span className="text-danger">*</span></Form.Label>
-                <Select
+                <Select noOptionsMessage={() => "ไม่พบข้อมูล"}
                   options={customerOptions}
                   value={customerOptions.find(c => c.value === formData.customer_id)}
                   onChange={option => setFormData({...formData, customer_id: option?.value || '', policy_id: '', vehicle_id: ''})}
@@ -394,7 +394,7 @@ const Documents = () => {
               </div>
               <div className="col-md-6">
                 <Form.Label>ผูกกับกรมธรรม์</Form.Label>
-                <Select
+                <Select noOptionsMessage={() => "ไม่พบข้อมูล"}
                   options={policyOptions}
                   value={policyOptions.find(p => p.value === formData.policy_id)}
                   onChange={option => setFormData({...formData, policy_id: option?.value || ''})}
@@ -404,7 +404,7 @@ const Documents = () => {
               </div>
               <div className="col-md-6">
                 <Form.Label>ผูกกับรถยนต์ (รูปรถ)</Form.Label>
-                <Select
+                <Select noOptionsMessage={() => "ไม่พบข้อมูล"}
                   options={vehicleOptions}
                   value={vehicleOptions.find(v => v.value === formData.vehicle_id)}
                   onChange={option => setFormData({...formData, vehicle_id: option?.value || ''})}
@@ -414,7 +414,7 @@ const Documents = () => {
               </div>
               <div className="col-md-12">
                 <Form.Label>ประเภทเอกสาร <span className="text-danger">*</span></Form.Label>
-                <Select
+                <Select noOptionsMessage={() => "ไม่พบข้อมูล"}
                   options={typeOptions}
                   value={typeOptions.find(t => t.value === formData.document_type_id)}
                   onChange={option => setFormData({...formData, document_type_id: option?.value || ''})}

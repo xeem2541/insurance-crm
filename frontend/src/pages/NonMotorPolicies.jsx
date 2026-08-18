@@ -371,7 +371,7 @@ const NonMotorPolicies = () => {
             <div className="row g-3">
               <div className="col-md-6">
                 <Form.Label>ลูกค้าอ้างอิง <span className="text-danger">*</span></Form.Label>
-                <Select
+                <Select noOptionsMessage={() => "ไม่พบข้อมูล"}
                   options={customerOptions}
                   value={customerOptions.find(c => c.value === formData.customer_id)}
                   onChange={option => setFormData({...formData, customer_id: option?.value || ''})}
@@ -390,7 +390,7 @@ const NonMotorPolicies = () => {
 
               <div className="col-md-4">
                 <Form.Label>ประเภท Non-Motor <span className="text-danger">*</span></Form.Label>
-                <Select
+                <Select noOptionsMessage={() => "ไม่พบข้อมูล"}
                   options={nonMotorTypes}
                   value={nonMotorTypes.find(t => t.value === formData.non_motor_type_id)}
                   onChange={option => setFormData({...formData, non_motor_type_id: option?.value || ''})}
@@ -405,7 +405,7 @@ const NonMotorPolicies = () => {
               </div>
               <div className="col-md-4">
                 <Form.Label>บริษัทประกัน <span className="text-danger">*</span></Form.Label>
-                <Select
+                <Select noOptionsMessage={() => "ไม่พบข้อมูล"}
                   options={companies}
                   value={companies.find(c => c.value === formData.company)}
                   onChange={option => setFormData({...formData, company: option?.value || ''})}
@@ -441,7 +441,7 @@ const NonMotorPolicies = () => {
               </div>
               <div className="col-md-3">
                 <Form.Label>สถานะกรมธรรม์</Form.Label>
-                <Select
+                <Select noOptionsMessage={() => "ไม่พบข้อมูล"}
                   options={jobStatuses}
                   value={jobStatuses.find(j => j.value === formData.status)}
                   onChange={option => setFormData({...formData, status: option?.value || ''})}
