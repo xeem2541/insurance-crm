@@ -62,7 +62,8 @@ const Layout = () => {
 
   const menuItems = [
     { path: '/', label: 'ภาพรวมระบบ', icon: 'bi-grid-1x2-fill', color: '#38bdf8', roles: ['Admin', 'Manager', 'Staff', 'Sales', 'Viewer'] },
-    { path: '/issue-policy', label: 'ออกกรมธรรม์ใหม่', icon: 'bi-file-earmark-plus-fill', color: '#34d399', badge: 'AI 100%', badgeBg: 'linear-gradient(45deg, #10b981, #059669)', roles: ['Admin', 'Manager', 'Staff', 'Sales'] },
+    { path: '/issue-policy-motor', label: 'ออกกรมธรรม์ (Motor)', icon: 'bi-car-front-fill', color: '#34d399', badge: 'AI 100%', badgeBg: 'linear-gradient(45deg, #10b981, #059669)', roles: ['Admin', 'Manager', 'Staff', 'Sales'] },
+    { path: '/issue-policy-non-motor', label: 'ออกกรมธรรม์ (Non-Motor)', icon: 'bi-shield-plus', color: '#f472b6', roles: ['Admin', 'Manager', 'Staff', 'Sales'] },
     { path: '/calendar', label: 'ปฏิทินงาน', icon: 'bi-calendar3', color: '#fbbf24', roles: ['Admin', 'Manager', 'Staff', 'Sales', 'Viewer'] },
     { path: '/customers', label: 'ข้อมูลลูกค้า', icon: 'bi-people-fill', color: '#a78bfa', roles: ['Admin', 'Manager', 'Staff', 'Sales', 'Viewer'] },
     { path: '/policies', label: 'Motor Insurance (รถยนต์)', icon: 'bi-shield-fill-check', color: '#60a5fa', roles: ['Admin', 'Manager', 'Staff', 'Sales', 'Viewer'] },
@@ -226,12 +227,12 @@ const Layout = () => {
             <div className="d-flex align-items-center gap-2">
               {/* Fast Action: Issue Policy Button */}
               <Link 
-                to="/issue-policy" 
+                to="/issue-policy-motor" 
                 className="btn btn-sm btn-success rounded-pill px-3 py-2 fw-bold shadow-sm d-none d-md-flex align-items-center gap-1"
                 style={{ fontSize: '0.85rem' }}
               >
                 <i className="bi bi-plus-circle-fill"></i>
-                <span>ออกกรมธรรม์ใหม่</span>
+                <span>ออกกรมธรรม์ใหม่ (Motor)</span>
               </Link>
 
               {/* Notification Dropdown */}
@@ -362,7 +363,7 @@ const Layout = () => {
 
           {/* Center High-Action Button: Issue Policy with AI */}
           <Link 
-            to="/issue-policy" 
+            to="/issue-policy-motor" 
             className="d-flex flex-column align-items-center justify-content-center text-decoration-none shadow-lg text-white"
             style={{
               width: '52px',
@@ -373,7 +374,7 @@ const Layout = () => {
               border: '3px solid ' + (darkMode ? '#111827' : '#ffffff'),
               boxShadow: '0 8px 20px rgba(16, 185, 129, 0.4)'
             }}
-            title="ออกกรมธรรม์ใหม่"
+            title="ออกกรมธรรม์ใหม่ (Motor)"
           >
             <i className="bi bi-camera-fill fs-4"></i>
           </Link>

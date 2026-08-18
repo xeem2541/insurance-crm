@@ -153,7 +153,10 @@ router.get('/stats', authenticateToken, async (req, res) => {
         SELECT discrepancies 
         FROM ai_correction_logs 
         WHERE ${q_aiCorrections.sql}
-      `, q_aiCorrections.params)
+      `, q_aiCorrections.params),
+
+      safeQuery(`SELECT job_type, SUM(total_premium) as total FROM policies WHERE status = 'สำเร็จ' AND YEAR(start_date) = ? GROUP BY job_type`, [targetYear]),
+      safeQuery(`SELECT job_type, SUM(total_premium) as total FROM non_motor_policies WHERE status = 'สำเร็จ' AND YEAR(start_date) = ? GROUP BY job_type`, [targetYear])
     ];
 
     const [
@@ -162,7 +165,8 @@ router.get('/stats', authenticateToken, async (req, res) => {
       documents, newCustomers,
       cashRes, instRes, unpaidRes, collectedRes, overdueCustRes, upcomingInstallments,
       monthlyCustomers, topCompanies, topSales,
-      aiStatsRes, aiDocTypesRes, aiCorrectionsRes
+      aiStatsRes, aiDocTypesRes, aiCorrectionsRes,
+      mSalesByJobType, nmSalesByJobType
     ] = await Promise.all(queries);
 
     let cashSalesTotal = parseFloat(cashRes?.[0]?.total) || 0;
@@ -238,10 +242,12 @@ router.get('/stats', authenticateToken, async (req, res) => {
           correction_scans: correctionScansCount,
           field_corrections: fieldCorrections
         };
-      })()
+      })(),
+      mSalesByJobType: mSalesByJobType || [],
+      nmSalesByJobType: nmSalesByJobType || []
     });
   } catch (error) {
-    console.error(error);
+    console.error('Dashboard Stats Error:', error);
     res.status(500).json({ error: 'Server error' });
   }
 });

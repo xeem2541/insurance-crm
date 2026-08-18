@@ -17,7 +17,8 @@ import PrintPolicy from './pages/PrintPolicy';
 import PrintReceipt from './pages/PrintReceipt';
 import Payments from './pages/Payments';
 import NonMotorPolicies from './pages/NonMotorPolicies';
-import IssuePolicyForm from './pages/IssuePolicyForm';
+import IssuePolicyMotorForm from './pages/IssuePolicyMotorForm';
+import IssuePolicyNonMotorForm from './pages/IssuePolicyNonMotorForm';
 import ActivityLogs from './pages/ActivityLogs';
 
 // Resilient Error Boundary to ensure the web application never crashes to a blank screen
@@ -128,7 +129,8 @@ const AppRoutes = () => {
       <Route path="/register" element={<Register />} />
       <Route path="/" element={<PrivateRoute><Layout /></PrivateRoute>}>
         <Route index element={<Dashboard />} />
-        <Route path="issue-policy" element={<IssuePolicyForm />} />
+        <Route path="issue-policy-motor" element={<IssuePolicyMotorForm />} />
+        <Route path="issue-policy-non-motor" element={<IssuePolicyNonMotorForm />} />
         <Route path="customers" element={<Customers />} />
         <Route path="vehicles" element={<Vehicles />} />
         <Route path="policies" element={<Policies />} />

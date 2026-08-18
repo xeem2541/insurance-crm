@@ -74,7 +74,7 @@ router.post('/', authenticateToken, async (req, res) => {
     prb_start_date, prb_expiry_date,
     policy_no, company, type, sum_insured, 
     net_premium, stamp_duty, vat, total_premium, commission_percent, commission_baht, 
-    payment_method, start_date, expiry_date, status, sales_person_id 
+    payment_method, start_date, expiry_date, status, sales_person_id, job_type
   } = req.body;
 
   try {
@@ -100,13 +100,13 @@ router.post('/', authenticateToken, async (req, res) => {
         customer_id, vehicle_id, policy_no, company, type, sum_insured, 
         net_premium, stamp_duty, vat, total_premium, commission_percent, commission_baht, 
         payment_method, start_date, expiry_date, status, sales_person_id, created_by,
-        prb_start_date, prb_expiry_date, repair_type
-       ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        prb_start_date, prb_expiry_date, repair_type, job_type
+       ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         customer_id, finalVehicleId, policy_no, company, type, sum_insured || null,
         net_premium || 0, stamp_duty || 0, vat || 0, total_premium || 0, commission_percent || 0, commission_baht || 0,
         payment_method || 'เงินสด', start_date, expiry_date, status || 'รอดำเนินการ', sales_person_id || null, req.user.id,
-        prb_start_date || null, prb_expiry_date || null, req.body.repair_type || 'อู่'
+        prb_start_date || null, prb_expiry_date || null, req.body.repair_type || 'อู่', job_type || 'งานใหม่'
       ]
     );
     
@@ -136,7 +136,7 @@ router.put('/:id', authenticateToken, async (req, res) => {
     prb_start_date, prb_expiry_date,
     company, type, sum_insured, 
     net_premium, stamp_duty, vat, total_premium, commission_percent, commission_baht, 
-    payment_method, start_date, expiry_date, status, sales_person_id 
+    payment_method, start_date, expiry_date, status, sales_person_id, job_type
   } = req.body;
 
   try {
@@ -170,13 +170,13 @@ router.put('/:id', authenticateToken, async (req, res) => {
         vehicle_id=?, company=?, type=?, sum_insured=?, 
         net_premium=?, stamp_duty=?, vat=?, total_premium=?, commission_percent=?, commission_baht=?, 
         payment_method=?, start_date=?, expiry_date=?, status=?, sales_person_id=?,
-        prb_start_date=?, prb_expiry_date=?, repair_type=?
+        prb_start_date=?, prb_expiry_date=?, repair_type=?, job_type=?
        WHERE id=?`,
       [
         finalVehicleId, company, type, sum_insured || null,
         net_premium || 0, stamp_duty || 0, vat || 0, total_premium || 0, commission_percent || 0, commission_baht || 0,
         payment_method || 'เงินสด', start_date, expiry_date, status || 'รอดำเนินการ', sales_person_id || null,
-        prb_start_date || null, prb_expiry_date || null, req.body.repair_type || 'อู่',
+        prb_start_date || null, prb_expiry_date || null, req.body.repair_type || 'อู่', job_type || 'งานใหม่',
         req.params.id
       ]
     );

@@ -53,7 +53,7 @@ router.post('/', authenticateToken, async (req, res) => {
       customer_id, policy_no, company, non_motor_type_id, insured_name,
       sum_insured, net_premium, stamp_duty, vat, total_premium,
       commission_percent, commission_baht, start_date, expiry_date,
-      status, note, additional_data, sales_person_id
+      status, note, additional_data, sales_person_id, job_type
     } = req.body;
 
     const query = `
@@ -61,8 +61,8 @@ router.post('/', authenticateToken, async (req, res) => {
         customer_id, policy_no, company, non_motor_type_id, insured_name,
         sum_insured, net_premium, stamp_duty, vat, total_premium,
         commission_percent, commission_baht, start_date, expiry_date,
-        status, note, additional_data, created_by, sales_person_id
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        status, note, additional_data, created_by, sales_person_id, job_type
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `;
     
     // Convert additional_data to JSON string
@@ -72,7 +72,7 @@ router.post('/', authenticateToken, async (req, res) => {
       customer_id, policy_no, company, non_motor_type_id, insured_name,
       sum_insured || 0, net_premium || 0, stamp_duty || 0, vat || 0, total_premium || 0,
       commission_percent || 0, commission_baht || 0, start_date, expiry_date,
-      status || 'รอดำเนินการ', note, addDataJson, req.user.id, sales_person_id || req.user.id
+      status || 'รอดำเนินการ', note, addDataJson, req.user.id, sales_person_id || req.user.id, job_type || 'งานใหม่'
     ]);
 
     res.status(201).json({ id: result.insertId, message: 'Policy created successfully' });
@@ -93,7 +93,7 @@ router.put('/:id', authenticateToken, async (req, res) => {
       customer_id, policy_no, company, non_motor_type_id, insured_name,
       sum_insured, net_premium, stamp_duty, vat, total_premium,
       commission_percent, commission_baht, start_date, expiry_date,
-      status, note, additional_data, sales_person_id
+      status, note, additional_data, sales_person_id, job_type
     } = req.body;
 
     const query = `
@@ -101,7 +101,7 @@ router.put('/:id', authenticateToken, async (req, res) => {
         customer_id=?, policy_no=?, company=?, non_motor_type_id=?, insured_name=?,
         sum_insured=?, net_premium=?, stamp_duty=?, vat=?, total_premium=?,
         commission_percent=?, commission_baht=?, start_date=?, expiry_date=?,
-        status=?, note=?, additional_data=?, sales_person_id=?
+        status=?, note=?, additional_data=?, sales_person_id=?, job_type=?
       WHERE id = ?
     `;
 
@@ -111,7 +111,7 @@ router.put('/:id', authenticateToken, async (req, res) => {
       customer_id, policy_no, company, non_motor_type_id, insured_name,
       sum_insured || 0, net_premium || 0, stamp_duty || 0, vat || 0, total_premium || 0,
       commission_percent || 0, commission_baht || 0, start_date, expiry_date,
-      status || 'รอดำเนินการ', note, addDataJson, sales_person_id || req.user.id,
+      status || 'รอดำเนินการ', note, addDataJson, sales_person_id || req.user.id, job_type || 'งานใหม่',
       id
     ]);
 

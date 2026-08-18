@@ -71,6 +71,20 @@ async function initDb() {
       // column already exists, ignore
     }
 
+    try {
+      await connection.query(`ALTER TABLE policies ADD COLUMN job_type VARCHAR(50) DEFAULT 'งานใหม่' AFTER status`);
+      console.log('Added column job_type to policies');
+    } catch (e) {
+      // column already exists, ignore
+    }
+
+    try {
+      await connection.query(`ALTER TABLE non_motor_policies ADD COLUMN job_type VARCHAR(50) DEFAULT 'งานใหม่' AFTER status`);
+      console.log('Added column job_type to non_motor_policies');
+    } catch (e) {
+      // column already exists, ignore
+    }
+
     // Auto-drop other unused columns if needed (email, occupation)
     const dropColumns = ['email', 'occupation'];
     for (const col of dropColumns) {
@@ -200,7 +214,8 @@ async function initDb() {
         (6, 'ประกันภัยความรับผิดทางวิชาชีพ (PI)'),
         (7, 'ประกันสุขภาพ'),
         (8, 'ประกันชีวิตแบบสะสมทรัพย์'),
-        (9, 'ประกันชีวิตแบบชั่วระยะเวลา (T Life)')
+        (9, 'ประกันชีวิตแบบชั่วระยะเวลา (T Life)'),
+        (10, 'ประกันโจรกรรม')
       `);
     }
 

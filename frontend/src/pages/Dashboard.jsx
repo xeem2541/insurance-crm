@@ -37,6 +37,8 @@ const Dashboard = () => {
     nmSalesThisMonth: 0,
     nmSalesThisYear: 0,
     nmCommThisMonth: 0,
+    mSalesByJobType: [],
+    nmSalesByJobType: [],
     expiringPolicies: [],
     topCompanies: [],
     topSales: [],
@@ -178,12 +180,20 @@ const Dashboard = () => {
               </select>
             </div>
             <Link 
-              to="/issue-policy" 
+              to="/issue-policy-motor" 
               className="btn btn-success fw-bold px-3 py-2 rounded-3 shadow-sm d-flex align-items-center justify-content-center gap-2 text-nowrap"
               style={{ background: 'linear-gradient(45deg, #00b09b, #96c93d)', border: 'none' }}
             >
-              <i className="bi bi-camera-fill"></i>
-              <span>+ ออกกรมธรรม์</span>
+              <i className="bi bi-car-front-fill"></i>
+              <span>+ ออกกรมธรรม์ (Motor)</span>
+            </Link>
+            <Link 
+              to="/issue-policy-non-motor" 
+              className="btn btn-primary fw-bold px-3 py-2 rounded-3 shadow-sm d-flex align-items-center justify-content-center gap-2 text-nowrap"
+              style={{ background: 'linear-gradient(45deg, #3b82f6, #60a5fa)', border: 'none' }}
+            >
+              <i className="bi bi-shield-plus"></i>
+              <span>+ ออกกรมธรรม์ (Non-Motor)</span>
             </Link>
           </div>
         </div>
