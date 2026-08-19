@@ -20,6 +20,7 @@ import NonMotorPolicies from './pages/NonMotorPolicies';
 import IssuePolicyMotorForm from './pages/IssuePolicyMotorForm';
 import IssuePolicyNonMotorForm from './pages/IssuePolicyNonMotorForm';
 import ActivityLogs from './pages/ActivityLogs';
+import MobileDashboard from './pages/MobileDashboard';
 
 // Resilient Error Boundary to ensure the web application never crashes to a blank screen
 class ErrorBoundary extends Component {
@@ -151,6 +152,11 @@ const AppRoutes = () => {
       <Route path="/print-receipt/:id" element={
         <PrivateRoute>
           <PrintReceipt />
+        </PrivateRoute>
+      } />
+      <Route path="/mobile" element={
+        <PrivateRoute>
+          <MobileDashboard />
         </PrivateRoute>
       } />
       <Route path="*" element={<Navigate to="/" replace />} />
