@@ -322,13 +322,14 @@ router.post('/extract', authenticateToken, upload.array('images', 10), async (re
       console.warn("Failed to fetch available Gemini models:", e.response?.data?.error?.message || e.message);
     }
 
-    // Modern Gemini model hierarchy (prioritizing ultra-fast 3.5-flash-lite -> 3.5-flash -> 3.1-flash-lite)
+    // Modern Gemini model hierarchy
     const preferredModels = [
-      'gemini-3.5-flash-lite',
-      'gemini-3.5-flash',
-      'gemini-3.1-flash-lite',
-      'gemini-3.7-flash',
-      'gemini-flash-latest'
+      'gemini-3.1-pro',
+      'gemini-1.5-flash',
+      'gemini-1.5-pro',
+      'gemini-2.0-flash',
+      'gemini-flash-latest',
+      'gemini-pro'
     ];
 
     let modelsToTry = preferredModels
@@ -337,10 +338,9 @@ router.post('/extract', authenticateToken, upload.array('images', 10), async (re
 
     if (modelsToTry.length === 0) {
       modelsToTry = [
-        { name: 'gemini-3.5-flash-lite', timeout: 35000 },
-        { name: 'gemini-3.5-flash', timeout: 35000 },
-        { name: 'gemini-3.1-flash-lite', timeout: 35000 },
-        { name: 'gemini-3.7-flash', timeout: 35000 }
+        { name: 'gemini-3.1-pro', timeout: 35000 },
+        { name: 'gemini-1.5-flash', timeout: 35000 },
+        { name: 'gemini-1.5-pro', timeout: 35000 }
       ];
     }
 
