@@ -7,9 +7,9 @@ const getBaseUrl = () => {
   }
   if (typeof window !== 'undefined') {
     const hostname = window.location.hostname;
-    // If not local host, default to the production cloud backend
+    // If not local host, use the deployed backend URL as fallback
     if (hostname !== 'localhost' && hostname !== '127.0.0.1') {
-      return 'https://insurance-crm-kpff.onrender.com/api';
+      return 'https://insurance-crm-backend-omega.vercel.app/api';
     }
   }
   return 'http://localhost:5000/api';
