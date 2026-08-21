@@ -8,11 +8,14 @@ require('dotenv').config();
 const helmet = require('helmet');
 const { startCronJobs } = require('./cron');
 const cron = require('node-cron');
+// Vercel doesn't run backups
 let runBackup;
-try {
-  runBackup = require('./cron/backup');
-} catch (e) {
-  console.log('Backup module not found. Please upload cron/backup.js to enable automated backups.');
+if (!process.env.VERCEL) {
+  try {
+    runBackup = require('./cron/backup');
+  } catch (e) {
+    console.log('Backup module not found. Please upload cron/backup.js to enable automated backups.');
+  }
 }
 
 // Process Crash Prevention (Keeps server alive 24/7 even on unexpected edge cases)
@@ -625,30 +628,22 @@ app.get('/api/fix-db', async (req, res) => {
 });
 
 // Safe route loader to prevent crashes if files are missing
-function safeUseRoute(path, modulePath) {
-  try {
-    app.use(path, require(modulePath));
-  } catch (e) {
-    console.log(`Route module ${modulePath} failed to load:`, e.message);
-  }
-}
-
-safeUseRoute('/api/auth', './routes/auth');
-safeUseRoute('/api/users', './routes/users');
-safeUseRoute('/api/customers', './routes/customers');
-safeUseRoute('/api/vehicles', './routes/vehicles');
-safeUseRoute('/api/policies', './routes/policies');
-safeUseRoute('/api/documents', './routes/documents');
-safeUseRoute('/api/dashboard', './routes/dashboard');
-safeUseRoute('/api/reports', './routes/reports');
-safeUseRoute('/api/master-data', './routes/masterData');
-safeUseRoute('/api/webhook', './routes/webhook');
-safeUseRoute('/api/non-motor-policies', './routes/nonMotorPolicies');
-safeUseRoute('/api/issue-policy', './routes/issuePolicy');
-safeUseRoute('/api/payments', './routes/payments');
-safeUseRoute('/api/notifications', './routes/notifications');
-safeUseRoute('/api/ai-ocr', './routes/aiOcr');
-safeUseRoute('/api/activity-logs', './routes/activityLogs');
+app.use('/api/auth', require('./routes/auth'));
+app.use('/api/users', require('./routes/users'));
+app.use('/api/customers', require('./routes/customers'));
+app.use('/api/vehicles', require('./routes/vehicles'));
+app.use('/api/policies', require('./routes/policies'));
+app.use('/api/documents', require('./routes/documents'));
+app.use('/api/dashboard', require('./routes/dashboard'));
+app.use('/api/reports', require('./routes/reports'));
+app.use('/api/master-data', require('./routes/masterData'));
+app.use('/api/webhook', require('./routes/webhook'));
+app.use('/api/non-motor-policies', require('./routes/nonMotorPolicies'));
+app.use('/api/issue-policy', require('./routes/issuePolicy'));
+app.use('/api/payments', require('./routes/payments'));
+app.use('/api/notifications', require('./routes/notifications'));
+app.use('/api/ai-ocr', require('./routes/aiOcr'));
+app.use('/api/activity-logs', require('./routes/activityLogs'));
 
 // Schedule Automated Backup every 1st day of the month at 01:00 AM (End of month backup)
 if (!process.env.VERCEL) {
