@@ -434,15 +434,19 @@ router.post('/extract', authenticateToken, upload.array('images', 10), async (re
     if (!responseText) {
       const processingTimeMs = startTime ? (Date.now() - startTime) : 0;
       if (req.db) {
-        req.db.query(
-          'INSERT INTO ai_usage_logs (document_type, is_success, has_warning, warning_message, model_used, processing_time_ms) VALUES (?, ?, ?, ?, ?, ?)',
-          ['unknown', false, false, lastError?.message || 'AI Fallback Failed', 'unknown', processingTimeMs]
-        ).catch(err => console.error("Error logging failed AI usage:", err));
+        try {
+          await req.db.query(
+            'INSERT INTO ai_usage_logs (document_type, is_success, has_warning, warning_message, model_used, processing_time_ms) VALUES (?, ?, ?, ?, ?, ?)',
+            ['unknown', false, false, lastError?.message || 'AI Fallback Failed', null, processingTimeMs]
+          );
+        } catch (err) {
+          console.error("Error logging failed AI usage:", err);
+        }
       }
 
       return res.status(500).json({
-        error: 'AI_PROCESSING_FAILED',
-        message: 'ระบบประมวลผล AI ขัดข้องชั่วคราว กรุณาลองใหม่อีกครั้งในภายหลัง',
+        error: 'ALL_MODELS_FAILED',
+        message: 'ระบบประมวลผล AI ขัดข้องชั่วคราว หรือเซิร์ฟเวอร์ปลายทางไม่ตอบสนอง กรุณาลองใหม่อีกครั้ง',
         details: lastError?.response?.data || lastError?.message || {}
       });
     }
@@ -531,10 +535,14 @@ router.post('/extract', authenticateToken, upload.array('images', 10), async (re
     }
 
     if (req.db) {
-      req.db.query(
-        'INSERT INTO ai_usage_logs (document_type, is_success, has_warning, warning_message, model_used, processing_time_ms) VALUES (?, ?, ?, ?, ?, ?)',
-        [docType, true, hasWarning, warningMsg, usedModelName, processingTimeMs]
-      ).catch(err => console.error("Error logging AI usage:", err));
+      try {
+        await req.db.query(
+          'INSERT INTO ai_usage_logs (document_type, is_success, has_warning, warning_message, model_used, processing_time_ms) VALUES (?, ?, ?, ?, ?, ?)',
+          [docType, true, hasWarning, warningMsg, usedModelName, processingTimeMs]
+        );
+      } catch (err) {
+        console.error("Error logging AI usage:", err);
+      }
     }
 
     res.json(parsedData);
@@ -545,10 +553,14 @@ router.post('/extract', authenticateToken, upload.array('images', 10), async (re
     console.error('OCR Error Details:', error.response?.data || error);
     
     if (req.db) {
-      req.db.query(
-        'INSERT INTO ai_usage_logs (document_type, is_success, has_warning, warning_message, model_used, processing_time_ms) VALUES (?, ?, ?, ?, ?, ?)',
-        ['unknown', false, false, apiError, 'unknown', processingTimeMs]
-      ).catch(err => console.error("Error logging failed AI usage:", err));
+      try {
+        await req.db.query(
+          'INSERT INTO ai_usage_logs (document_type, is_success, has_warning, warning_message, model_used, processing_time_ms) VALUES (?, ?, ?, ?, ?, ?)',
+          ['unknown', false, false, apiError, null, processingTimeMs]
+        );
+      } catch (err) {
+        console.error("Error logging failed AI usage:", err);
+      }
     }
 
     res.status(500).json({ error: apiError });
