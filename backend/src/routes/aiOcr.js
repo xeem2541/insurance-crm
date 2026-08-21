@@ -395,15 +395,37 @@ router.post('/extract', authenticateToken, upload.array('images', 10), async (re
         lastError = error;
         const status = error.response?.status;
         const msg = error.response?.data?.error?.message || error.message;
-        console.warn(`Failed with model ${modelConfig.name}:`, msg);
+        const errorDetails = error.response?.data || {};
         
-        // If it's an auth issue (400 Bad Request / 401 Unauthorized / 403 Forbidden), fail immediately
-        if (status === 400 || status === 401 || status === 403) {
+        console.error(`[Gemini API Error] Model: ${modelConfig.name}, Status: ${status}, Message: ${msg}`);
+        if (error.response?.data) {
+          console.error(`[Gemini API Error Details]:`, JSON.stringify(errorDetails, null, 2));
+        }
+
+        // Authentication & Permission Issues
+        if (status === 401 || status === 403) {
           return res.status(401).json({
-            error: 'INVALID_GEMINI_API_KEY',
-            message: `Gemini API Key ไม่ถูกต้องหรือหมดอายุ: ${msg}`
+            error: 'GEMINI_AUTH_ERROR',
+            message: `Gemini API Key ไม่ถูกต้อง หมดอายุ หรือไม่มีสิทธิ์เข้าถึง (Status ${status}): ${msg}`,
+            details: errorDetails
           });
         }
+
+        // Bad Request / Payload Issues (e.g., file too large, invalid format, inlineData errors)
+        if (status === 400) {
+          return res.status(400).json({
+            error: 'GEMINI_BAD_REQUEST',
+            message: `เกิดข้อผิดพลาดในการส่งข้อมูลไปยัง Gemini API (อาจจะรูปภาพใหญ่เกินไป หรือรูปแบบ Payload ไม่ถูกต้อง): ${msg}`,
+            details: errorDetails
+          });
+        }
+        
+        // Quota / Rate Limiting Issues
+        if (status === 429) {
+          console.warn(`[Gemini API Quota Exceeded] Model: ${modelConfig.name}. Will try fallback models if available.`);
+        }
+        
+        // For other errors (like 500, 503, 429), it will continue to the next model in the fallback loop
       }
     }
 
