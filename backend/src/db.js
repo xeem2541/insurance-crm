@@ -122,8 +122,10 @@ function getDbStatus() {
   };
 }
 
-// Start heartbeat immediately on module load
-startHeartbeat();
+// Start heartbeat immediately on module load if not on Vercel
+if (!process.env.VERCEL) {
+  startHeartbeat();
+}
 
 module.exports = {
   pool,

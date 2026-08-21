@@ -522,7 +522,12 @@ app.use((req, res, next) => {
   next();
 });
 
-initDb();
+if (!process.env.VERCEL) {
+  initDb();
+} else {
+  // For Vercel Serverless, we skip the heavy DB migration checks on every cold start
+  console.log('Skipping initDb() on Vercel serverless environment');
+}
 
 // Root endpoints for uptime monitors & load balancers
 app.get('/', (req, res) => {
