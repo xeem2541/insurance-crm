@@ -681,12 +681,9 @@ function startServerKeepAlive() {
 }
 
 // Start server
-if (process.env.VERCEL) {
-  // On Vercel, we export the app for serverless execution
-  module.exports = app;
-} else {
-  // Local or traditional server environment
-  app.listen(PORT, () => {
+if (!process.env.VERCEL) {
+  const PORT = process.env.PORT || 5000;
+  app.listen(PORT, '0.0.0.0', () => {
     console.log(`Server is running on port ${PORT}`);
     
     // Start server keep-alive
@@ -701,3 +698,5 @@ if (process.env.VERCEL) {
     }
   });
 }
+
+module.exports = app;
