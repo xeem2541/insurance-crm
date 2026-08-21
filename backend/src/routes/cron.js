@@ -3,7 +3,6 @@ const router = express.Router();
 const fs = require('fs');
 const path = require('path');
 const os = require('os');
-const archiver = require('archiver');
 const nodemailer = require('nodemailer');
 
 // Verify cron job secret from Vercel to prevent unauthorized access
@@ -33,6 +32,9 @@ router.get('/backup', async (req, res) => {
     }
 
     // 2. Create Zip file in /tmp
+    const archiverModule = await import('archiver');
+    const archiver = archiverModule.default || archiverModule;
+    
     const output = fs.createWriteStream(zipPath);
     const archive = archiver('zip', { zlib: { level: 9 } });
 
