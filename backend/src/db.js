@@ -122,8 +122,8 @@ function getDbStatus() {
   };
 }
 
-// Start heartbeat immediately on module load if not on Vercel
-if (!process.env.VERCEL) {
+// Start heartbeat immediately on module load if run directly
+if (require.main === module) {
   startHeartbeat();
 }
 

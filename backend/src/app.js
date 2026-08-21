@@ -10,7 +10,7 @@ const { startCronJobs } = require('./cron');
 const cron = require('node-cron');
 // Vercel doesn't run backups
 let runBackup;
-if (!process.env.VERCEL) {
+if (require.main === module) {
   try {
     runBackup = require('./cron/backup');
   } catch (e) {
@@ -525,7 +525,7 @@ app.use((req, res, next) => {
   next();
 });
 
-if (!process.env.VERCEL) {
+if (require.main === module) {
   initDb();
 } else {
   // For Vercel Serverless, we skip the heavy DB migration checks on every cold start
@@ -646,7 +646,7 @@ app.use('/api/ai-ocr', require('./routes/aiOcr'));
 app.use('/api/activity-logs', require('./routes/activityLogs'));
 
 // Schedule Automated Backup every 1st day of the month at 01:00 AM (End of month backup)
-if (!process.env.VERCEL) {
+if (require.main === module) {
   cron.schedule('0 1 1 * *', () => {
     console.log('Cron triggered: Running automated monthly backup...');
     if (runBackup) {
@@ -681,7 +681,7 @@ function startServerKeepAlive() {
 }
 
 // Start server
-if (!process.env.VERCEL) {
+if (require.main === module) {
   const PORT = process.env.PORT || 5000;
   app.listen(PORT, '0.0.0.0', () => {
     console.log(`Server is running on port ${PORT}`);
