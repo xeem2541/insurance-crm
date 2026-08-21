@@ -651,14 +651,16 @@ safeUseRoute('/api/ai-ocr', './routes/aiOcr');
 safeUseRoute('/api/activity-logs', './routes/activityLogs');
 
 // Schedule Automated Backup every 1st day of the month at 01:00 AM (End of month backup)
-cron.schedule('0 1 1 * *', () => {
-  console.log('Cron triggered: Running automated monthly backup...');
-  if (runBackup) {
-    runBackup();
-  } else {
-    console.log('Backup module is missing, skipping automated backup.');
-  }
-});
+if (!process.env.VERCEL) {
+  cron.schedule('0 1 1 * *', () => {
+    console.log('Cron triggered: Running automated monthly backup...');
+    if (runBackup) {
+      runBackup();
+    } else {
+      console.log('Backup module is missing, skipping automated backup.');
+    }
+  });
+}
 
 // Cloud Server Keep-Alive (Ping self every 4 minutes to prevent cloud hosting from sleeping)
 function startServerKeepAlive() {
