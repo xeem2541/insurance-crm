@@ -6,6 +6,7 @@ const mysql = require('mysql2/promise');
 const bcrypt = require('bcryptjs');
 require('dotenv').config();
 const helmet = require('helmet');
+const rateLimit = require('express-rate-limit');
 const { startCronJobs } = require('./cron');
 const cron = require('node-cron');
 // Vercel doesn't run backups
@@ -41,6 +42,17 @@ app.use((req, res, next) => {
 });
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+
+// Global Rate Limiting
+const globalLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 300, // Limit each IP to 300 requests per `window` (here, per 15 minutes)
+  message: { error: 'Too many requests from this IP, please try again after 15 minutes' },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+app.use('/api', globalLimiter);
+
 app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
 
 // Database connection pool with 24/7 keepalive & heartbeat
