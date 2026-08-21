@@ -11,16 +11,8 @@ if (!fs.existsSync(uploadDir)) {
   fs.mkdirSync(uploadDir, { recursive: true });
 }
 
-// Setup multer storage
-const storage = multer.diskStorage({
-  destination: function (req, file, cb) {
-    cb(null, uploadDir);
-  },
-  filename: function (req, file, cb) {
-    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
-    cb(null, uniqueSuffix + '-' + file.originalname);
-  }
-});
+// Setup multer storage (Memory Storage for Vercel)
+const storage = multer.memoryStorage();
 const upload = multer({ storage: storage });
 
 router.post('/', authenticateToken, upload.array('files'), async (req, res) => {
@@ -217,6 +209,7 @@ router.post('/', authenticateToken, upload.array('files'), async (req, res) => {
       let filePath = '';
       let fileType = 'image/jpeg';
       let fileSize = 0;
+      let base64Data = null;
       
       if (fData.file_path && fData.file_path.startsWith('http')) {
         // Already uploaded to Cloudinary
@@ -227,26 +220,38 @@ router.post('/', authenticateToken, upload.array('files'), async (req, res) => {
         // Uploaded locally (fallback)
         const file = req.files ? req.files[localFileIdx] : null;
         if (!file) continue;
-        filePath = `/uploads/${file.filename}`;
         fileType = file.mimetype;
         fileSize = file.size;
+        base64Data = file.buffer.toString('base64');
         localFileIdx++;
       }
       
       const fileName = fData.name || 'document';
       
       if (isMotor) {
-        await connection.query(
-          `INSERT INTO documents (customer_id, policy_id, document_type_id, name, file_path, file_type, file_size, note, uploaded_by) 
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-          [customerId, policyId, fData.type_id, fileName, filePath, fileType, fileSize, fData.note || '', req.user.id]
+        const [docResult] = await connection.query(
+          `INSERT INTO documents (customer_id, policy_id, document_type_id, name, file_path, file_type, file_size, note, uploaded_by, file_data) 
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+          [customerId, policyId, fData.type_id, fileName, filePath, fileType, fileSize, fData.note || '', req.user.id, base64Data]
         );
+        
+        if (base64Data) {
+          const newDocId = docResult.insertId;
+          filePath = `/api/documents/file/${newDocId}`;
+          await connection.query('UPDATE documents SET file_path = ? WHERE id = ?', [filePath, newDocId]);
+        }
       } else {
-        await connection.query(
-          `INSERT INTO non_motor_documents (non_motor_policy_id, document_type_id, name, file_path, file_type, file_size, note, uploaded_by) 
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
-          [nonMotorPolicyId, fData.type_id, fileName, filePath, fileType, fileSize, fData.note || '', req.user.id]
+        const [docResult] = await connection.query(
+          `INSERT INTO non_motor_documents (non_motor_policy_id, document_type_id, name, file_path, file_type, file_size, note, uploaded_by, file_data) 
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+          [nonMotorPolicyId, fData.type_id, fileName, filePath, fileType, fileSize, fData.note || '', req.user.id, base64Data]
         );
+        
+        if (base64Data) {
+          const newDocId = docResult.insertId;
+          filePath = `/api/non-motor-policies/documents/file/${newDocId}`;
+          await connection.query('UPDATE non_motor_documents SET file_path = ? WHERE id = ?', [filePath, newDocId]);
+        }
       }
     }
 

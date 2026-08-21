@@ -679,17 +679,23 @@ function startServerKeepAlive() {
 }
 
 // Start server
-app.listen(PORT, () => {
-  console.log(`Server is running on port ${PORT}`);
-  
-  // Start server keep-alive
-  startServerKeepAlive();
+if (process.env.VERCEL) {
+  // On Vercel, we export the app for serverless execution
+  module.exports = app;
+} else {
+  // Local or traditional server environment
+  app.listen(PORT, () => {
+    console.log(`Server is running on port ${PORT}`);
+    
+    // Start server keep-alive
+    startServerKeepAlive();
 
-  // Start the auto image sync background worker
-  try {
-    const { startAutoSync } = require('./sync_images');
-    startAutoSync(pool);
-  } catch (err) {
-    console.error('Failed to start auto sync:', err);
-  }
-});
+    // Start the auto image sync background worker
+    try {
+      const { startAutoSync } = require('./sync_images');
+      startAutoSync(pool);
+    } catch (err) {
+      console.error('Failed to start auto sync:', err);
+    }
+  });
+}

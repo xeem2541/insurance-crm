@@ -11,16 +11,8 @@ if (!fs.existsSync(uploadsDir)) {
   fs.mkdirSync(uploadsDir, { recursive: true });
 }
 
-// Multer config
-const storage = multer.diskStorage({
-  destination: function (req, file, cb) {
-    cb(null, uploadsDir);
-  },
-  filename: function (req, file, cb) {
-    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
-    cb(null, uniqueSuffix + path.extname(file.originalname));
-  }
-});
+// Multer config (Memory Storage for Vercel Serverless)
+const storage = multer.memoryStorage();
 
 const upload = multer({ 
   storage: storage,
@@ -33,6 +25,22 @@ const upload = multer({
       return cb(null, true);
     }
     cb(new Error('Only PDF, JPG, and PNG files are allowed!'));
+  }
+});
+
+// Serve file dynamically from DB (Publicly accessible like the old /uploads folder)
+router.get('/file/:id', async (req, res) => {
+  try {
+    const [docs] = await req.db.query('SELECT file_data, file_type FROM documents WHERE id = ?', [req.params.id]);
+    if (docs.length === 0 || !docs[0].file_data) {
+      return res.status(404).send('File not found');
+    }
+    const doc = docs[0];
+    const buffer = Buffer.from(doc.file_data, 'base64');
+    res.setHeader('Content-Type', doc.file_type || 'application/octet-stream');
+    res.send(buffer);
+  } catch (error) {
+    res.status(500).send('Server error');
   }
 });
 
@@ -49,8 +57,10 @@ router.get('/types', authenticateToken, async (req, res) => {
 // Get documents (by customer or policy)
 router.get('/', authenticateToken, async (req, res) => {
   const { customer_id, policy_id, search, status } = req.query;
+  // Exclude file_data from normal list queries to save bandwidth
   let query = `
-    SELECT d.*, dt.name as document_type_name, u.name as uploader_name 
+    SELECT d.id, d.customer_id, d.policy_id, d.document_type_id, d.name, d.file_path, d.file_type, d.file_size, d.version, d.note, d.uploaded_by, d.created_at, d.deleted_at, 
+           dt.name as document_type_name, u.name as uploader_name 
     FROM documents d
     JOIN document_types dt ON d.document_type_id = dt.id
     LEFT JOIN users u ON d.uploaded_by = u.id
@@ -87,28 +97,35 @@ router.post('/upload', authenticateToken, upload.single('file'), async (req, res
   if (!req.file) return res.status(400).json({ error: 'No file uploaded' });
 
   const { customer_id, policy_id, document_type_id, name, note } = req.body;
+  const base64Data = req.file.buffer.toString('base64');
   
   try {
     const [result] = await req.db.query(
-      `INSERT INTO documents (customer_id, policy_id, document_type_id, name, file_path, file_type, file_size, version, note, uploaded_by)
-       VALUES (?, ?, ?, ?, ?, ?, ?, 1, ?, ?)`,
+      `INSERT INTO documents (customer_id, policy_id, document_type_id, name, file_path, file_type, file_size, version, note, uploaded_by, file_data)
+       VALUES (?, ?, ?, ?, ?, ?, ?, 1, ?, ?, ?)`,
       [
         customer_id, 
         policy_id || null, 
         document_type_id, 
         name, 
-        `/uploads/${req.file.filename}`, 
+        '', // We will update this with the ID next
         req.file.mimetype, 
         req.file.size, 
         note, 
-        req.user.id
+        req.user.id,
+        base64Data
       ]
     );
 
-    await req.db.query('INSERT INTO activity_logs (user_id, action, target_table, target_id, details) VALUES (?, ?, ?, ?, ?)',
-      [req.user.id, 'UPLOAD', 'documents', result.insertId, `Uploaded document ${name}`]);
+    const newId = result.insertId;
+    const dynamicFilePath = `/api/documents/file/${newId}`;
+    
+    await req.db.query('UPDATE documents SET file_path = ? WHERE id = ?', [dynamicFilePath, newId]);
 
-    res.status(201).json({ id: result.insertId, message: 'Document uploaded successfully', file_path: `/uploads/${req.file.filename}` });
+    await req.db.query('INSERT INTO activity_logs (user_id, action, target_table, target_id, details) VALUES (?, ?, ?, ?, ?)',
+      [req.user.id, 'UPLOAD', 'documents', newId, `Uploaded document ${name}`]);
+
+    res.status(201).json({ id: newId, message: 'Document uploaded successfully', file_path: dynamicFilePath });
   } catch (error) {
     res.status(500).json({ error: 'Server error' });
   }
