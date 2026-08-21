@@ -301,8 +301,8 @@ router.post('/extract', authenticateToken, upload.array('images', 10), async (re
     }`;
 
     const imageParts = req.files.map(file => ({
-      inline_data: {
-        mime_type: file.mimetype,
+      inlineData: {
+        mimeType: file.mimetype,
         data: file.buffer.toString('base64')
       }
     }));
