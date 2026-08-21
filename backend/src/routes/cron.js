@@ -1,8 +1,5 @@
 const express = require('express');
 const router = express.Router();
-const fs = require('fs');
-const path = require('path');
-const os = require('os');
 const nodemailer = require('nodemailer');
 
 // Verify cron job secret from Vercel to prevent unauthorized access
@@ -12,16 +9,13 @@ router.get('/backup', async (req, res) => {
   const authHeader = req.headers['authorization'];
   if (authHeader !== `Bearer ${CRON_SECRET}`) {
     console.warn('Unauthorized cron attempt');
-    // Return 401
     return res.status(401).json({ error: 'Unauthorized' });
   }
 
   console.log('Starting Vercel Serverless Backup...');
   try {
     const dateStr = new Date().toISOString().split('T')[0];
-    const zipFilename = `backup_${dateStr}.zip`;
-    const zipPath = path.join(os.tmpdir(), zipFilename);
-
+    
     // 1. Fetch data from DB
     const tables = ['customers', 'vehicles', 'policies', 'non_motor_policies', 'payments', 'installments'];
     const dbData = {};
@@ -31,27 +25,11 @@ router.get('/backup', async (req, res) => {
       dbData[table] = rows;
     }
 
-    // 2. Create Zip file in /tmp
-    const archiverModule = await import('archiver');
-    const archiver = archiverModule.default || archiverModule;
-    
-    const output = fs.createWriteStream(zipPath);
-    const archive = archiver('zip', { zlib: { level: 9 } });
+    // Convert to JSON buffer
+    const jsonData = JSON.stringify(dbData, null, 2);
+    const jsonBuffer = Buffer.from(jsonData, 'utf-8');
 
-    // Wait for the zip to finish
-    await new Promise((resolve, reject) => {
-      output.on('close', resolve);
-      archive.on('error', reject);
-      archive.pipe(output);
-
-      // Append JSON data as a file
-      archive.append(JSON.stringify(dbData, null, 2), { name: `database_dump_${dateStr}.json` });
-      archive.finalize();
-    });
-
-    console.log(`Backup zip created at ${zipPath} (${fs.statSync(zipPath).size} bytes)`);
-
-    // 3. Email the backup
+    // 2. Email the backup
     if (process.env.GMAIL_USER && process.env.ADMIN_EMAIL) {
       const transporter = nodemailer.createTransport({
         service: 'gmail',
@@ -76,14 +54,14 @@ router.get('/backup', async (req, res) => {
             <p><strong>จำนวนข้อมูลลูกค้า:</strong> ${dbData.customers.length} รายการ</p>
             <p><strong>จำนวนกรมธรรม์ Motor:</strong> ${dbData.policies.length} รายการ</p>
             <hr style="border: 0; border-top: 1px solid #e2e8f0; margin: 20px 0;" />
-            <p style="color: #475569; font-size: 14px;">ระบบได้ทำการสำรองฐานข้อมูลเป็นไฟล์ JSON และบีบอัดเป็น Zip ไฟล์แนบมาพร้อมกับอีเมลนี้เรียบร้อยแล้ว</p>
+            <p style="color: #475569; font-size: 14px;">ระบบได้ทำการสำรองฐานข้อมูลเป็นไฟล์ JSON แนบมาพร้อมกับอีเมลนี้เรียบร้อยแล้ว</p>
           </div>
         </div>
         `,
         attachments: [
           {
-            filename: zipFilename,
-            path: zipPath
+            filename: `database_dump_${dateStr}.json`,
+            content: jsonBuffer
           }
         ]
       });
@@ -92,7 +70,7 @@ router.get('/backup', async (req, res) => {
       console.log('Skipping email: GMAIL_USER or ADMIN_EMAIL not set');
     }
 
-    res.json({ message: 'Backup completed successfully', size: fs.statSync(zipPath).size });
+    res.json({ message: 'Backup completed successfully', size: jsonBuffer.length });
   } catch (error) {
     console.error('Backup error:', error);
     res.status(500).json({ error: error.message });
