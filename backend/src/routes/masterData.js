@@ -6,7 +6,7 @@ const { authenticateToken, authorizeRole } = require('../middlewares/auth');
 router.get('/', authenticateToken, async (req, res) => {
   try {
     const category = req.query.category;
-    let query = 'SELECT * FROM master_data LIMIT 500';
+    let query = 'SELECT * FROM master_data';
     let params = [];
     
     if (category) {
@@ -14,7 +14,7 @@ router.get('/', authenticateToken, async (req, res) => {
       params.push(category);
     }
     
-    query += ' ORDER BY id ASC';
+    query += ' ORDER BY id ASC LIMIT 500';
     
     const [rows] = await req.db.query(query, params);
     res.json(rows);
