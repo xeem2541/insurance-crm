@@ -1,3 +1,2 @@
-module.exports = (req, res) => {
-  res.status(200).json({ message: "Hello from dummy Vercel handler!" });
-};
+const app = require('../src/app');
+module.exports = app;
