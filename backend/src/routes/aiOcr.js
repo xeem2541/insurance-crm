@@ -415,22 +415,36 @@ router.post('/extract', authenticateToken, upload.array('images', 10), async (re
         if (status === 400) {
           return res.status(400).json({
             error: 'GEMINI_BAD_REQUEST',
-            message: `เกิดข้อผิดพลาดในการส่งข้อมูลไปยัง Gemini API (อาจจะรูปภาพใหญ่เกินไป หรือรูปแบบ Payload ไม่ถูกต้อง): ${msg}`,
+            message: 'รูปแบบไฟล์หรือข้อมูลไม่ถูกต้อง กรุณาตรวจสอบรูปภาพที่อัปโหลดอีกครั้ง',
             details: errorDetails
           });
         }
         
-        // Quota / Rate Limiting Issues
-        if (status === 429) {
-          console.warn(`[Gemini API Quota Exceeded] Model: ${modelConfig.name}. Will try fallback models if available.`);
+        // Quota / Rate Limiting (429) & Server Errors (5xx)
+        if (status === 429 || status >= 500) {
+          console.warn(`[Gemini API Warning] Model: ${modelConfig.name} encountered status ${status}. Skipping to next model...`);
+          continue; // ข้ามไปทดลองเรียกใช้งานโมเดล AI ตัวถัดไป
         }
         
-        // For other errors (like 500, 503, 429), it will continue to the next model in the fallback loop
+        // For other unexpected errors, also continue to next model
+        continue;
       }
     }
 
     if (!responseText) {
-      throw lastError || new Error('ทุกโมเดลของ Gemini เกิดข้อผิดพลาดในการประมวลผล กรุณาลองใหม่อีกครั้ง');
+      const processingTimeMs = startTime ? (Date.now() - startTime) : 0;
+      if (req.db) {
+        req.db.query(
+          'INSERT INTO ai_usage_logs (document_type, is_success, has_warning, warning_message, model_used, processing_time_ms) VALUES (?, ?, ?, ?, ?, ?)',
+          ['unknown', false, false, lastError?.message || 'AI Fallback Failed', 'unknown', processingTimeMs]
+        ).catch(err => console.error("Error logging failed AI usage:", err));
+      }
+
+      return res.status(500).json({
+        error: 'AI_PROCESSING_FAILED',
+        message: 'ระบบประมวลผล AI ขัดข้องชั่วคราว กรุณาลองใหม่อีกครั้งในภายหลัง',
+        details: lastError?.response?.data || lastError?.message || {}
+      });
     }
     
     // Clean up markdown syntax if Gemini returns it despite instructions
