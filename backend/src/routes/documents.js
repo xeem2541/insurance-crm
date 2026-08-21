@@ -8,7 +8,11 @@ const { authenticateToken } = require('../middlewares/auth');
 // Ensure uploads dir exists
 const uploadsDir = path.join(__dirname, '../../uploads');
 if (!fs.existsSync(uploadsDir)) {
-  fs.mkdirSync(uploadsDir, { recursive: true });
+  try {
+    fs.mkdirSync(uploadsDir, { recursive: true });
+  } catch (err) {
+    console.log("Skipping mkdir on Vercel: ", err.message);
+  }
 }
 
 // Multer config (Memory Storage for Vercel Serverless)
