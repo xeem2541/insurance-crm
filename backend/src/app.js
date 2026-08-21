@@ -656,6 +656,7 @@ app.use('/api/payments', require('./routes/payments'));
 app.use('/api/notifications', require('./routes/notifications'));
 app.use('/api/ai-ocr', require('./routes/aiOcr'));
 app.use('/api/activity-logs', require('./routes/activityLogs'));
+app.use('/api/cron', require('./routes/cron'));
 
 // Schedule Automated Backup every 1st day of the month at 01:00 AM (End of month backup)
 if (require.main === module) {

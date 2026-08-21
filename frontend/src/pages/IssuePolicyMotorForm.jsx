@@ -1686,6 +1686,41 @@ const IssuePolicyMotorForm = () => {
     }
   }, [policy.expiry_date]);
 
+  // --- Auto-Save Draft Logic ---
+  const DRAFT_KEY = 'draft_IssuePolicyMotorForm';
+  
+  // Load draft on mount
+  useEffect(() => {
+    try {
+      const draft = localStorage.getItem(DRAFT_KEY);
+      if (draft) {
+        const parsed = JSON.parse(draft);
+        if (parsed.customer) setCustomer(parsed.customer);
+        if (parsed.vehicle) setVehicle(parsed.vehicle);
+        if (parsed.policy) setPolicy(parsed.policy);
+        if (parsed.payment) setPayment(parsed.payment);
+        if (parsed.installmentSchedule) setInstallmentSchedule(parsed.installmentSchedule);
+        if (parsed.followUp) setFollowUp(parsed.followUp);
+      }
+    } catch (e) {
+      console.error('Failed to load draft:', e);
+    }
+  }, []);
+
+  // Save draft when data changes
+  useEffect(() => {
+    const timeout = setTimeout(() => {
+      // Don't save if it's completely empty (or just default values)
+      if (customer.first_name || vehicle.plate_no || policy.policy_no) {
+        localStorage.setItem(DRAFT_KEY, JSON.stringify({
+          customer, vehicle, policy, payment, installmentSchedule, followUp
+        }));
+      }
+    }, 1000); // 1-second debounce
+    return () => clearTimeout(timeout);
+  }, [customer, vehicle, policy, payment, installmentSchedule, followUp]);
+  // -----------------------------
+
   const loadCustomerOptions = (inputValue) => {
     return new Promise(resolve => {
       if (!inputValue || inputValue.length < 2) return resolve([]);
