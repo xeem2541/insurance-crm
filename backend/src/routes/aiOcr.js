@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const multer = require('multer');
-const { authenticateToken } = require('../middlewares/auth');
+const { authenticateToken, authorizeRole } = require('../middlewares/auth');
 const axios = require('axios');
 
 // Use memory storage for quick processing without saving to disk permanently
@@ -564,6 +564,65 @@ router.post('/extract', authenticateToken, upload.array('images', 10), async (re
     }
 
     res.status(500).json({ error: apiError });
+  }
+});
+
+// Endpoint to get AI Usage Statistics & Recent Logs (Admin & Manager only)
+router.get('/stats', authenticateToken, authorizeRole(['admin', 'manager']), async (req, res) => {
+  try {
+    if (!req.db) {
+      return res.status(500).json({ status: 'error', error: 'Database connection not available' });
+    }
+
+    // 1. Get aggregated stats
+    const statsQuery = `
+      SELECT 
+        COUNT(*) as totalScans,
+        SUM(CASE WHEN is_success = 1 THEN 1 ELSE 0 END) as successfulScans,
+        AVG(CASE WHEN is_success = 1 THEN processing_time_ms ELSE NULL END) as avgProcessingTime
+      FROM ai_usage_logs
+    `;
+    const [statsResult] = await req.db.query(statsQuery);
+    
+    let totalScans = 0;
+    let successfulScans = 0;
+    let avgProcessingTime = 0;
+    let successRate = 0;
+
+    if (statsResult && statsResult.length > 0) {
+      totalScans = parseInt(statsResult[0].totalScans || 0, 10);
+      successfulScans = parseInt(statsResult[0].successfulScans || 0, 10);
+      avgProcessingTime = parseFloat(statsResult[0].avgProcessingTime || 0).toFixed(2);
+      if (totalScans > 0) {
+        successRate = ((successfulScans / totalScans) * 100).toFixed(2);
+      }
+    }
+
+    // 2. Get recent logs
+    const historyQuery = `
+      SELECT id, document_type, is_success, model_used, processing_time_ms, warning_message, created_at 
+      FROM ai_usage_logs 
+      ORDER BY created_at DESC 
+      LIMIT 50
+    `;
+    const [historyResult] = await req.db.query(historyQuery);
+
+    res.json({
+      status: 'success',
+      data: {
+        stats: {
+          totalScans,
+          successfulScans,
+          successRate: parseFloat(successRate),
+          avgProcessingTime: parseFloat(avgProcessingTime)
+        },
+        history: historyResult || []
+      }
+    });
+
+  } catch (error) {
+    console.error("Error fetching AI stats:", error);
+    res.status(500).json({ status: 'error', error: 'Failed to fetch AI usage stats' });
   }
 });
 
