@@ -545,14 +545,16 @@ if (require.main === module) {
 }
 
 // Root endpoints for uptime monitors & load balancers
-app.get('/', (req, res) => {
+app.get('/', async (req, res) => {
+  await pingDatabase();
   res.json({
     status: 'ok',
     message: 'Apple Insurance CRM API is running 24/7',
     database: getDbStatus().isConnected ? 'connected' : 'connecting'
   });
 });
-app.get('/health', (req, res) => {
+app.get('/health', async (req, res) => {
+  await pingDatabase();
   const status = getDbStatus();
   res.status(status.isConnected ? 200 : 503).json({
     status: status.isConnected ? 'ok' : 'degraded',
@@ -562,7 +564,8 @@ app.get('/health', (req, res) => {
 });
 
 // Health check endpoint for external pingers / uptime monitors
-app.get('/api/health', (req, res) => {
+app.get('/api/health', async (req, res) => {
+  await pingDatabase();
   const status = getDbStatus();
   res.status(status.isConnected ? 200 : 503).json({
     status: status.isConnected ? 'ok' : 'degraded',
@@ -588,7 +591,8 @@ app.post('/api/db-ping', async (req, res) => {
 });
 
 // Basic route
-app.get('/api', (req, res) => {
+app.get('/api', async (req, res) => {
+  await pingDatabase();
   res.json({ 
     message: 'Insurance API is running',
     database: getDbStatus().isConnected ? 'connected (24/7 keepalive active)' : 'connecting'
