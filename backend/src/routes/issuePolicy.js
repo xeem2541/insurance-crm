@@ -17,7 +17,10 @@ if (!fs.existsSync(uploadDir)) {
 
 // Setup multer storage (Memory Storage for Vercel)
 const storage = multer.memoryStorage();
-const upload = multer({ storage: storage });
+const upload = multer({ 
+  storage: storage,
+  limits: { fileSize: 15 * 1024 * 1024 } // 15MB limit to prevent DoS
+});
 
 router.post('/', authenticateToken, upload.array('files'), async (req, res) => {
   const connection = await req.db.getConnection();

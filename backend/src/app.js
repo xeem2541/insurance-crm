@@ -6,6 +6,8 @@ const mysql = require('mysql2/promise');
 const bcrypt = require('bcryptjs');
 require('dotenv').config();
 const helmet = require('helmet');
+const xss = require('xss-clean');
+const hpp = require('hpp');
 const rateLimit = require('express-rate-limit');
 const { startCronJobs } = require('./cron');
 const cron = require('node-cron');
@@ -34,14 +36,57 @@ app.set('trust proxy', 1);
 
 app.use(helmet({
   crossOriginResourcePolicy: false, // allow cross-origin images/resources if needed
+  contentSecurityPolicy: {
+    directives: {
+      defaultSrc: ["'self'"],
+      scriptSrc: ["'self'"],
+      styleSrc: ["'self'", "'unsafe-inline'"],
+      imgSrc: ["'self'", "data:", "blob:"],
+      connectSrc: ["'self'"],
+    },
+  },
+  hsts: {
+    maxAge: 31536000,
+    includeSubDomains: true,
+    preload: true,
+  },
+  xFrameOptions: { action: 'deny' },
 }));
-app.use(cors());
+
+// Strict CORS: Allow only frontend domain (from .env) or localhost for testing
+const allowedOrigins = [
+  process.env.FRONTEND_URL,
+  'http://localhost:5173',
+  'http://127.0.0.1:5173'
+].filter(Boolean); // Remove undefined values
+
+app.use(cors({
+  origin: function (origin, callback) {
+    // Allow requests with no origin (like mobile apps or curl requests)
+    if (!origin) return callback(null, true);
+    if (allowedOrigins.indexOf(origin) === -1) {
+      var msg = 'The CORS policy for this site does not allow access from the specified Origin.';
+      return callback(new Error(msg), false);
+    }
+    return callback(null, true);
+  },
+  credentials: true
+}));
+
 app.use((req, res, next) => {
   console.log(`[${new Date().toISOString()}] ${req.method} ${req.url}`);
   next();
 });
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
+
+// Body parsers
+app.use(express.json({ limit: '500kb' })); // Limit body size to prevent payload DOS
+app.use(express.urlencoded({ extended: true, limit: '500kb' }));
+
+// Data Sanitization against XSS
+app.use(xss());
+
+// Prevent HTTP Parameter Pollution
+app.use(hpp());
 
 // Global Rate Limiting
 const globalLimiter = rateLimit({
