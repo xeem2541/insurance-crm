@@ -1589,41 +1589,60 @@ const IssuePolicyForm = () => {
 
   useEffect(() => {
     if (payment.payment_method === 'เงินผ่อน' && payment.installments > 1 && policy.total_premium > 0) {
-      const schedule = [];
-      const total = parseFloat(policy.total_premium) || 0;
-      const firstAmount = Math.round((total * 0.37) * 100) / 100;
-      const balance = total - firstAmount;
-      const remainingCount = payment.installments - 1;
-      const remainingAmount = Math.round((balance / remainingCount) * 100) / 100;
+      setInstallmentSchedule(prev => {
+        if (prev.length !== payment.installments) {
+          const schedule = [];
+          const total = parseFloat(policy.total_premium) || 0;
+          const firstAmount = Math.round((total * 0.37) * 100) / 100;
+          const balance = total - firstAmount;
+          const remainingCount = payment.installments - 1;
+          const remainingAmount = Math.round((balance / remainingCount) * 100) / 100;
 
-      let currentDate = payment.pay_date ? new Date(payment.pay_date) : new Date();
+          let currentDate = payment.pay_date ? new Date(payment.pay_date) : new Date();
 
-      for (let i = 1; i <= payment.installments; i++) {
-        let amt = i === 1 ? firstAmount : remainingAmount;
-        
-        // Adjust last installment for rounding errors
-        if (i === parseInt(payment.installments)) {
-          const sumSoFar = firstAmount + (remainingAmount * (remainingCount - 1));
-          amt = Math.round((total - sumSoFar) * 100) / 100;
+          for (let i = 1; i <= payment.installments; i++) {
+            let amt = i === 1 ? firstAmount : remainingAmount;
+            
+            if (i === parseInt(payment.installments)) {
+              const sumSoFar = firstAmount + (remainingAmount * (remainingCount - 1));
+              amt = Math.round((total - sumSoFar) * 100) / 100;
+            }
+
+            const dueDate = new Date(currentDate);
+            if (i > 1) {
+              dueDate.setMonth(dueDate.getMonth() + (i - 1));
+            }
+
+            schedule.push({
+              installment_no: i,
+              due_date: dueDate.toISOString().split('T')[0],
+              amount: amt,
+              status: 'รอชำระ'
+            });
+          }
+          return schedule;
+        } else {
+          // Just update due dates, keeping user-modified amounts
+          let currentDate = payment.pay_date ? new Date(payment.pay_date) : new Date();
+          const schedule = prev.map((inst, idx) => {
+            const dueDate = new Date(currentDate);
+            if (idx > 0) {
+              dueDate.setMonth(dueDate.getMonth() + idx);
+            }
+            return {
+              ...inst,
+              due_date: dueDate.toISOString().split('T')[0]
+            };
+          });
+          
+          const hasChange = schedule.some((inst, idx) => inst.due_date !== prev[idx].due_date);
+          return hasChange ? schedule : prev;
         }
-
-        const dueDate = new Date(currentDate);
-        if (i > 1) {
-          dueDate.setMonth(dueDate.getMonth() + (i - 1));
-        }
-
-        schedule.push({
-          installment_no: i,
-          due_date: dueDate.toISOString().split('T')[0],
-          amount: amt,
-          status: 'รอชำระ'
-        });
-      }
-      setInstallmentSchedule(schedule);
+      });
     } else {
       setInstallmentSchedule([]);
     }
-  }, [payment.payment_method, payment.installments, payment.pay_date, policy.total_premium]);
+  }, [payment.payment_method, payment.installments, payment.pay_date]);
 
 
 
@@ -1889,6 +1908,16 @@ const IssuePolicyForm = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+
+    if (payment.payment_method === 'เงินผ่อน' && payment.installments > 1 && policy.total_premium > 0) {
+      const totalPremium = parseFloat(policy.total_premium) || 0;
+      const sumInstallments = installmentSchedule.reduce((sum, inst) => sum + (parseFloat(inst.amount) || 0), 0);
+      if (Math.abs(totalPremium - sumInstallments) > 0.01) {
+        alert(`ยอดผ่อนรวม (฿${sumInstallments.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}) ไม่ตรงกับยอดชำระทั้งหมด (฿${totalPremium.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}) กรุณาตรวจสอบอีกครั้ง`);
+        return;
+      }
+    }
+
     setLoading(true);
     setSuccessMsg(null);
 
@@ -2524,11 +2553,27 @@ const IssuePolicyForm = () => {
                             </tr>
                           </thead>
                           <tbody>
-                            {installmentSchedule.map((inst) => (
+                            {installmentSchedule.map((inst, idx) => (
                               <tr key={inst.installment_no}>
                                 <td><span className="badge bg-primary rounded-circle p-2">{inst.installment_no}</span></td>
                                 <td><span className="fw-bold text-danger">{inst.due_date}</span></td>
-                                <td className="text-end fw-bold">฿{inst.amount.toLocaleString()}</td>
+                                <td>
+                                  <Form.Control
+                                    type="number"
+                                    min="0"
+                                    step="0.01"
+                                    className="text-end fw-bold text-primary"
+                                    value={inst.amount}
+                                    onChange={(e) => {
+                                      const val = e.target.value;
+                                      setInstallmentSchedule(prev => {
+                                        const updated = [...prev];
+                                        updated[idx] = { ...updated[idx], amount: val === '' ? '' : Number(val) };
+                                        return updated;
+                                      });
+                                    }}
+                                  />
+                                </td>
                                 <td><span className="badge bg-warning text-dark">{inst.status}</span></td>
                               </tr>
                             ))}
