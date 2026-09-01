@@ -84,6 +84,19 @@ router.post('/', async (req, res) => {
       } catch (err) {
         console.error("Error saving group ID:", err);
       }
+    } else if (event.source.type === 'user' && event.type === 'message' && event.message.type === 'text') {
+      if (event.message.text.trim() === 'รับแจ้งเตือน') {
+        const userId = event.source.userId;
+        try {
+          await req.db.query(
+            "INSERT INTO master_data (category, value, label) VALUES ('LINE_GROUP', ?, 'Admin User') ON DUPLICATE KEY UPDATE value = ?",
+            [userId, userId]
+          );
+          console.log("Saved LINE Admin User ID:", userId);
+        } catch (err) {
+          console.error("Error saving user ID:", err);
+        }
+      }
     }
 
     if (event.type === 'message' && event.message.type === 'text') {
