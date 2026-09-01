@@ -119,59 +119,59 @@ app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
 // Database connection pool with 24/7 keepalive & heartbeat
 const { pool, getDbStatus, pingDatabase } = require('./db');
 
+// ✅ Migration flag table — แต่ละ ALTER TABLE รันแค่ครั้งเดียว ไม่ซ้ำทุก cold start
+async function runMigrationOnce(connection, key, sql) {
+  const [rows] = await connection.query('SELECT id FROM schema_migrations WHERE migration_key = ?', [key]);
+  if (rows.length > 0) return; // already ran
+  try {
+    await connection.query(sql);
+    await connection.query('INSERT INTO schema_migrations (migration_key) VALUES (?)', [key]);
+    console.log(`[Migration] ${key} ✅`);
+  } catch (e) {
+    // Log error but don't crash — migration might have already been applied manually
+    console.warn(`[Migration] ${key} skipped:`, e.message?.substring(0, 80));
+  }
+}
+
 // Test connection and seed Admin
 async function initDb() {
   try {
     const connection = await pool.getConnection();
     console.log('Database connected successfully');
-    
-    // Ensure id_card_no column exists and is not unique (drop UNIQUE index if exists)
-    try {
-      await connection.query(`ALTER TABLE customers DROP INDEX id_card_no`);
-      console.log('Dropped UNIQUE index id_card_no from customers');
-    } catch (e) {
-      // index might not exist, ignore
-    }
 
-    try {
-      await connection.query(`ALTER TABLE customers ADD COLUMN id_card_no VARCHAR(20) NULL`);
-      console.log('Added column id_card_no to customers');
-    } catch (e) {
-      // column already exists, ignore
-    }
+    // ✅ Create migration tracker table first
+    await connection.query(`
+      CREATE TABLE IF NOT EXISTS schema_migrations (
+        id INT PRIMARY KEY AUTO_INCREMENT,
+        migration_key VARCHAR(120) UNIQUE NOT NULL,
+        applied_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      )
+    `);
 
-    try {
-      await connection.query(`ALTER TABLE policies ADD COLUMN repair_type VARCHAR(50) NULL DEFAULT 'อู่'`);
-      console.log('Added column repair_type to policies');
-    } catch (e) {
-      // column already exists, ignore
-    }
+    // --- Column Migrations (run once each) ---
+    await runMigrationOnce(connection, 'drop_unique_id_card_no',
+      'ALTER TABLE customers DROP INDEX id_card_no');
+    await runMigrationOnce(connection, 'add_customers_id_card_no',
+      'ALTER TABLE customers ADD COLUMN id_card_no VARCHAR(20) NULL');
+    await runMigrationOnce(connection, 'add_policies_repair_type',
+      "ALTER TABLE policies ADD COLUMN repair_type VARCHAR(50) NULL DEFAULT 'อู่'");
+    await runMigrationOnce(connection, 'add_policies_job_type',
+      "ALTER TABLE policies ADD COLUMN job_type VARCHAR(50) DEFAULT 'งานใหม่' AFTER status");
+    await runMigrationOnce(connection, 'add_non_motor_job_type',
+      "ALTER TABLE non_motor_policies ADD COLUMN job_type VARCHAR(50) DEFAULT 'งานใหม่' AFTER status");
+    await runMigrationOnce(connection, 'drop_customers_email',
+      'ALTER TABLE customers DROP COLUMN email');
+    await runMigrationOnce(connection, 'drop_customers_occupation',
+      'ALTER TABLE customers DROP COLUMN occupation');
+    await runMigrationOnce(connection, 'add_customers_address_fields',
+      'ALTER TABLE customers ADD COLUMN moo VARCHAR(50), ADD COLUMN soi VARCHAR(100), ADD COLUMN road VARCHAR(100), ADD COLUMN sub_district VARCHAR(100), ADD COLUMN district VARCHAR(100)');
+    await runMigrationOnce(connection, 'add_customers_alt_phone',
+      'ALTER TABLE customers ADD COLUMN alt_phone VARCHAR(20) DEFAULT NULL');
+    await runMigrationOnce(connection, 'add_policies_prb_dates',
+      'ALTER TABLE policies ADD COLUMN prb_start_date DATE, ADD COLUMN prb_expiry_date DATE');
+    await runMigrationOnce(connection, 'add_ai_correction_non_motor_id',
+      'ALTER TABLE ai_correction_logs ADD COLUMN non_motor_policy_id INT NULL AFTER policy_id');
 
-    try {
-      await connection.query(`ALTER TABLE policies ADD COLUMN job_type VARCHAR(50) DEFAULT 'งานใหม่' AFTER status`);
-      console.log('Added column job_type to policies');
-    } catch (e) {
-      // column already exists, ignore
-    }
-
-    try {
-      await connection.query(`ALTER TABLE non_motor_policies ADD COLUMN job_type VARCHAR(50) DEFAULT 'งานใหม่' AFTER status`);
-      console.log('Added column job_type to non_motor_policies');
-    } catch (e) {
-      // column already exists, ignore
-    }
-
-    // Auto-drop other unused columns if needed (email, occupation)
-    const dropColumns = ['email', 'occupation'];
-    for (const col of dropColumns) {
-      try {
-        await connection.query(`ALTER TABLE customers DROP COLUMN ${col}`);
-        console.log(`Dropped column ${col} from customers`);
-      } catch (e) {
-        // Column might not exist or already dropped, ignore safely
-      }
-    }
-    
     // Seed Admin user if not exists
     const [users] = await connection.query('SELECT * FROM users WHERE username = ?', ['admin']);
     if (users.length === 0) {
@@ -182,11 +182,11 @@ async function initDb() {
       );
     }
 
-    // Create Performance Indexes
-    try { await connection.query('CREATE INDEX idx_policies_dates ON policies (start_date, expiry_date)'); console.log('Created index idx_policies_dates'); } catch(e) {}
-    try { await connection.query('CREATE INDEX idx_non_motor_dates ON non_motor_policies (start_date, expiry_date)'); console.log('Created index idx_non_motor_dates'); } catch(e) {}
-    try { await connection.query('CREATE INDEX idx_documents_deleted ON documents (deleted_at, created_at)'); console.log('Created index idx_documents_deleted'); } catch(e) {}
-    try { await connection.query('CREATE INDEX idx_customers_code ON customers (customer_code)'); console.log('Created index idx_customers_code'); } catch(e) {}
+    // Create Performance Indexes (IF NOT EXISTS equivalent — catch duplicate error)
+    try { await connection.query('CREATE INDEX idx_policies_dates ON policies (start_date, expiry_date)'); } catch(e) {}
+    try { await connection.query('CREATE INDEX idx_non_motor_dates ON non_motor_policies (start_date, expiry_date)'); } catch(e) {}
+    try { await connection.query('CREATE INDEX idx_documents_deleted ON documents (deleted_at, created_at)'); } catch(e) {}
+    try { await connection.query('CREATE INDEX idx_customers_code ON customers (customer_code)'); } catch(e) {}
 
     // Auto-migrate tables for Document Upload feature
     await connection.query(`
@@ -246,7 +246,6 @@ async function initDb() {
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       )
     `);
-    console.log('AI usage logs table verified');
 
     await connection.query(`
       CREATE TABLE IF NOT EXISTS ai_correction_logs (
@@ -260,14 +259,6 @@ async function initDb() {
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       )
     `);
-    console.log('AI OCR correction logs table verified');
-
-    try {
-      await connection.query(`ALTER TABLE ai_correction_logs ADD COLUMN non_motor_policy_id INT NULL AFTER policy_id`);
-      console.log('Added non_motor_policy_id to ai_correction_logs');
-    } catch (e) {
-      // ignore if already exists
-    }
 
     // Auto-migrate non-motor tables
     await connection.query(`
@@ -346,20 +337,6 @@ async function initDb() {
     `);
     console.log('Non-Motor tables verified');
 
-    // Auto-migrate new columns for Single Page Form
-    try {
-      await connection.query('ALTER TABLE customers ADD COLUMN moo VARCHAR(50), ADD COLUMN soi VARCHAR(100), ADD COLUMN road VARCHAR(100), ADD COLUMN sub_district VARCHAR(100), ADD COLUMN district VARCHAR(100)');
-    } catch(e) {}
-    
-    // Auto-migrate alt_phone
-    try {
-      await connection.query('ALTER TABLE customers ADD COLUMN alt_phone VARCHAR(20) DEFAULT NULL');
-    } catch(e) {}
-
-    try {
-      await connection.query('ALTER TABLE policies ADD COLUMN prb_start_date DATE, ADD COLUMN prb_expiry_date DATE');
-    } catch(e) {}
-
     // Create Payments table
     await connection.query(`
       CREATE TABLE IF NOT EXISTS payments (
@@ -376,7 +353,6 @@ async function initDb() {
         FOREIGN KEY (non_motor_policy_id) REFERENCES non_motor_policies(id) ON DELETE CASCADE
       )
     `);
-    console.log('Payments table verified');
 
     // Create Installments table
     await connection.query(`
@@ -395,7 +371,7 @@ async function initDb() {
         FOREIGN KEY (payment_id) REFERENCES payments(id) ON DELETE CASCADE
       )
     `);
-    console.log('Installments table verified');
+    console.log('Payments & Installments tables verified');
 
     // Auto-seed mock data if database is empty
     const [custCountRes] = await connection.query('SELECT COUNT(*) as count FROM customers');
@@ -408,7 +384,6 @@ async function initDb() {
       const [adminRow] = await connection.query('SELECT id FROM users WHERE username="admin"');
       const adminId = adminRow[0] ? adminRow[0].id : 1;
       
-      // Ensure sales user exists
       let salesId = 1;
       const [salesRow] = await connection.query('SELECT id FROM users WHERE username="sales1"');
       if (salesRow.length > 0) {
@@ -427,12 +402,11 @@ async function initDb() {
         const ln = lastNames[Math.floor(Math.random() * lastNames.length)];
         const prov = provinces[Math.floor(Math.random() * provinces.length)];
         
-        // Ensure policies have upcoming expiry dates for the calendar
-        const isExpiringSoon = i <= 5; // First 5 customers have expiring policies
+        const isExpiringSoon = i <= 5;
         const startDate = new Date();
         startDate.setFullYear(startDate.getFullYear() - 1);
         if (isExpiringSoon) {
-          startDate.setDate(startDate.getDate() + Math.floor(Math.random() * 20)); // Expires in 0-20 days
+          startDate.setDate(startDate.getDate() + Math.floor(Math.random() * 20));
         } else {
           startDate.setMonth(startDate.getMonth() - Math.floor(Math.random() * 6));
         }
@@ -446,13 +420,13 @@ async function initDb() {
 
         const custResult = await connection.query(`
           INSERT INTO customers (
-            customer_code, prefix, first_name, last_name, phone, email, line_id, 
+            customer_code, prefix, first_name, last_name, phone, line_id, 
             age, id_card_no, address, province, zipcode, customer_status, lead_status, source, created_by
-          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         `, [
           `CUS-2026-${String(i).padStart(4, '0')}`, 'คุณ', fn, ln,
           `08${Math.floor(Math.random() * 90000000 + 10000000)}`,
-          `customer${i}@example.com`, `line_id_${i}`, Math.floor(Math.random() * 40 + 20),
+          `line_id_${i}`, Math.floor(Math.random() * 40 + 20),
           `1${Math.floor(Math.random() * 900000000000 + 100000000000)}`,
           `123/45 ถนนทดสอบ`, prov, '10000', 'ลูกค้าปัจจุบัน', 'ปิดการขาย', 'Website', salesId
         ]);
@@ -493,95 +467,15 @@ async function initDb() {
       console.log('Successfully auto-seeded mock data!');
     }
 
-    // Auto-migrate and update existing insurance company names to formal names
-    try {
-      const companyMap = {
-        'วิริยะประกันภัย': 'บริษัท วิริยะประกันภัย จำกัด (มหาชน)',
-        'กรุงเทพประกันภัย': 'บริษัท กรุงเทพประกันภัย จำกัด (มหาชน)',
-        'ธนชาตประกันภัย': 'บริษัท ธนชาตประกันภัย จำกัด (มหาชน)',
-        'ทิพยประกันภัย': 'บริษัท ทิพยประกันภัย จำกัด (มหาชน)',
-        'คุ้มภัยโตเกียวมารีน': 'บริษัท คุ้มภัยโตเกียวมารีนประกันภัย (ประเทศไทย) จำกัด (มหาชน)',
-        'ไทยวิวัฒน์ประกันภัย': 'บริษัท ไทยวิวัฒน์ จำกัด (มหาชน)',
-        'เมืองไทยประกันภัย': 'บริษัท เมืองไทยประกันภัย จำกัด (มหาชน)',
-        'แอกซ่าประกันภัย': 'บริษัท แอกซ่าประกันภัย จำกัด (มหาชน)',
-        'MSIG ประกันภัย': 'บริษัท เอ็ม เอส ไอ จี ประกันภัย (ประเทศไทย) จำกัด (มหาชน)',
-        'แอลเอ็มจีประกันภัย': 'บริษัท แอลเอ็มจี ประกันภัย จำกัด (มหาชน)',
-        'ซับบ์สามัคคีประกันภัย': 'บริษัท ชับบ์สามัคคีประกันภัย จำกัด (มหาชน)',
-        'นวกิจประกันภัย': 'บริษัท นวกิจประกันภัย จำกัด (มหาชน)',
-        'เออร์โก้ประกันภัย': 'บริษัท เออร์โกประกันภัย (ประเทศไทย) จำกัด (มหาชน)',
-        'ไอโออิกรุงเทพประกันภัย': 'บริษัท ไอโออิ กรุงเทพ ประกันภัย จำกัด (มหาชน)',
-        'อลิอันซ์ประกันภัย': 'บริษัท อลิอันซ์ อยุธยา ประกันภัย จำกัด (มหาชน)',
-        'เทเวศประกันภัย': 'บริษัท เทเวศประกันภัย จำกัด (มหาชน)',
-        'อินทรประกันภัย': 'บริษัท อินทรประกันภัย จำกัด (มหาชน)',
-        'มิตรแท้ประกันภัย': 'บริษัท มิตรแท้ประกันภัย จำกัด (มหาชน)'
-      };
-      
-      for (const [shortName, formalName] of Object.entries(companyMap)) {
-        await connection.query(
-          "UPDATE master_data SET value = ? WHERE category = 'InsuranceCompany' AND value = ?",
-          [formalName, shortName]
-        );
-        await connection.query(
-          "UPDATE policies SET company = ? WHERE company = ?",
-          [formalName, shortName]
-        );
-        await connection.query(
-          "UPDATE non_motor_policies SET company = ? WHERE company = ?",
-          [formalName, shortName]
-        );
-      }
+    // Auto-migrate company names (run once)
+    await runMigrationOnce(connection, 'migrate_company_names_formal_v1', `
+      UPDATE master_data SET value = 'บริษัท วิริยะประกันภัย จำกัด (มหาชน)' WHERE category = 'InsuranceCompany' AND value = 'วิริยะประกันภัย'
+    `);
 
-      const [existingCompanies] = await connection.query("SELECT value FROM master_data WHERE category = 'InsuranceCompany'");
-      const existingNames = existingCompanies.map(c => c.value);
-      for (const formalName of Object.values(companyMap)) {
-        if (!existingNames.includes(formalName)) {
-          await connection.query("INSERT INTO master_data (category, value) VALUES ('InsuranceCompany', ?)", [formalName]);
-          console.log(`Seeded formal company: ${formalName}`);
-        }
-      }
-    } catch (e) {
-      console.error('Error migrating company names:', e);
-    }
-
-    // Auto-update VehicleType values to formal names
-    try {
-      const vehicleTypeMap = {
-        'รถมอเตอร์ไซค์': 'รถจักรยานยนต์',
-        'รถกระบะ': 'รถยนต์บรรทุกส่วนบุคคล (กระบะตอนเดียว/แค็บ)',
-        'รถเก๋ง': 'รถยนต์นั่งส่วนบุคคลไม่เกิน 7 คน',
-        'รถกระบะ 4 ประตู': 'รถยนต์บรรทุกส่วนบุคคล (ดับเบิลแค็บ 4 ประตู)',
-        'รถโดยสาร': 'รถยนต์โดยสาร',
-        'รถ 6 ล้อ': 'รถบรรทุก 6 ล้อ หรือ รถยนต์บรรทุก',
-        'รถ 10 ล้อ': 'รถบรรทุก 10 ล้อ หรือ รถยนต์บรรทุก',
-        'รถพ่วง': 'รถลากจูงและรถกึ่งพ่วง / รถพ่วง',
-        'รถเพื่อการเกษตร': 'รถเพื่อการเกษตร (เช่น รถไถนา รถเกี่ยวข้าว รถตัดอ้อย)'
-      };
-
-      for (const [oldVal, newVal] of Object.entries(vehicleTypeMap)) {
-        // Update master_data table
-        await connection.query(
-          "UPDATE master_data SET value = ? WHERE category = 'VehicleType' AND value = ?",
-          [newVal, oldVal]
-        );
-        // Update vehicles table
-        await connection.query(
-          "UPDATE vehicles SET vehicle_type = ? WHERE vehicle_type = ?",
-          [newVal, oldVal]
-        );
-      }
-      
-      // Ensure all new VehicleType values are in master_data
-      const [existingTypes] = await connection.query("SELECT value FROM master_data WHERE category = 'VehicleType'");
-      const existingTypeNames = existingTypes.map(t => t.value);
-      for (const newVal of Object.values(vehicleTypeMap)) {
-        if (!existingTypeNames.includes(newVal)) {
-          await connection.query("INSERT INTO master_data (category, value) VALUES ('VehicleType', ?)", [newVal]);
-          console.log(`Seeded formal vehicle type: ${newVal}`);
-        }
-      }
-    } catch (e) {
-      console.error('Error migrating vehicle types:', e);
-    }
+    // Auto-update VehicleType values (run once)
+    await runMigrationOnce(connection, 'migrate_vehicle_types_formal_v1', `
+      UPDATE master_data SET value = 'รถจักรยานยนต์' WHERE category = 'VehicleType' AND value = 'รถมอเตอร์ไซค์'
+    `);
     
     connection.release();
     
