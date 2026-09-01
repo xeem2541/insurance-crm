@@ -237,70 +237,73 @@ const Layout = () => {
 
               {/* Notification Dropdown — 3D Edition */}
               <Dropdown align="end">
-                {/* ห่อด้วย div position:relative เพื่อให้ badge ไม่ล้นทับ element อื่น */}
-                <Dropdown.Toggle
-                  as="div"
-                  id="dropdown-notifications"
-                  style={{
-                    cursor: 'pointer',
-                    width: '44px',
-                    height: '44px',
-                    borderRadius: '50%',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    position: 'relative',
-                    flexShrink: 0,
-                    background: darkMode
-                      ? 'linear-gradient(145deg, #1e293b, #0f172a)'
-                      : 'linear-gradient(145deg, #ffffff, #e2e8f0)',
-                    boxShadow: darkMode
-                      ? '4px 4px 10px rgba(0,0,0,0.6), -2px -2px 6px rgba(255,255,255,0.04), inset 0 1px 1px rgba(255,255,255,0.08)'
-                      : '4px 4px 10px rgba(0,0,0,0.15), -2px -2px 6px rgba(255,255,255,0.9), inset 0 1px 1px rgba(255,255,255,0.8)',
-                    border: notifications.total > 0
-                      ? '1.5px solid rgba(239,68,68,0.5)'
-                      : darkMode ? '1.5px solid rgba(255,255,255,0.08)' : '1.5px solid rgba(0,0,0,0.08)',
-                    transition: 'all 0.2s ease',
-                    userSelect: 'none',
-                  }}
-                >
-                  <i
-                    className="bi bi-bell-fill"
+                {/* Wrapper ให้ badge มีพื้นที่ล้นออกมาโดยไม่ทับ element ข้าง ๆ */}
+                <div style={{ position: 'relative', padding: '6px 6px 0 0', flexShrink: 0 }}>
+                  <Dropdown.Toggle
+                    as="div"
+                    id="dropdown-notifications"
                     style={{
-                      fontSize: '1.1rem',
-                      color: notifications.total > 0 ? '#f59e0b' : (darkMode ? '#94a3b8' : '#475569'),
-                      filter: notifications.total > 0 ? 'drop-shadow(0 0 6px rgba(245,158,11,0.8))' : 'none',
-                      animation: notifications.total > 0 ? 'bellShake 2s ease-in-out infinite' : 'none',
+                      cursor: 'pointer',
+                      width: '42px',
+                      height: '42px',
+                      borderRadius: '50%',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      position: 'relative',
+                      background: darkMode
+                        ? 'linear-gradient(145deg, #1e293b, #0f172a)'
+                        : 'linear-gradient(145deg, #ffffff, #e2e8f0)',
+                      boxShadow: darkMode
+                        ? '4px 4px 10px rgba(0,0,0,0.6), -2px -2px 6px rgba(255,255,255,0.04), inset 0 1px 1px rgba(255,255,255,0.08)'
+                        : '4px 4px 10px rgba(0,0,0,0.15), -2px -2px 6px rgba(255,255,255,0.9), inset 0 1px 1px rgba(255,255,255,0.8)',
+                      border: notifications.total > 0
+                        ? '1.5px solid rgba(239,68,68,0.4)'
+                        : darkMode ? '1.5px solid rgba(255,255,255,0.08)' : '1.5px solid rgba(0,0,0,0.08)',
+                      transition: 'all 0.2s ease',
+                      userSelect: 'none',
                     }}
-                  />
+                  >
+                    <i
+                      className="bi bi-bell-fill"
+                      style={{
+                        fontSize: '1.1rem',
+                        color: notifications.total > 0 ? '#f59e0b' : (darkMode ? '#94a3b8' : '#475569'),
+                        filter: notifications.total > 0 ? 'drop-shadow(0 0 6px rgba(245,158,11,0.8))' : 'none',
+                        animation: notifications.total > 0 ? 'bellShake 2s ease-in-out infinite' : 'none',
+                      }}
+                    />
+                  </Dropdown.Toggle>
+
+                  {/* Badge อยู่นอก Toggle แต่ในอ้อม wrapper — ไม่ทับ element อื่น */}
                   {notifications.total > 0 && (
                     <span
                       style={{
                         position: 'absolute',
-                        top: '2px',
-                        right: '2px',
-                        minWidth: '18px',
-                        height: '18px',
-                        borderRadius: '9px',
+                        top: '0px',
+                        right: '0px',
+                        minWidth: '20px',
+                        height: '20px',
+                        borderRadius: '10px',
                         background: 'linear-gradient(135deg, #ef4444, #dc2626)',
-                        boxShadow: '0 1px 6px rgba(239,68,68,0.7), 0 0 0 1.5px ' + (darkMode ? '#1e293b' : '#ffffff'),
+                        boxShadow: '0 2px 8px rgba(239,68,68,0.65), 0 0 0 2px ' + (darkMode ? '#1e293b' : '#ffffff'),
                         color: '#fff',
-                        fontSize: '0.62rem',
+                        fontSize: '0.65rem',
                         fontWeight: '800',
                         display: 'flex',
                         alignItems: 'center',
                         justifyContent: 'center',
-                        padding: '0 3px',
+                        padding: '0 4px',
                         lineHeight: 1,
                         letterSpacing: '-0.3px',
-                        zIndex: 10,
+                        zIndex: 20,
                         pointerEvents: 'none',
                       }}
                     >
                       {notifications.total > 99 ? '99+' : notifications.total}
                     </span>
                   )}
-                </Dropdown.Toggle>
+                </div>
 
                 <Dropdown.Menu
                   className="border-0"
