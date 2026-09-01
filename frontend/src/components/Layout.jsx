@@ -235,81 +235,388 @@ const Layout = () => {
                 <span>ออกกรมธรรม์ใหม่ (Motor)</span>
               </Link>
 
-              {/* Notification Dropdown */}
+              {/* Notification Dropdown — 3D Edition */}
               <Dropdown align="end">
-                <Dropdown.Toggle 
-                  variant={darkMode ? 'outline-light' : 'outline-dark'} 
-                  className="rounded-circle p-2 position-relative d-flex align-items-center justify-content-center" 
-                  style={{ width: '40px', height: '40px', border: '1px solid rgba(0,0,0,0.1)' }} 
+                <Dropdown.Toggle
+                  as="div"
                   id="dropdown-notifications"
+                  style={{
+                    cursor: 'pointer',
+                    width: '44px',
+                    height: '44px',
+                    borderRadius: '50%',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    position: 'relative',
+                    background: darkMode
+                      ? 'linear-gradient(145deg, #1e293b, #0f172a)'
+                      : 'linear-gradient(145deg, #ffffff, #e2e8f0)',
+                    boxShadow: darkMode
+                      ? '4px 4px 10px rgba(0,0,0,0.6), -2px -2px 6px rgba(255,255,255,0.04), inset 0 1px 1px rgba(255,255,255,0.08)'
+                      : '4px 4px 10px rgba(0,0,0,0.15), -2px -2px 6px rgba(255,255,255,0.9), inset 0 1px 1px rgba(255,255,255,0.8)',
+                    border: notifications.total > 0
+                      ? '1.5px solid rgba(239,68,68,0.5)'
+                      : darkMode ? '1.5px solid rgba(255,255,255,0.08)' : '1.5px solid rgba(0,0,0,0.08)',
+                    transition: 'all 0.2s ease',
+                    userSelect: 'none',
+                  }}
                 >
-                  <i className="bi bi-bell-fill"></i>
+                  <i
+                    className="bi bi-bell-fill"
+                    style={{
+                      fontSize: '1.1rem',
+                      color: notifications.total > 0 ? '#f59e0b' : (darkMode ? '#94a3b8' : '#475569'),
+                      filter: notifications.total > 0 ? 'drop-shadow(0 0 6px rgba(245,158,11,0.8))' : 'none',
+                      animation: notifications.total > 0 ? 'bellShake 2s ease-in-out infinite' : 'none',
+                    }}
+                  />
                   {notifications.total > 0 && (
-                    <span className="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger border border-light">
-                      {notifications.total}
+                    <span
+                      style={{
+                        position: 'absolute',
+                        top: '-4px',
+                        right: '-4px',
+                        minWidth: '20px',
+                        height: '20px',
+                        borderRadius: '10px',
+                        background: 'linear-gradient(135deg, #ef4444, #dc2626)',
+                        boxShadow: '0 2px 8px rgba(239,68,68,0.7), 0 0 0 2px ' + (darkMode ? '#0f172a' : '#f1f5f9'),
+                        color: '#fff',
+                        fontSize: '0.68rem',
+                        fontWeight: '700',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        padding: '0 4px',
+                        lineHeight: 1,
+                        transform: 'translateZ(4px)',
+                        letterSpacing: '-0.3px',
+                      }}
+                    >
+                      {notifications.total > 99 ? '99+' : notifications.total}
                     </span>
                   )}
                 </Dropdown.Toggle>
 
-                <Dropdown.Menu className={`shadow-lg border-0 ${darkMode ? 'bg-dark text-light' : 'bg-white'}`} style={{ width: '350px', maxHeight: '500px', overflowY: 'auto', borderRadius: '18px' }}>
-                  <div className={`px-3 py-2 border-bottom fw-bold d-flex justify-content-between align-items-center ${darkMode ? 'text-light border-secondary' : 'text-dark'}`}>
-                    <span><i className="bi bi-bell-fill text-warning me-1"></i> การแจ้งเตือน</span>
-                    <span className="badge bg-primary rounded-pill">{notifications.total}</span>
+                <Dropdown.Menu
+                  className="border-0"
+                  style={{
+                    width: '360px',
+                    maxHeight: '520px',
+                    overflowY: 'auto',
+                    borderRadius: '20px',
+                    padding: 0,
+                    background: darkMode
+                      ? 'linear-gradient(160deg, #1e293b 0%, #0f172a 100%)'
+                      : 'linear-gradient(160deg, #ffffff 0%, #f1f5f9 100%)',
+                    boxShadow: darkMode
+                      ? '0 20px 60px rgba(0,0,0,0.7), 0 8px 24px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.07)'
+                      : '0 20px 60px rgba(0,0,0,0.15), 0 8px 24px rgba(0,0,0,0.08), inset 0 1px 0 rgba(255,255,255,1)',
+                    border: darkMode ? '1px solid rgba(255,255,255,0.08)' : '1px solid rgba(0,0,0,0.06)',
+                    backdropFilter: 'blur(20px)',
+                    WebkitBackdropFilter: 'blur(20px)',
+                    marginTop: '8px',
+                    transform: 'perspective(800px) rotateX(0deg)',
+                    transformOrigin: 'top right',
+                  }}
+                >
+                  {/* Header */}
+                  <div
+                    style={{
+                      padding: '16px 20px 14px',
+                      borderBottom: darkMode ? '1px solid rgba(255,255,255,0.08)' : '1px solid rgba(0,0,0,0.06)',
+                      background: darkMode
+                        ? 'linear-gradient(135deg, rgba(245,158,11,0.12) 0%, rgba(239,68,68,0.06) 100%)'
+                        : 'linear-gradient(135deg, rgba(245,158,11,0.08) 0%, rgba(239,68,68,0.04) 100%)',
+                      borderRadius: '20px 20px 0 0',
+                      display: 'flex',
+                      justifyContent: 'space-between',
+                      alignItems: 'center',
+                    }}
+                  >
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                      <div
+                        style={{
+                          width: '34px',
+                          height: '34px',
+                          borderRadius: '10px',
+                          background: 'linear-gradient(135deg, #f59e0b, #d97706)',
+                          boxShadow: '0 4px 12px rgba(245,158,11,0.4), inset 0 1px 0 rgba(255,255,255,0.3)',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                        }}
+                      >
+                        <i className="bi bi-bell-fill" style={{ color: '#fff', fontSize: '0.9rem' }} />
+                      </div>
+                      <div>
+                        <div style={{ fontWeight: '700', fontSize: '0.95rem', color: darkMode ? '#f1f5f9' : '#1e293b', lineHeight: 1.2 }}>การแจ้งเตือน</div>
+                        <div style={{ fontSize: '0.72rem', color: darkMode ? '#64748b' : '#94a3b8', fontWeight: '500' }}>อัปเดตทุก 5 นาที</div>
+                      </div>
+                    </div>
+                    {notifications.total > 0 && (
+                      <span
+                        style={{
+                          background: 'linear-gradient(135deg, #3b82f6, #1d4ed8)',
+                          boxShadow: '0 2px 8px rgba(59,130,246,0.5)',
+                          color: '#fff',
+                          borderRadius: '20px',
+                          padding: '2px 10px',
+                          fontSize: '0.75rem',
+                          fontWeight: '700',
+                        }}
+                      >
+                        {notifications.total} รายการ
+                      </span>
+                    )}
                   </div>
-                  
-                  {notifications.total === 0 ? (
-                    <Dropdown.Item className="text-center text-muted py-4">ไม่มีรายการแจ้งเตือน</Dropdown.Item>
-                  ) : (
-                    <>
-                      {/* Overdue */}
-                      {notifications.overdue.length > 0 && (
-                        <>
-                          <Dropdown.Header className="text-danger fw-bold"><i className="bi bi-exclamation-circle-fill me-1"></i> เลยกำหนดชำระ ({notifications.overdue.length})</Dropdown.Header>
-                          {notifications.overdue.map(n => (
-                            <Dropdown.Item key={`o-${n.id}`} as={Link} to="/payments" className="border-bottom pb-2">
-                              <div className="d-flex justify-content-between">
-                                <small className="fw-bold">{n.first_name}</small>
-                                <Badge bg="danger">งวดที่ {n.installment_no}</Badge>
-                              </div>
-                              <small className="text-muted d-block mt-1">ค้าง ฿{(Number(n.amount)||0).toLocaleString()}</small>
-                            </Dropdown.Item>
-                          ))}
-                        </>
-                      )}
 
-                      {/* Upcoming */}
-                      {notifications.upcoming.length > 0 && (
-                        <>
-                          <Dropdown.Header className="text-warning fw-bold"><i className="bi bi-clock-fill me-1"></i> ใกล้ถึงดิวชำระ ({notifications.upcoming.length})</Dropdown.Header>
-                          {notifications.upcoming.map(n => (
-                            <Dropdown.Item key={`u-${n.id}`} as={Link} to="/payments" className="border-bottom pb-2">
-                              <div className="d-flex justify-content-between">
-                                <small className="fw-bold">{n.first_name}</small>
-                                <Badge bg="warning" text="dark">งวดที่ {n.installment_no}</Badge>
-                              </div>
-                              <small className="text-muted d-block mt-1">ดิว: {new Date(n.due_date).toLocaleDateString('th-TH')}</small>
-                            </Dropdown.Item>
-                          ))}
-                        </>
-                      )}
+                  {/* Body */}
+                  <div style={{ padding: '8px 0 8px' }}>
+                    {notifications.total === 0 ? (
+                      <div
+                        style={{
+                          textAlign: 'center',
+                          padding: '40px 20px',
+                          color: darkMode ? '#475569' : '#94a3b8',
+                        }}
+                      >
+                        <div
+                          style={{
+                            width: '64px',
+                            height: '64px',
+                            borderRadius: '20px',
+                            background: darkMode ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.04)',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            margin: '0 auto 12px',
+                            boxShadow: darkMode
+                              ? 'inset 2px 2px 6px rgba(0,0,0,0.4), inset -2px -2px 4px rgba(255,255,255,0.04)'
+                              : 'inset 2px 2px 6px rgba(0,0,0,0.06), inset -2px -2px 4px rgba(255,255,255,0.9)',
+                          }}
+                        >
+                          <i className="bi bi-bell-slash" style={{ fontSize: '1.8rem', color: darkMode ? '#334155' : '#cbd5e1' }} />
+                        </div>
+                        <div style={{ fontWeight: '600', fontSize: '0.88rem' }}>ไม่มีรายการแจ้งเตือน</div>
+                        <div style={{ fontSize: '0.75rem', marginTop: '4px', opacity: 0.7 }}>ระบบจะแจ้งเตือนเมื่อมีรายการสำคัญ</div>
+                      </div>
+                    ) : (
+                      <>
+                        {/* Overdue Section */}
+                        {notifications.overdue.length > 0 && (
+                          <div style={{ marginBottom: '4px' }}>
+                            <div
+                              style={{
+                                padding: '8px 20px 6px',
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: '6px',
+                              }}
+                            >
+                              <span
+                                style={{
+                                  width: '24px',
+                                  height: '24px',
+                                  borderRadius: '8px',
+                                  background: 'linear-gradient(135deg, #ef4444, #b91c1c)',
+                                  boxShadow: '0 2px 6px rgba(239,68,68,0.4)',
+                                  display: 'inline-flex',
+                                  alignItems: 'center',
+                                  justifyContent: 'center',
+                                }}
+                              >
+                                <i className="bi bi-exclamation-circle-fill" style={{ color: '#fff', fontSize: '0.7rem' }} />
+                              </span>
+                              <span style={{ fontWeight: '700', fontSize: '0.78rem', color: '#ef4444', letterSpacing: '0.3px', textTransform: 'uppercase' }}>
+                                เลยกำหนดชำระ <span style={{ background: 'rgba(239,68,68,0.15)', borderRadius: '6px', padding: '1px 6px', fontSize: '0.72rem' }}>{notifications.overdue.length}</span>
+                              </span>
+                            </div>
+                            {notifications.overdue.map(n => (
+                              <Dropdown.Item
+                                key={`o-${n.id}`}
+                                as={Link}
+                                to="/payments"
+                                style={{ padding: '0 12px 4px' }}
+                              >
+                                <div
+                                  style={{
+                                    borderRadius: '14px',
+                                    padding: '10px 14px',
+                                    background: darkMode
+                                      ? 'linear-gradient(135deg, rgba(239,68,68,0.12) 0%, rgba(185,28,28,0.06) 100%)'
+                                      : 'linear-gradient(135deg, rgba(239,68,68,0.06) 0%, rgba(254,226,226,0.8) 100%)',
+                                    border: '1px solid rgba(239,68,68,0.2)',
+                                    boxShadow: '0 2px 8px rgba(239,68,68,0.1), inset 0 1px 0 rgba(255,255,255,0.08)',
+                                    display: 'flex',
+                                    justifyContent: 'space-between',
+                                    alignItems: 'center',
+                                    marginBottom: '4px',
+                                    transition: 'all 0.2s ease',
+                                  }}
+                                >
+                                  <div>
+                                    <div style={{ fontWeight: '700', fontSize: '0.85rem', color: darkMode ? '#fca5a5' : '#991b1b' }}>{n.first_name}</div>
+                                    <div style={{ fontSize: '0.75rem', color: darkMode ? '#94a3b8' : '#64748b', marginTop: '2px' }}>ค้าง ฿{(Number(n.amount)||0).toLocaleString()}</div>
+                                  </div>
+                                  <span
+                                    style={{
+                                      background: 'linear-gradient(135deg, #ef4444, #b91c1c)',
+                                      boxShadow: '0 2px 6px rgba(239,68,68,0.4), inset 0 1px 0 rgba(255,255,255,0.2)',
+                                      color: '#fff',
+                                      borderRadius: '8px',
+                                      padding: '3px 10px',
+                                      fontSize: '0.72rem',
+                                      fontWeight: '700',
+                                    }}
+                                  >
+                                    งวดที่ {n.installment_no}
+                                  </span>
+                                </div>
+                              </Dropdown.Item>
+                            ))}
+                          </div>
+                        )}
 
-                      {/* Expiring */}
-                      {notifications.expiring.length > 0 && (
-                        <>
-                          <Dropdown.Header className="text-info fw-bold"><i className="bi bi-shield-exclamation me-1"></i> ใกล้หมดอายุ ({notifications.expiring.length})</Dropdown.Header>
-                          {notifications.expiring.map(n => (
-                            <Dropdown.Item key={`e-${n.id}`} as={Link} to={n.category === 'Motor' ? '/policies' : '/non-motor'} className="border-bottom pb-2">
-                              <div className="d-flex justify-content-between">
-                                <small className="fw-bold">{n.first_name}</small>
-                                <Badge bg="info">{n.days_left} วัน</Badge>
-                              </div>
-                              <small className="text-muted d-block mt-1">{n.policy_no}</small>
-                            </Dropdown.Item>
-                          ))}
-                        </>
-                      )}
-                    </>
-                  )}
+                        {/* Upcoming Section */}
+                        {notifications.upcoming.length > 0 && (
+                          <div style={{ marginBottom: '4px' }}>
+                            <div style={{ padding: '8px 20px 6px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                              <span
+                                style={{
+                                  width: '24px',
+                                  height: '24px',
+                                  borderRadius: '8px',
+                                  background: 'linear-gradient(135deg, #f59e0b, #d97706)',
+                                  boxShadow: '0 2px 6px rgba(245,158,11,0.4)',
+                                  display: 'inline-flex',
+                                  alignItems: 'center',
+                                  justifyContent: 'center',
+                                }}
+                              >
+                                <i className="bi bi-clock-fill" style={{ color: '#fff', fontSize: '0.7rem' }} />
+                              </span>
+                              <span style={{ fontWeight: '700', fontSize: '0.78rem', color: '#f59e0b', letterSpacing: '0.3px', textTransform: 'uppercase' }}>
+                                ใกล้ถึงดิวชำระ <span style={{ background: 'rgba(245,158,11,0.15)', borderRadius: '6px', padding: '1px 6px', fontSize: '0.72rem' }}>{notifications.upcoming.length}</span>
+                              </span>
+                            </div>
+                            {notifications.upcoming.map(n => (
+                              <Dropdown.Item
+                                key={`u-${n.id}`}
+                                as={Link}
+                                to="/payments"
+                                style={{ padding: '0 12px 4px' }}
+                              >
+                                <div
+                                  style={{
+                                    borderRadius: '14px',
+                                    padding: '10px 14px',
+                                    background: darkMode
+                                      ? 'linear-gradient(135deg, rgba(245,158,11,0.12) 0%, rgba(180,83,9,0.06) 100%)'
+                                      : 'linear-gradient(135deg, rgba(245,158,11,0.06) 0%, rgba(254,243,199,0.8) 100%)',
+                                    border: '1px solid rgba(245,158,11,0.2)',
+                                    boxShadow: '0 2px 8px rgba(245,158,11,0.1), inset 0 1px 0 rgba(255,255,255,0.08)',
+                                    display: 'flex',
+                                    justifyContent: 'space-between',
+                                    alignItems: 'center',
+                                    marginBottom: '4px',
+                                    transition: 'all 0.2s ease',
+                                  }}
+                                >
+                                  <div>
+                                    <div style={{ fontWeight: '700', fontSize: '0.85rem', color: darkMode ? '#fde68a' : '#92400e' }}>{n.first_name}</div>
+                                    <div style={{ fontSize: '0.75rem', color: darkMode ? '#94a3b8' : '#64748b', marginTop: '2px' }}>ดิว: {new Date(n.due_date).toLocaleDateString('th-TH')}</div>
+                                  </div>
+                                  <span
+                                    style={{
+                                      background: 'linear-gradient(135deg, #f59e0b, #d97706)',
+                                      boxShadow: '0 2px 6px rgba(245,158,11,0.4), inset 0 1px 0 rgba(255,255,255,0.2)',
+                                      color: '#fff',
+                                      borderRadius: '8px',
+                                      padding: '3px 10px',
+                                      fontSize: '0.72rem',
+                                      fontWeight: '700',
+                                    }}
+                                  >
+                                    งวดที่ {n.installment_no}
+                                  </span>
+                                </div>
+                              </Dropdown.Item>
+                            ))}
+                          </div>
+                        )}
+
+                        {/* Expiring Section */}
+                        {notifications.expiring.length > 0 && (
+                          <div>
+                            <div style={{ padding: '8px 20px 6px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                              <span
+                                style={{
+                                  width: '24px',
+                                  height: '24px',
+                                  borderRadius: '8px',
+                                  background: 'linear-gradient(135deg, #06b6d4, #0891b2)',
+                                  boxShadow: '0 2px 6px rgba(6,182,212,0.4)',
+                                  display: 'inline-flex',
+                                  alignItems: 'center',
+                                  justifyContent: 'center',
+                                }}
+                              >
+                                <i className="bi bi-shield-exclamation" style={{ color: '#fff', fontSize: '0.7rem' }} />
+                              </span>
+                              <span style={{ fontWeight: '700', fontSize: '0.78rem', color: '#06b6d4', letterSpacing: '0.3px', textTransform: 'uppercase' }}>
+                                ใกล้หมดอายุ <span style={{ background: 'rgba(6,182,212,0.15)', borderRadius: '6px', padding: '1px 6px', fontSize: '0.72rem' }}>{notifications.expiring.length}</span>
+                              </span>
+                            </div>
+                            {notifications.expiring.map(n => (
+                              <Dropdown.Item
+                                key={`e-${n.id}`}
+                                as={Link}
+                                to={n.category === 'Motor' ? '/policies' : '/non-motor'}
+                                style={{ padding: '0 12px 4px' }}
+                              >
+                                <div
+                                  style={{
+                                    borderRadius: '14px',
+                                    padding: '10px 14px',
+                                    background: darkMode
+                                      ? 'linear-gradient(135deg, rgba(6,182,212,0.12) 0%, rgba(8,145,178,0.06) 100%)'
+                                      : 'linear-gradient(135deg, rgba(6,182,212,0.06) 0%, rgba(207,250,254,0.8) 100%)',
+                                    border: '1px solid rgba(6,182,212,0.2)',
+                                    boxShadow: '0 2px 8px rgba(6,182,212,0.1), inset 0 1px 0 rgba(255,255,255,0.08)',
+                                    display: 'flex',
+                                    justifyContent: 'space-between',
+                                    alignItems: 'center',
+                                    marginBottom: '4px',
+                                    transition: 'all 0.2s ease',
+                                  }}
+                                >
+                                  <div>
+                                    <div style={{ fontWeight: '700', fontSize: '0.85rem', color: darkMode ? '#67e8f9' : '#164e63' }}>{n.first_name}</div>
+                                    <div style={{ fontSize: '0.75rem', color: darkMode ? '#94a3b8' : '#64748b', marginTop: '2px' }}>{n.policy_no}</div>
+                                  </div>
+                                  <span
+                                    style={{
+                                      background: 'linear-gradient(135deg, #06b6d4, #0891b2)',
+                                      boxShadow: '0 2px 6px rgba(6,182,212,0.4), inset 0 1px 0 rgba(255,255,255,0.2)',
+                                      color: '#fff',
+                                      borderRadius: '8px',
+                                      padding: '3px 10px',
+                                      fontSize: '0.72rem',
+                                      fontWeight: '700',
+                                    }}
+                                  >
+                                    {n.days_left} วัน
+                                  </span>
+                                </div>
+                              </Dropdown.Item>
+                            ))}
+                          </div>
+                        )}
+                      </>
+                    )}
+                  </div>
                 </Dropdown.Menu>
               </Dropdown>
 
