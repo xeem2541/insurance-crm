@@ -2,7 +2,7 @@ import React, { useContext, useState } from 'react';
 import { Outlet, Link, useNavigate, useLocation } from 'react-router-dom';
 import { AuthContext } from '../contexts/AuthContext';
 import { ThemeContext } from '../contexts/ThemeContext';
-import { Modal, Button, Form, Dropdown, Badge } from 'react-bootstrap';
+import { Modal, Button, Form, Dropdown } from 'react-bootstrap';
 import api from '../services/api';
 
 const Layout = () => {
