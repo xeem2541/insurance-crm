@@ -2249,6 +2249,17 @@ const IssuePolicyMotorForm = () => {
               <h6 className="text-primary fw-bold border-bottom pb-2 mb-3">รายละเอียดกรมธรรม์</h6>
               <Row className="g-3 mb-4">
                 <Col md={4}>
+                  <Form.Label>ประเภทงาน <span className="text-danger">*</span></Form.Label>
+                  <Form.Select 
+                    value={policy.job_type || 'งานใหม่'} 
+                    onChange={e => setPolicy({...policy, job_type: e.target.value})}
+                  >
+                    <option value="งานใหม่">งานใหม่ (New)</option>
+                    <option value="งานต่ออายุ">งานต่ออายุ (Renewal)</option>
+                    <option value="โอนโค้ด">งานโอนโค้ด (Transfer)</option>
+                  </Form.Select>
+                </Col>
+                <Col md={4}>
                   <Form.Label>บริษัทประกัน <span className="text-danger">*</span></Form.Label>
                   <CreatableSelect noOptionsMessage={() => "ไม่พบข้อมูล"} 
                     options={companies} 
