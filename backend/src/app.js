@@ -53,25 +53,41 @@ app.use(helmet({
   xFrameOptions: { action: 'deny' },
 }));
 
-// Strict CORS: Allow only frontend domain (from .env) or localhost for testing
+// CORS: Allow frontend Vercel URLs + localhost for dev
 const allowedOrigins = [
+  // Production URLs (set in Vercel env vars)
   process.env.FRONTEND_URL,
+  // Known Vercel deployment URLs
+  'https://insurance-crm-five-wine.vercel.app',
+  'https://insurance-crm-frontend.vercel.app',
+  // Localhost for local development
   'http://localhost:5173',
-  'http://127.0.0.1:5173'
-].filter(Boolean); // Remove undefined values
+  'http://localhost:3000',
+  'http://127.0.0.1:5173',
+  'http://127.0.0.1:3000',
+].filter(Boolean);
 
-app.use(cors({
+const corsOptions = {
   origin: function (origin, callback) {
-    // Allow requests with no origin (like mobile apps or curl requests)
+    // Allow requests with no origin (mobile apps, curl, Vercel cron jobs)
     if (!origin) return callback(null, true);
-    if (allowedOrigins.indexOf(origin) === -1) {
-      var msg = 'The CORS policy for this site does not allow access from the specified Origin.';
-      return callback(new Error(msg), false);
-    }
-    return callback(null, true);
+    // Allow any *.vercel.app subdomain (covers all preview deployments)
+    if (origin.endsWith('.vercel.app')) return callback(null, true);
+    // Allow explicit whitelist
+    if (allowedOrigins.includes(origin)) return callback(null, true);
+    console.warn(`[CORS BLOCKED] Origin: ${origin}`);
+    return callback(new Error('CORS policy: Origin not allowed'), false);
   },
-  credentials: true
-}));
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
+  optionsSuccessStatus: 200, // Some browsers (IE11) choke on 204
+};
+
+app.use(cors(corsOptions));
+// Handle OPTIONS preflight for all routes
+app.options('*', cors(corsOptions));
+
 
 app.use((req, res, next) => {
   console.log(`[${new Date().toISOString()}] ${req.method} ${req.url}`);
