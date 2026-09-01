@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
+import { useQuery } from '@tanstack/react-query';
 import api from '../services/api';
 import { Chart as ChartJS, CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend, ArcElement } from 'chart.js';
 import { Bar, Pie } from 'react-chartjs-2';
@@ -25,7 +26,21 @@ const Dashboard = () => {
   });
   const [filterYear, setFilterYear] = useState(() => Number(sessionStorage.getItem('dashboardYear')) || currentDate.getFullYear());
   
-  const [stats, setStats] = useState({
+  useEffect(() => {
+    sessionStorage.setItem('dashboardMonth', filterMonth);
+    sessionStorage.setItem('dashboardYear', filterYear);
+  }, [filterMonth, filterYear]);
+
+  const { data: statsData, isLoading, isError } = useQuery({
+    queryKey: ['dashboardStats', filterMonth, filterYear],
+    queryFn: async () => {
+      const res = await api.get(`/dashboard/stats?month=${filterMonth}&year=${filterYear}`);
+      return res.data;
+    },
+    staleTime: 60 * 1000 // 1 minute stale time for dashboard
+  });
+
+  const stats = statsData || {
     totalCustomers: 0,
     totalPolicies: 0,
     totalNonMotorPolicies: 0,
@@ -52,21 +67,6 @@ const Dashboard = () => {
     monthlyCustomers: [],
     aiStats: { total_scans: 0, successful_scans: 0, warning_scans: 0, avg_processing_time: 0 },
     aiDocTypes: []
-  });
-
-  useEffect(() => {
-    sessionStorage.setItem('dashboardMonth', filterMonth);
-    sessionStorage.setItem('dashboardYear', filterYear);
-    fetchStats();
-  }, [filterMonth, filterYear]);
-
-  const fetchStats = async () => {
-    try {
-      const res = await api.get(`/dashboard/stats?month=${filterMonth}&year=${filterYear}`);
-      setStats(res.data);
-    } catch (error) {
-      console.error(error);
-    }
   };
 
   const formatMoney = (amount) => {
