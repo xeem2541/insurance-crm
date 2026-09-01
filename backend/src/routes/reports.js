@@ -27,7 +27,7 @@ router.get('/', [authenticateToken, authorizeRole(['Admin', 'Manager', 'Sales'])
             p.commission_baht as 'คอมมิชชัน (บาท)'
           FROM policies p
           JOIN customers c ON p.customer_id = c.id
-          WHERE p.status = 'สำเร็จ' AND p.start_date BETWEEN ? AND ?
+          WHERE p.status IN ('สำเร็จ', 'ชำระครบแล้ว') AND p.start_date BETWEEN ? AND ?
           ORDER BY p.start_date ASC LIMIT 3000
         `;
         break;
@@ -37,7 +37,7 @@ router.get('/', [authenticateToken, authorizeRole(['Admin', 'Manager', 'Sales'])
           FROM policies p
           JOIN customers c ON p.customer_id = c.id
           LEFT JOIN vehicles v ON p.vehicle_id = v.id
-          WHERE p.status = 'สำเร็จ' AND p.expiry_date BETWEEN ? AND ?
+          WHERE p.status IN ('สำเร็จ', 'ชำระครบแล้ว') AND p.expiry_date BETWEEN ? AND ?
           ORDER BY p.expiry_date ASC LIMIT 3000
         `;
         break;
@@ -64,7 +64,7 @@ router.get('/', [authenticateToken, authorizeRole(['Admin', 'Manager', 'Sales'])
           FROM non_motor_policies p
           JOIN customers c ON p.customer_id = c.id
           LEFT JOIN non_motor_types t ON p.non_motor_type_id = t.id
-          WHERE p.status = 'สำเร็จ' AND p.start_date BETWEEN ? AND ?
+          WHERE p.status IN ('สำเร็จ', 'ชำระครบแล้ว') AND p.start_date BETWEEN ? AND ?
           ORDER BY p.start_date ASC LIMIT 3000
         `;
         break;
@@ -74,7 +74,7 @@ router.get('/', [authenticateToken, authorizeRole(['Admin', 'Manager', 'Sales'])
           FROM non_motor_policies p
           JOIN customers c ON p.customer_id = c.id
           LEFT JOIN non_motor_types t ON p.non_motor_type_id = t.id
-          WHERE p.status = 'สำเร็จ' AND p.expiry_date BETWEEN ? AND ?
+          WHERE p.status IN ('สำเร็จ', 'ชำระครบแล้ว') AND p.expiry_date BETWEEN ? AND ?
           ORDER BY p.expiry_date ASC LIMIT 3000
         `;
         break;

@@ -1787,6 +1787,24 @@ const IssuePolicyMotorForm = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
 
+    // Required fields validation
+    if (!customer.first_name || !customer.last_name || !customer.phone) {
+      alert('กรุณากรอกข้อมูลลูกค้าที่จำเป็น (ชื่อ, นามสกุล, เบอร์โทร)');
+      return;
+    }
+    if (policy.category === 'motor' && !vehicle.plate_no) {
+      alert('กรุณากรอกเลขทะเบียนรถ');
+      return;
+    }
+    if (!policy.company || !policy.type || policy.net_premium === '') {
+      alert('กรุณากรอกข้อมูลกรมธรรม์ที่จำเป็น (บริษัทประกัน, ประเภท, เบี้ยสุทธิ)');
+      return;
+    }
+    if (!followUp.status) {
+      alert('กรุณาเลือกสถานะงาน');
+      return;
+    }
+
     if (payment.payment_method === 'เงินผ่อน' && payment.installments > 1 && policy.total_premium > 0) {
       const totalPremium = parseFloat(policy.total_premium) || 0;
       const sumInstallments = installmentSchedule.reduce((sum, inst) => sum + (parseFloat(inst.amount) || 0), 0);

@@ -22,7 +22,7 @@ const startCronJobs = (db) => {
           msg += `- ${p.first_name} ${p.last_name} (${p.plate_no || 'ไม่ระบุทะเบียน'})\n  หมดอายุในอีก ${p.days_left} วัน\n`;
         });
         
-        await sendLineNotify(msg);
+        await sendLineNotify(msg, db);
       }
     } catch (error) {
       console.error('Cron job error:', error);

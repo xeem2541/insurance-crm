@@ -44,6 +44,7 @@ router.get('/file/:id', async (req, res) => {
     res.setHeader('Content-Type', doc.file_type || 'application/octet-stream');
     res.send(buffer);
   } catch (error) {
+    console.error('Error fetching document file:', error);
     res.status(500).send('Server error');
   }
 });
@@ -54,6 +55,7 @@ router.get('/types', authenticateToken, async (req, res) => {
     const [types] = await req.db.query('SELECT * FROM document_types');
     res.json(types);
   } catch (error) {
+    console.error('Error fetching document types:', error);
     res.status(500).json({ error: 'Server error' });
   }
 });
@@ -92,6 +94,7 @@ router.get('/', authenticateToken, async (req, res) => {
     const [documents] = await req.db.query(query, params);
     res.json(documents);
   } catch (error) {
+    console.error('Error fetching documents list:', error);
     res.status(500).json({ error: 'Server error' });
   }
 });
@@ -131,6 +134,7 @@ router.post('/upload', authenticateToken, upload.single('file'), async (req, res
 
     res.status(201).json({ id: newId, message: 'Document uploaded successfully', file_path: dynamicFilePath });
   } catch (error) {
+    console.error('Error uploading document:', error);
     res.status(500).json({ error: 'Server error' });
   }
 });
@@ -143,6 +147,7 @@ router.delete('/:id', authenticateToken, async (req, res) => {
       [req.user.id, 'DELETE', 'documents', req.params.id, `Deleted document ID ${req.params.id}`]);
     res.json({ message: 'Document deleted successfully' });
   } catch (error) {
+    console.error('Error deleting document:', error);
     res.status(500).json({ error: 'Server error' });
   }
 });
@@ -158,6 +163,7 @@ router.put('/:id/restore', authenticateToken, async (req, res) => {
       [req.user.id, 'UPDATE', 'documents', req.params.id, `Restored document ID ${req.params.id}`]);
     res.json({ message: 'Document restored successfully' });
   } catch (error) {
+    console.error('Error restoring document:', error);
     res.status(500).json({ error: 'Server error' });
   }
 });
@@ -190,6 +196,7 @@ router.post('/save-url', authenticateToken, async (req, res) => {
 
     res.status(201).json({ id: result.insertId, message: 'Document saved successfully', file_path });
   } catch (error) {
+    console.error('Error saving document URL:', error);
     res.status(500).json({ error: 'Server error' });
   }
 });

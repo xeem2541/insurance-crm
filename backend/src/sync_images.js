@@ -78,6 +78,7 @@ async function syncImages(dbPool = pool) {
         console.log(`[AutoSync] ดาวน์โหลดสำเร็จ: ${doc.name} -> ${filename}`);
       } catch (err) {
         failCount++;
+        console.error(`[AutoSync] ดาวน์โหลดล้มเหลว: ${doc.name} -> ${filename}, สาเหตุ: ${err.message}`);
       }
     }
 
@@ -85,7 +86,7 @@ async function syncImages(dbPool = pool) {
       console.log(`[AutoSync] ซิงค์ไฟล์รูปภาพใหม่เรียบร้อย: ${downloadCount} รูป`);
     }
   } catch (err) {
-    // Silently catch error to prevent loop breakage
+    console.error('[AutoSync] Error during image synchronization:', err.message);
   } finally {
     isSyncRunning = false;
   }

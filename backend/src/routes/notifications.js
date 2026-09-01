@@ -51,14 +51,14 @@ router.get('/', authenticateToken, async (req, res) => {
         SELECT p.id, p.policy_no, c.first_name, c.last_name, 'Motor' as category, p.expiry_date, DATEDIFF(p.expiry_date, CURRENT_DATE()) as days_left
         FROM policies p
         JOIN customers c ON p.customer_id = c.id
-        WHERE p.status = 'สำเร็จ' AND p.expiry_date BETWEEN CURRENT_DATE() AND DATE_ADD(CURRENT_DATE(), INTERVAL 30 DAY)
+        WHERE p.status IN ('สำเร็จ', 'ชำระครบแล้ว') AND p.expiry_date BETWEEN CURRENT_DATE() AND DATE_ADD(CURRENT_DATE(), INTERVAL 30 DAY)
         
         UNION ALL
         
         SELECT np.id, np.policy_no, c.first_name, c.last_name, 'Non-Motor' as category, np.expiry_date, DATEDIFF(np.expiry_date, CURRENT_DATE()) as days_left
         FROM non_motor_policies np
         JOIN customers c ON np.customer_id = c.id
-        WHERE np.status = 'สำเร็จ' AND np.expiry_date BETWEEN CURRENT_DATE() AND DATE_ADD(CURRENT_DATE(), INTERVAL 30 DAY)
+        WHERE np.status IN ('สำเร็จ', 'ชำระครบแล้ว') AND np.expiry_date BETWEEN CURRENT_DATE() AND DATE_ADD(CURRENT_DATE(), INTERVAL 30 DAY)
         
         ORDER BY days_left ASC LIMIT 100
       `);
