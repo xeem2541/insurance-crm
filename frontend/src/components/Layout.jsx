@@ -29,7 +29,7 @@ const Layout = () => {
       const res = await api.get('/notifications');
       setNotifications(res.data);
     } catch (e) {
-      console.log('Failed to fetch notifications');
+      console.warn('Failed to fetch notifications:', e?.message);
     }
   };
 
@@ -313,6 +313,7 @@ const Layout = () => {
                     overflowY: 'auto',
                     borderRadius: '20px',
                     padding: 0,
+                    zIndex: 9999,
                     background: darkMode
                       ? 'linear-gradient(160deg, #1e293b 0%, #0f172a 100%)'
                       : 'linear-gradient(160deg, #ffffff 0%, #f1f5f9 100%)',

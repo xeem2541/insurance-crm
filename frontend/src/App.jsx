@@ -119,7 +119,25 @@ class ErrorBoundary extends Component {
 
 const PrivateRoute = ({ children }) => {
   const { user, loading } = useContext(AuthContext);
-  if (loading) return null;
+  if (loading) return (
+    <div style={{
+      height: '100vh',
+      display: 'flex',
+      flexDirection: 'column',
+      justifyContent: 'center',
+      alignItems: 'center',
+      background: 'linear-gradient(135deg, #0f172a 0%, #1e293b 100%)',
+    }}>
+      <div style={{
+        width: '52px', height: '52px', borderRadius: '50%',
+        border: '3px solid rgba(251,191,36,0.2)',
+        borderTop: '3px solid #fbbf24',
+        animation: 'spin 0.9s linear infinite',
+      }} />
+      <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+      <p style={{ marginTop: '18px', color: '#64748b', fontSize: '0.85rem' }}>กำลังตรวจสอบสิทธิ์...</p>
+    </div>
+  );
   return user ? children : <Navigate to="/login" />;
 };
 

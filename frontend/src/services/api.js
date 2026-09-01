@@ -1,16 +1,15 @@
 import axios from 'axios';
 
-// Smart API URL Detection (Works on Localhost, Vercel, Render, and Mobile devices)
+// Smart API URL Detection — Priority: env var → production fallback → localhost
+// ✅ ตั้งค่า VITE_API_URL ใน Vercel Dashboard > Settings > Environment Variables
+// เช่น: VITE_API_URL=https://insurance-crm-backend-omega.vercel.app/api
 const getBaseUrl = () => {
   if (import.meta.env.VITE_API_URL) {
     return import.meta.env.VITE_API_URL;
   }
-  if (typeof window !== 'undefined') {
-    const hostname = window.location.hostname;
-    // If not local host, use the deployed backend URL as fallback
-    if (hostname !== 'localhost' && hostname !== '127.0.0.1') {
-      return 'https://insurance-crm-backend-omega.vercel.app/api';
-    }
+  // Production safety fallback (ควรตั้ง VITE_API_URL ใน Vercel แทน)
+  if (typeof window !== 'undefined' && window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1') {
+    return 'https://insurance-crm-backend-omega.vercel.app/api';
   }
   return 'http://localhost:5000/api';
 };

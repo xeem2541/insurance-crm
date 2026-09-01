@@ -1,4 +1,4 @@
-import React, { createContext, useState, useEffect } from 'react';
+import React, { createContext, useState, useEffect, useRef } from 'react';
 import api from '../services/api';
 
 export const AuthContext = createContext();
@@ -6,6 +6,8 @@ export const AuthContext = createContext();
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [showIdleModal, setShowIdleModal] = useState(false);
+  const idleTimerRef = useRef(null);
 
   useEffect(() => {
     const checkUser = async () => {
@@ -24,49 +26,57 @@ export const AuthProvider = ({ children }) => {
     checkUser();
   }, []);
 
-  // Frontend Keep-Alive Heartbeat: Send lightweight ping every 60 seconds to keep backend & DB awake 24/7
+  // ✅ FIX: Heartbeat เฉพาะตอน Login แล้วเท่านั้น (ไม่ ping ตอน user = null)
   useEffect(() => {
-    // Ping immediately once on mount
+    if (!user) return;
+
     api.get('/health').catch(() => {});
 
     const heartbeatInterval = setInterval(async () => {
       try {
         await api.get('/health');
       } catch (e) {
-        // Silently ignore ping errors
+        // Silently ignore
       }
     }, 60 * 1000);
 
     return () => clearInterval(heartbeatInterval);
   }, [user]);
 
-  // Idle Timeout Mechanism (Reset on user interaction)
+  // ✅ FIX: Idle Timeout → ใช้ Modal แทน alert() ที่บล็อก UI
   useEffect(() => {
-    let timeoutId;
-    
+    if (!user) {
+      clearTimeout(idleTimerRef.current);
+      return;
+    }
+
     const resetTimeout = () => {
-      clearTimeout(timeoutId);
-      if (user) {
-        // 60 minutes (3600000 ms) idle timeout
-        timeoutId = setTimeout(() => {
-          logout();
-          alert('ระบบได้ออกจากระบบอัตโนมัติเนื่องจากไม่มีการใช้งานเป็นเวลานาน');
-          window.location.href = '/login';
-        }, 60 * 60 * 1000);
-      }
+      clearTimeout(idleTimerRef.current);
+      idleTimerRef.current = setTimeout(() => {
+        setShowIdleModal(true);
+      }, 60 * 60 * 1000); // 60 นาที
     };
 
     const events = ['mousedown', 'mousemove', 'keypress', 'scroll', 'touchstart'];
-    if (user) {
-      resetTimeout();
-      events.forEach(e => window.addEventListener(e, resetTimeout));
-    }
+    resetTimeout();
+    events.forEach(e => window.addEventListener(e, resetTimeout));
 
     return () => {
-      clearTimeout(timeoutId);
+      clearTimeout(idleTimerRef.current);
       events.forEach(e => window.removeEventListener(e, resetTimeout));
     };
   }, [user]);
+
+  const handleIdleLogout = () => {
+    setShowIdleModal(false);
+    logout();
+    window.location.href = '/login';
+  };
+
+  const handleIdleStay = () => {
+    setShowIdleModal(false);
+    window.dispatchEvent(new Event('mousedown'));
+  };
 
   const login = async (username, password) => {
     const res = await api.post('/auth/login', { username, password });
@@ -82,15 +92,84 @@ export const AuthProvider = ({ children }) => {
   return (
     <AuthContext.Provider value={{ user, login, logout, loading }}>
       {loading ? (
-        <div style={{ height: '100vh', display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', backgroundColor: '#f8f9fa' }}>
-          <div className="spinner-border text-primary" role="status" style={{ width: '3rem', height: '3rem' }}>
-            <span className="visually-hidden">Loading...</span>
-          </div>
-          <h4 className="mt-3 text-secondary fw-bold">กำลังเชื่อมต่อฐานข้อมูล...</h4>
-          <p className="text-muted">อาจใช้เวลาสักครู่ (10-30 วินาที) หากระบบพักหน้าจอ</p>
+        <div style={{
+          height: '100vh',
+          display: 'flex',
+          flexDirection: 'column',
+          justifyContent: 'center',
+          alignItems: 'center',
+          background: 'linear-gradient(135deg, #0f172a 0%, #1e293b 100%)',
+        }}>
+          <div style={{
+            width: '52px', height: '52px', borderRadius: '50%',
+            border: '3px solid rgba(251,191,36,0.2)',
+            borderTop: '3px solid #fbbf24',
+            animation: 'spin 0.9s linear infinite',
+          }} />
+          <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+          <h5 style={{ marginTop: '20px', color: '#fbbf24', fontWeight: '700' }}>กำลังเชื่อมต่อระบบ...</h5>
+          <p style={{ color: '#64748b', fontSize: '0.85rem', marginTop: '6px' }}>อาจใช้เวลาสักครู่หากระบบพักหน้าจอ</p>
         </div>
       ) : (
         children
+      )}
+
+      {/* ✅ Idle Timeout Modal — ไม่บล็อก UI thread */}
+      {showIdleModal && (
+        <div style={{
+          position: 'fixed', inset: 0, zIndex: 99999,
+          background: 'rgba(0,0,0,0.75)',
+          backdropFilter: 'blur(8px)',
+          WebkitBackdropFilter: 'blur(8px)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          padding: '16px',
+        }}>
+          <div style={{
+            background: 'linear-gradient(160deg, #1e293b 0%, #0f172a 100%)',
+            border: '1px solid rgba(251,191,36,0.3)',
+            borderRadius: '24px',
+            padding: '36px 32px',
+            maxWidth: '420px',
+            width: '100%',
+            textAlign: 'center',
+            boxShadow: '0 24px 60px rgba(0,0,0,0.6), 0 0 0 1px rgba(255,255,255,0.04)',
+          }}>
+            <div style={{ fontSize: '3rem', marginBottom: '12px' }}>⏰</div>
+            <h4 style={{ color: '#fbbf24', fontWeight: '800', marginBottom: '10px' }}>
+              ไม่มีการใช้งานนานเกินไป
+            </h4>
+            <p style={{ color: '#94a3b8', fontSize: '0.95rem', lineHeight: '1.6', marginBottom: '28px' }}>
+              ระบบตรวจพบว่าคุณไม่ได้ใช้งานเป็นเวลา{' '}
+              <strong style={{ color: '#e2e8f0' }}>60 นาที</strong>
+              <br />กรุณายืนยันว่ายังอยู่ในระบบ
+            </p>
+            <div style={{ display: 'flex', gap: '12px', justifyContent: 'center' }}>
+              <button
+                onClick={handleIdleStay}
+                style={{
+                  background: 'linear-gradient(135deg, #3b82f6, #2563eb)',
+                  color: '#fff', border: 'none',
+                  padding: '11px 28px', borderRadius: '12px',
+                  fontWeight: '700', fontSize: '0.95rem', cursor: 'pointer',
+                  boxShadow: '0 4px 14px rgba(59,130,246,0.4)',
+                }}
+              >
+                ✅ ยังอยู่ในระบบ
+              </button>
+              <button
+                onClick={handleIdleLogout}
+                style={{
+                  background: 'rgba(239,68,68,0.12)',
+                  color: '#f87171', border: '1px solid rgba(239,68,68,0.3)',
+                  padding: '11px 24px', borderRadius: '12px',
+                  fontWeight: '600', fontSize: '0.95rem', cursor: 'pointer',
+                }}
+              >
+                ออกจากระบบ
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </AuthContext.Provider>
   );
