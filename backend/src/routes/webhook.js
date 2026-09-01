@@ -77,7 +77,7 @@ router.post('/', async (req, res) => {
       const groupId = event.source.groupId || event.source.roomId;
       try {
         await req.db.query(
-          "INSERT INTO master_data (category, value, label) VALUES ('LINE_GROUP', ?, 'Office Group') ON DUPLICATE KEY UPDATE value = ?",
+          "INSERT INTO master_data (category, value) VALUES ('LINE_GROUP', ?) ON DUPLICATE KEY UPDATE value = ?",
           [groupId, groupId]
         );
         console.log("Saved LINE Group ID:", groupId);
@@ -89,7 +89,7 @@ router.post('/', async (req, res) => {
         const userId = event.source.userId;
         try {
           await req.db.query(
-            "INSERT INTO master_data (category, value, label) VALUES ('LINE_GROUP', ?, 'Admin User') ON DUPLICATE KEY UPDATE value = ?",
+            "INSERT INTO master_data (category, value) VALUES ('LINE_GROUP', ?) ON DUPLICATE KEY UPDATE value = ?",
             [userId, userId]
           );
           console.log("Saved LINE Admin User ID:", userId);
