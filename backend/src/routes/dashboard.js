@@ -39,31 +39,31 @@ router.get('/stats', authenticateToken, async (req, res) => {
     const queries = [
       safeQuery('SELECT COUNT(*) as count FROM customers'),
       safeQuery('SELECT COUNT(*) as count FROM policies'),
-      safeQuery(`SELECT SUM(total_premium) as total FROM policies WHERE status = 'สำเร็จ' AND ${q_motorSales.sql}`, q_motorSales.params),
-      safeQuery(`SELECT SUM(total_premium) as total FROM policies WHERE status = 'สำเร็จ' AND YEAR(start_date) = ?`, [targetYear]),
-      safeQuery(`SELECT SUM(commission_baht) as total FROM policies WHERE status = 'สำเร็จ' AND ${q_motorComm.sql}`, q_motorComm.params),
+      safeQuery(`SELECT SUM(total_premium) as total FROM policies WHERE status IN ('สำเร็จ', 'ชำระครบแล้ว') AND ${q_motorSales.sql}`, q_motorSales.params),
+      safeQuery(`SELECT SUM(total_premium) as total FROM policies WHERE status IN ('สำเร็จ', 'ชำระครบแล้ว') AND YEAR(start_date) = ?`, [targetYear]),
+      safeQuery(`SELECT SUM(commission_baht) as total FROM policies WHERE status IN ('สำเร็จ', 'ชำระครบแล้ว') AND ${q_motorComm.sql}`, q_motorComm.params),
       safeQuery(`
         SELECT p.*, c.first_name, c.last_name, v.plate_no, DATEDIFF(p.expiry_date, CURRENT_DATE()) as days_left, 'Motor' as category
         FROM policies p 
         JOIN customers c ON p.customer_id = c.id 
         LEFT JOIN vehicles v ON p.vehicle_id = v.id
-        WHERE p.status = 'สำเร็จ' AND p.expiry_date BETWEEN CURRENT_DATE() AND DATE_ADD(CURRENT_DATE(), INTERVAL 90 DAY)
+        WHERE p.status IN ('สำเร็จ', 'ชำระครบแล้ว') AND p.expiry_date BETWEEN CURRENT_DATE() AND DATE_ADD(CURRENT_DATE(), INTERVAL 90 DAY)
       `),
-      safeQuery(`SELECT MONTH(start_date) as month, SUM(total_premium) as total_sales FROM policies WHERE status = 'สำเร็จ' AND YEAR(start_date) = ? GROUP BY MONTH(start_date)`, [targetYear]),
+      safeQuery(`SELECT MONTH(start_date) as month, SUM(total_premium) as total_sales FROM policies WHERE status IN ('สำเร็จ', 'ชำระครบแล้ว') AND YEAR(start_date) = ? GROUP BY MONTH(start_date)`, [targetYear]),
       
       // non-motor
       safeQuery('SELECT COUNT(*) as count FROM non_motor_policies'),
-      safeQuery(`SELECT SUM(total_premium) as total FROM non_motor_policies WHERE status = 'สำเร็จ' AND ${q_nonMotorSales.sql}`, q_nonMotorSales.params),
-      safeQuery(`SELECT SUM(total_premium) as total FROM non_motor_policies WHERE status = 'สำเร็จ' AND YEAR(start_date) = ?`, [targetYear]),
-      safeQuery(`SELECT SUM(commission_baht) as total FROM non_motor_policies WHERE status = 'สำเร็จ' AND ${q_nonMotorComm.sql}`, q_nonMotorComm.params),
+      safeQuery(`SELECT SUM(total_premium) as total FROM non_motor_policies WHERE status IN ('สำเร็จ', 'ชำระครบแล้ว') AND ${q_nonMotorSales.sql}`, q_nonMotorSales.params),
+      safeQuery(`SELECT SUM(total_premium) as total FROM non_motor_policies WHERE status IN ('สำเร็จ', 'ชำระครบแล้ว') AND YEAR(start_date) = ?`, [targetYear]),
+      safeQuery(`SELECT SUM(commission_baht) as total FROM non_motor_policies WHERE status IN ('สำเร็จ', 'ชำระครบแล้ว') AND ${q_nonMotorComm.sql}`, q_nonMotorComm.params),
       safeQuery(`
         SELECT p.*, c.first_name, c.last_name, NULL as plate_no, DATEDIFF(p.expiry_date, CURRENT_DATE()) as days_left, 'Non-Motor' as category, t.name as type_name
         FROM non_motor_policies p 
         JOIN customers c ON p.customer_id = c.id 
         LEFT JOIN non_motor_types t ON p.non_motor_type_id = t.id
-        WHERE p.status = 'สำเร็จ' AND p.expiry_date BETWEEN CURRENT_DATE() AND DATE_ADD(CURRENT_DATE(), INTERVAL 90 DAY)
+        WHERE p.status IN ('สำเร็จ', 'ชำระครบแล้ว') AND p.expiry_date BETWEEN CURRENT_DATE() AND DATE_ADD(CURRENT_DATE(), INTERVAL 90 DAY)
       `),
-      safeQuery(`SELECT MONTH(start_date) as month, SUM(total_premium) as total_sales FROM non_motor_policies WHERE status = 'สำเร็จ' AND YEAR(start_date) = ? GROUP BY MONTH(start_date)`, [targetYear]),
+      safeQuery(`SELECT MONTH(start_date) as month, SUM(total_premium) as total_sales FROM non_motor_policies WHERE status IN ('สำเร็จ', 'ชำระครบแล้ว') AND YEAR(start_date) = ? GROUP BY MONTH(start_date)`, [targetYear]),
       
       // other
       safeQuery('SELECT COUNT(*) as count FROM documents WHERE deleted_at IS NULL'),
@@ -73,15 +73,15 @@ router.get('/stats', authenticateToken, async (req, res) => {
       safeQuery(`
         SELECT SUM(IFNULL(p.total_premium, np.total_premium)) as total 
         FROM payments pm 
-        LEFT JOIN policies p ON pm.policy_id = p.id AND p.status = 'สำเร็จ'
-        LEFT JOIN non_motor_policies np ON pm.non_motor_policy_id = np.id AND np.status = 'สำเร็จ'
+        LEFT JOIN policies p ON pm.policy_id = p.id AND p.status IN ('สำเร็จ', 'ชำระครบแล้ว')
+        LEFT JOIN non_motor_policies np ON pm.non_motor_policy_id = np.id AND np.status IN ('สำเร็จ', 'ชำระครบแล้ว')
         WHERE pm.payment_method = 'เงินสด' AND (p.id IS NOT NULL OR np.id IS NOT NULL)
       `),
       safeQuery(`
         SELECT SUM(IFNULL(p.total_premium, np.total_premium)) as total 
         FROM payments pm 
-        LEFT JOIN policies p ON pm.policy_id = p.id AND p.status = 'สำเร็จ'
-        LEFT JOIN non_motor_policies np ON pm.non_motor_policy_id = np.id AND np.status = 'สำเร็จ'
+        LEFT JOIN policies p ON pm.policy_id = p.id AND p.status IN ('สำเร็จ', 'ชำระครบแล้ว')
+        LEFT JOIN non_motor_policies np ON pm.non_motor_policy_id = np.id AND np.status IN ('สำเร็จ', 'ชำระครบแล้ว')
         WHERE pm.payment_method = 'เงินผ่อน' AND (p.id IS NOT NULL OR np.id IS NOT NULL)
       `),
       safeQuery("SELECT SUM(balance_amount) as total FROM installments WHERE status IN ('รอชำระ', 'ค้างชำระ')"),
@@ -116,7 +116,7 @@ router.get('/stats', authenticateToken, async (req, res) => {
       safeQuery(`
         SELECT company, SUM(total_premium) as total_sales, COUNT(*) as policy_count 
         FROM policies 
-        WHERE status = 'สำเร็จ' AND YEAR(start_date) = ?
+        WHERE status IN ('สำเร็จ', 'ชำระครบแล้ว') AND YEAR(start_date) = ?
         GROUP BY company 
         ORDER BY total_sales DESC 
         LIMIT 10
@@ -126,7 +126,7 @@ router.get('/stats', authenticateToken, async (req, res) => {
         SELECT u.name, SUM(p.total_premium) as total_sales, COUNT(p.id) as policy_count 
         FROM policies p
         JOIN users u ON p.sales_person_id = u.id
-        WHERE p.status = 'สำเร็จ' AND YEAR(p.start_date) = ?
+        WHERE p.status IN ('สำเร็จ', 'ชำระครบแล้ว') AND YEAR(p.start_date) = ?
         GROUP BY u.id, u.name 
         ORDER BY total_sales DESC 
         LIMIT 10
@@ -155,8 +155,8 @@ router.get('/stats', authenticateToken, async (req, res) => {
         WHERE ${q_aiCorrections.sql}
       `, q_aiCorrections.params),
 
-      safeQuery(`SELECT job_type, SUM(total_premium) as total FROM policies WHERE status = 'สำเร็จ' AND YEAR(start_date) = ? GROUP BY job_type`, [targetYear]),
-      safeQuery(`SELECT job_type, SUM(total_premium) as total FROM non_motor_policies WHERE status = 'สำเร็จ' AND YEAR(start_date) = ? GROUP BY job_type`, [targetYear])
+      safeQuery(`SELECT job_type, SUM(total_premium) as total FROM policies WHERE status IN ('สำเร็จ', 'ชำระครบแล้ว') AND YEAR(start_date) = ? GROUP BY job_type`, [targetYear]),
+      safeQuery(`SELECT job_type, SUM(total_premium) as total FROM non_motor_policies WHERE status IN ('สำเร็จ', 'ชำระครบแล้ว') AND YEAR(start_date) = ? GROUP BY job_type`, [targetYear])
     ];
 
     const [
@@ -178,13 +178,12 @@ router.get('/stats', authenticateToken, async (req, res) => {
     // Merge and sort expiring policies
     const allExpiring = [...mExpiringPolicies, ...nmExpiringPolicies].sort((a, b) => a.days_left - b.days_left);
 
-    // Merge monthly sales
     const mergedMonthlySalesMap = {};
-    mMonthlySales.forEach(row => { mergedMonthlySalesMap[row.month] = { month: row.month, motor_sales: row.total_sales, non_motor_sales: 0 }; });
-    nmMonthlySales.forEach(row => { 
-      if (!mergedMonthlySalesMap[row.month]) mergedMonthlySalesMap[row.month] = { month: row.month, motor_sales: 0, non_motor_sales: 0 };
-      mergedMonthlySalesMap[row.month].non_motor_sales = row.total_sales;
-    });
+    for (let i = 1; i <= 12; i++) {
+      mergedMonthlySalesMap[i] = { month: i, motor_sales: 0, non_motor_sales: 0 };
+    }
+    mMonthlySales.forEach(row => { mergedMonthlySalesMap[row.month].motor_sales = row.total_sales; });
+    nmMonthlySales.forEach(row => { mergedMonthlySalesMap[row.month].non_motor_sales = row.total_sales; });
     const mergedMonthlySales = Object.values(mergedMonthlySalesMap).sort((a, b) => a.month - b.month);
 
     res.json({

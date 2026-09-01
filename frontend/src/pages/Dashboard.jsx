@@ -74,7 +74,7 @@ const Dashboard = () => {
   };
 
   const barChartData = {
-    labels: (stats?.monthlySales || []).map(m => `เดือน ${m.month}`),
+    labels: (stats?.monthlySales || []).map(m => ['ม.ค.', 'ก.พ.', 'มี.ค.', 'เม.ย.', 'พ.ค.', 'มิ.ย.', 'ก.ค.', 'ส.ค.', 'ก.ย.', 'ต.ค.', 'พ.ย.', 'ธ.ค.'][m.month - 1]),
     datasets: [
       {
         label: 'ยอดขาย Motor (บาท)',
