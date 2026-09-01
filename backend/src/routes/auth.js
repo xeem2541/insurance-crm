@@ -27,15 +27,15 @@ router.post('/login', loginLimiter, async (req, res) => {
       return res.status(400).json({ error: 'Invalid username or password' });
     }
 
-    // Check if secret is the default fallback, issue a warning in logs
     const secret = process.env.JWT_SECRET;
     if (!secret) {
-      console.warn('[SECURITY WARNING] JWT_SECRET is not set in environment variables! Using default fallback.');
+      console.error('[SECURITY FATAL] JWT_SECRET is not set in environment variables! Cannot sign token.');
+      return res.status(500).json({ error: 'Server error: Missing security configuration' });
     }
 
     const token = jwt.sign(
       { id: user.id, username: user.username, role: user.role, name: user.name },
-      secret || 'super_secret_key_123',
+      secret,
       { expiresIn: '1d' }
     );
 

@@ -57,13 +57,23 @@ export const AuthProvider = ({ children }) => {
       }, 60 * 60 * 1000); // 60 นาที
     };
 
+    let throttleTimer;
+    const handleActivity = () => {
+      if (throttleTimer) return;
+      throttleTimer = setTimeout(() => {
+        resetTimeout();
+        throttleTimer = null;
+      }, 2000); // Throttle updates to max once every 2 seconds
+    };
+
     const events = ['mousedown', 'mousemove', 'keypress', 'scroll', 'touchstart'];
     resetTimeout();
-    events.forEach(e => window.addEventListener(e, resetTimeout));
+    events.forEach(e => window.addEventListener(e, handleActivity));
 
     return () => {
       clearTimeout(idleTimerRef.current);
-      events.forEach(e => window.removeEventListener(e, resetTimeout));
+      clearTimeout(throttleTimer);
+      events.forEach(e => window.removeEventListener(e, handleActivity));
     };
   }, [user]);
 

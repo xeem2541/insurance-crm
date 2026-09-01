@@ -89,11 +89,6 @@ app.use(cors(corsOptions));
 app.options('*', cors(corsOptions));
 
 
-app.use((req, res, next) => {
-  console.log(`[${new Date().toISOString()}] ${req.method} ${req.url}`);
-  next();
-});
-
 // Body parsers
 app.use(express.json({ limit: '500kb' })); // Limit body size to prevent payload DOS
 app.use(express.urlencoded({ extended: true, limit: '500kb' }));
