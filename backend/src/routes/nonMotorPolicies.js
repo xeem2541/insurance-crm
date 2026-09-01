@@ -2,15 +2,15 @@ const express = require('express');
 const router = express.Router();
 const { authenticateToken } = require('../middlewares/auth');
 
-// Get all non-motor policies
+// Get all non-motor policies with pagination
 router.get('/', authenticateToken, async (req, res) => {
   try {
     const search = req.query.search || '';
-    let query = `
-      SELECT p.*, 
-             c.first_name, c.last_name, c.customer_code, c.phone,
-             t.name as type_name,
-             u.name as sales_person_name
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 50;
+    const offset = (page - 1) * limit;
+
+    let baseQuery = `
       FROM non_motor_policies p
       JOIN customers c ON p.customer_id = c.id
       LEFT JOIN non_motor_types t ON p.non_motor_type_id = t.id
@@ -19,16 +19,39 @@ router.get('/', authenticateToken, async (req, res) => {
     `;
 
     // Filter by sales person if the user is Sales
-    const params = [`%${search}%`, `%${search}%`, `%${search}%`];
+    let params = [`%${search}%`, `%${search}%`, `%${search}%`];
     if (req.user.role === 'Sales') {
-      query += ` AND p.sales_person_id = ?`;
+      baseQuery += ` AND p.sales_person_id = ?`;
       params.push(req.user.id);
     }
 
-    query += ` ORDER BY p.start_date DESC, p.created_at DESC LIMIT 150`;
+    // 1. Get total count
+    const countQuery = `SELECT COUNT(*) as total ${baseQuery}`;
+    const [countResult] = await req.db.query(countQuery, params);
+    const total = countResult[0].total;
+    const totalPages = Math.ceil(total / limit);
+
+    // 2. Get paginated data
+    const dataQuery = `
+      SELECT p.*, 
+             c.first_name, c.last_name, c.customer_code, c.phone,
+             t.name as type_name,
+             u.name as sales_person_name
+      ${baseQuery}
+      ORDER BY p.start_date DESC, p.created_at DESC 
+      LIMIT ? OFFSET ?
+    `;
     
-    const [rows] = await req.db.query(query, params);
-    res.json(rows);
+    const dataParams = [...params, limit, offset];
+    const [rows] = await req.db.query(dataQuery, dataParams);
+    
+    res.json({
+      data: rows,
+      total,
+      totalPages,
+      currentPage: page,
+      itemsPerPage: limit
+    });
   } catch (error) {
     console.error('Fetch non-motor policies error:', error);
     res.status(500).json({ error: 'Server error' });

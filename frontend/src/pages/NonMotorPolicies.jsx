@@ -22,6 +22,8 @@ const NonMotorPolicies = () => {
   const [customers, setCustomers] = useState([]);
   const [search, setSearch] = useState('');
   const [showModal, setShowModal] = useState(false);
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
   
   const [sortConfig, setSortConfig] = useState({ key: 'start_date', direction: 'descending' });
 
@@ -79,12 +81,13 @@ const NonMotorPolicies = () => {
     setLoading(true);
     try {
       const [polRes, custRes, typesRes, mdRes] = await Promise.all([
-        api.get(`/non-motor-policies?search=${search}`),
+        api.get(`/non-motor-policies?search=${search}&page=${page}&limit=50`),
         api.get('/customers'),
         api.get('/non-motor-policies/types'),
         api.get('/master-data')
       ]);
-      setPolicies(polRes.data);
+      setPolicies(polRes.data.data || []);
+      setTotalPages(polRes.data.totalPages || 1);
       setCustomers(custRes.data);
       setNonMotorTypes(typesRes.data.map(t => ({ value: t.id, label: t.name })));
       
@@ -100,6 +103,10 @@ const NonMotorPolicies = () => {
 
   useEffect(() => {
     fetchData();
+  }, [search, page]);
+
+  useEffect(() => {
+    setPage(1);
   }, [search]);
 
   const exportToExcel = () => {
@@ -360,6 +367,31 @@ const NonMotorPolicies = () => {
             )}
           </table>
         </div>
+        
+        {/* Pagination Controls */}
+        {totalPages > 1 && (
+          <div className="d-flex justify-content-between align-items-center mt-3 pt-3 border-top">
+            <div className="text-muted small">
+              แสดงหน้า {page} จากทั้งหมด {totalPages} หน้า
+            </div>
+            <div className="btn-group">
+              <button 
+                className="btn btn-outline-secondary btn-sm" 
+                onClick={() => setPage(p => Math.max(1, p - 1))}
+                disabled={page === 1}
+              >
+                <i className="bi bi-chevron-left"></i> ก่อนหน้า
+              </button>
+              <button 
+                className="btn btn-outline-secondary btn-sm" 
+                onClick={() => setPage(p => Math.min(totalPages, p + 1))}
+                disabled={page === totalPages}
+              >
+                ถัดไป <i className="bi bi-chevron-right"></i>
+              </button>
+            </div>
+          </div>
+        )}
       </div>
 
       <Modal show={showModal} onHide={() => setShowModal(false)} size="xl">

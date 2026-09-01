@@ -20,8 +20,37 @@ const Layout = () => {
 
   React.useEffect(() => {
     fetchNotifications();
-    const interval = setInterval(fetchNotifications, 5 * 60 * 1000); // refresh every 5 mins
-    return () => clearInterval(interval);
+    let interval = null;
+
+    const startPolling = () => {
+      if (!interval) {
+        interval = setInterval(fetchNotifications, 5 * 60 * 1000); // refresh every 5 mins
+      }
+    };
+
+    const stopPolling = () => {
+      if (interval) {
+        clearInterval(interval);
+        interval = null;
+      }
+    };
+
+    const handleVisibilityChange = () => {
+      if (document.hidden) {
+        stopPolling();
+      } else {
+        fetchNotifications(); // Fetch immediately when coming back
+        startPolling();
+      }
+    };
+
+    startPolling();
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+
+    return () => {
+      stopPolling();
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
   }, []);
 
   const fetchNotifications = async () => {

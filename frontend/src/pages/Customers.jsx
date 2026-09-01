@@ -44,6 +44,8 @@ const Customers = () => {
   const [search, setSearch] = useState(() => sessionStorage.getItem('customersSearch') || '');
   const [selectedMonth, setSelectedMonth] = useState(() => sessionStorage.getItem('customersMonth') || ''); // Month filter
   const [showModal, setShowModal] = useState(false);
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
   
   // Master Data
   const [leadSources, setLeadSources] = useState([]);
@@ -95,10 +97,11 @@ const Customers = () => {
     setLoading(true);
     try {
       const [custRes, mdRes] = await Promise.all([
-        api.get(`/customers?search=${search}&month=${selectedMonth}`),
+        api.get(`/customers?search=${search}&month=${selectedMonth}&page=${page}&limit=50`),
         api.get('/master-data')
       ]);
-      setCustomers(custRes.data);
+      setCustomers(custRes.data.data || []);
+      setTotalPages(custRes.data.totalPages || 1);
       const md = mdRes.data;
       setLeadSources(md.filter(m => m.category === 'LeadSource').map(m => ({ value: m.value, label: m.value })));
     } catch (error) {
@@ -112,6 +115,11 @@ const Customers = () => {
     sessionStorage.setItem('customersSearch', search);
     sessionStorage.setItem('customersMonth', selectedMonth);
     fetchData();
+  }, [search, selectedMonth, page]);
+
+  // Reset page when search or month changes
+  useEffect(() => {
+    setPage(1);
   }, [search, selectedMonth]);
 
   const handleSubmit = async (e) => {
@@ -285,6 +293,31 @@ const Customers = () => {
             )}
           </table>
         </div>
+        
+        {/* Pagination Controls */}
+        {totalPages > 1 && (
+          <div className="d-flex justify-content-between align-items-center mt-3 pt-3 border-top">
+            <div className="text-muted small">
+              แสดงหน้า {page} จากทั้งหมด {totalPages} หน้า
+            </div>
+            <div className="btn-group">
+              <button 
+                className="btn btn-outline-secondary btn-sm" 
+                onClick={() => setPage(p => Math.max(1, p - 1))}
+                disabled={page === 1}
+              >
+                <i className="bi bi-chevron-left"></i> ก่อนหน้า
+              </button>
+              <button 
+                className="btn btn-outline-secondary btn-sm" 
+                onClick={() => setPage(p => Math.min(totalPages, p + 1))}
+                disabled={page === totalPages}
+              >
+                ถัดไป <i className="bi bi-chevron-right"></i>
+              </button>
+            </div>
+          </div>
+        )}
       </div>
 
       <Modal show={showModal} onHide={() => setShowModal(false)} size="xl">

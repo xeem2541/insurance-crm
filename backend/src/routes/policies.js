@@ -3,20 +3,17 @@ const router = express.Router();
 const { authenticateToken } = require('../middlewares/auth');
 const { sendLineNotify } = require('../services/lineNotify');
 
-// Get all policies (with search and filter)
+// Get all policies (with search, filter, and pagination)
 router.get('/', authenticateToken, async (req, res) => {
-  const { search, customer_id, vehicle_id } = req.query;
-  let query = `
-    SELECT p.*, c.first_name, c.last_name, c.customer_code, 
-           v.plate_no, v.plate_province, v.brand, v.model, v.vin, v.engine_no, v.tax_expiry, v.year, v.color,
-           u.name as sales_person_name
-    FROM policies p 
-    JOIN customers c ON p.customer_id = c.id
-    LEFT JOIN vehicles v ON p.vehicle_id = v.id
-    LEFT JOIN users u ON p.sales_person_id = u.id
-  `;
-  let params = [];
+  const { search, customer_id, vehicle_id, page, limit } = req.query;
+  
+  // Pagination parameters
+  const currentPage = parseInt(page) || 1;
+  const itemsPerPage = parseInt(limit) || 50;
+  const offset = (currentPage - 1) * itemsPerPage;
+
   let conditions = [];
+  let params = [];
   
   if (customer_id) {
     conditions.push('p.customer_id = ?');
@@ -34,15 +31,49 @@ router.get('/', authenticateToken, async (req, res) => {
     params.push(s, s, s, s);
   }
 
+  let whereClause = '';
   if (conditions.length > 0) {
-    query += ' WHERE ' + conditions.join(' AND ');
+    whereClause = ' WHERE ' + conditions.join(' AND ');
   }
-  
-  query += ' ORDER BY p.start_date DESC, p.created_at DESC LIMIT 150';
 
   try {
-    const [policies] = await req.db.query(query, params);
-    res.json(policies);
+    // 1. Get total count for pagination
+    const countQuery = `
+      SELECT COUNT(*) as total 
+      FROM policies p 
+      JOIN customers c ON p.customer_id = c.id
+      LEFT JOIN vehicles v ON p.vehicle_id = v.id
+      ${whereClause}
+    `;
+    const [countResult] = await req.db.query(countQuery, params);
+    const total = countResult[0].total;
+    const totalPages = Math.ceil(total / itemsPerPage);
+
+    // 2. Get data
+    let query = `
+      SELECT p.*, c.first_name, c.last_name, c.customer_code, 
+             v.plate_no, v.plate_province, v.brand, v.model, v.vin, v.engine_no, v.tax_expiry, v.year, v.color,
+             u.name as sales_person_name
+      FROM policies p 
+      JOIN customers c ON p.customer_id = c.id
+      LEFT JOIN vehicles v ON p.vehicle_id = v.id
+      LEFT JOIN users u ON p.sales_person_id = u.id
+      ${whereClause}
+      ORDER BY p.start_date DESC, p.created_at DESC 
+      LIMIT ? OFFSET ?
+    `;
+    
+    // Add limit and offset to params
+    const queryParams = [...params, itemsPerPage, offset];
+    const [policies] = await req.db.query(query, queryParams);
+    
+    res.json({
+      data: policies,
+      total,
+      totalPages,
+      currentPage,
+      itemsPerPage
+    });
   } catch (error) {
     console.error(error);
     res.status(500).json({ error: 'Server error' });

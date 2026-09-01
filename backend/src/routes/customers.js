@@ -1,18 +1,16 @@
 const express = require('express');
 const router = express.Router();
 const { authenticateToken } = require('../middlewares/auth');
+const { body, validationResult } = require('express-validator');
 
-// Get all customers with search and month filter
+// Get all customers with search, month filter, and pagination
 router.get('/', authenticateToken, async (req, res) => {
-  const { search, month } = req.query;
+  const { search, month, page, limit } = req.query;
   
-  let query = `
-    SELECT c.*, 
-      (SELECT v.plate_no FROM vehicles v WHERE v.customer_id = c.id ORDER BY v.created_at DESC LIMIT 1) as plate_no,
-      (SELECT CONCAT(p.company, ' - ', p.type) FROM policies p WHERE p.customer_id = c.id ORDER BY p.created_at DESC LIMIT 1) as motor_type,
-      (SELECT CONCAT(np.company, ' - ', t.name) FROM non_motor_policies np JOIN non_motor_types t ON np.non_motor_type_id = t.id WHERE np.customer_id = c.id ORDER BY np.created_at DESC LIMIT 1) as non_motor_type
-    FROM customers c 
-  `;
+  // Pagination parameters
+  const currentPage = parseInt(page) || 1;
+  const itemsPerPage = parseInt(limit) || 50;
+  const offset = (currentPage - 1) * itemsPerPage;
   
   let conditions = [];
   let params = [];
@@ -50,15 +48,41 @@ router.get('/', authenticateToken, async (req, res) => {
     params.push(month);
   }
   
+  let whereClause = '';
   if (conditions.length > 0) {
-    query += ` WHERE ` + conditions.join(' AND ');
+    whereClause = ` WHERE ` + conditions.join(' AND ');
   }
-  
-  query += ` ORDER BY c.created_at DESC LIMIT 150`;
 
   try {
-    const [customers] = await req.db.query(query, params);
-    res.json(customers);
+    // 1. Get total count for pagination
+    const countQuery = `SELECT COUNT(*) as total FROM customers c ${whereClause}`;
+    const [countResult] = await req.db.query(countQuery, params);
+    const total = countResult[0].total;
+    const totalPages = Math.ceil(total / itemsPerPage);
+
+    // 2. Get data
+    const query = `
+      SELECT c.*, 
+        (SELECT v.plate_no FROM vehicles v WHERE v.customer_id = c.id ORDER BY v.created_at DESC LIMIT 1) as plate_no,
+        (SELECT CONCAT(p.company, ' - ', p.type) FROM policies p WHERE p.customer_id = c.id ORDER BY p.created_at DESC LIMIT 1) as motor_type,
+        (SELECT CONCAT(np.company, ' - ', t.name) FROM non_motor_policies np JOIN non_motor_types t ON np.non_motor_type_id = t.id WHERE np.customer_id = c.id ORDER BY np.created_at DESC LIMIT 1) as non_motor_type
+      FROM customers c 
+      ${whereClause} 
+      ORDER BY c.created_at DESC 
+      LIMIT ? OFFSET ?
+    `;
+    
+    // Add limit and offset to params
+    const queryParams = [...params, itemsPerPage, offset];
+    const [customers] = await req.db.query(query, queryParams);
+    
+    res.json({
+      data: customers,
+      total,
+      totalPages,
+      currentPage,
+      itemsPerPage
+    });
   } catch (error) {
     console.error(error);
     res.status(500).json({ error: 'Server error' });
@@ -77,7 +101,15 @@ router.get('/:id', authenticateToken, async (req, res) => {
 });
 
 // Create customer
-router.post('/', authenticateToken, async (req, res) => {
+router.post('/', authenticateToken, [
+  body('first_name').notEmpty().withMessage('กรุณาระบุชื่อจริง').trim(),
+  body('phone').notEmpty().withMessage('กรุณาระบุเบอร์โทรศัพท์').trim()
+], async (req, res) => {
+  const errors = validationResult(req);
+  if (!errors.isEmpty()) {
+    return res.status(400).json({ error: 'ข้อมูลไม่ครบถ้วนหรือไม่ถูกต้อง', details: errors.array() });
+  }
+
   const { 
     customer_code, prefix, first_name, last_name, phone, line_id, facebook, 
     dob, age, address, province, zipcode, secondary_contact, 
@@ -119,7 +151,15 @@ router.post('/', authenticateToken, async (req, res) => {
 });
 
 // Update customer
-router.put('/:id', authenticateToken, async (req, res) => {
+router.put('/:id', authenticateToken, [
+  body('first_name').notEmpty().withMessage('กรุณาระบุชื่อจริง').trim(),
+  body('phone').notEmpty().withMessage('กรุณาระบุเบอร์โทรศัพท์').trim()
+], async (req, res) => {
+  const errors = validationResult(req);
+  if (!errors.isEmpty()) {
+    return res.status(400).json({ error: 'ข้อมูลไม่ครบถ้วนหรือไม่ถูกต้อง', details: errors.array() });
+  }
+
   const { 
     prefix, first_name, last_name, phone, line_id, facebook, 
     dob, age, address, province, zipcode, secondary_contact, 
