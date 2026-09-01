@@ -25,14 +25,99 @@ const startCronJobs = (db) => {
       `);
 
       if (policies.length > 0) {
-        let msg = `⏰ แจ้งเตือนกรมธรรม์ใกล้หมดอายุ!\nวันนี้มีลูกค้าต้องติดตาม ${policies.length} ราย:\n\n`;
-        policies.forEach(p => {
-          const typeLabel = p.policy_type === 'Motor' ? 'รถยนต์' : 'Non-Motor';
-          const plateInfo = p.policy_type === 'Motor' ? `(${p.plate_no || 'ไม่ระบุทะเบียน'})` : '';
-          msg += `- [${typeLabel}] ${p.first_name} ${p.last_name} ${plateInfo}\n  หมดอายุในอีก ${p.days_left} วัน\n`;
-        });
+        const flexContents = [];
         
-        await sendLineNotify(msg, db);
+        policies.slice(0, 10).forEach((p, index) => {
+          if (index > 0) {
+            flexContents.push({ type: "separator", margin: "md" });
+          }
+          
+          const typeColor = p.policy_type === 'Motor' ? '#4CAF50' : '#FF9800';
+          const typeLabel = p.policy_type === 'Motor' ? 'รถยนต์' : 'Non-Motor';
+          const plateInfo = p.policy_type === 'Motor' ? (p.plate_no || 'ไม่ระบุ') : '-';
+          
+          flexContents.push({
+            type: "box",
+            layout: "vertical",
+            margin: "md",
+            spacing: "sm",
+            contents: [
+              {
+                type: "box",
+                layout: "baseline",
+                spacing: "sm",
+                contents: [
+                  { type: "text", text: typeLabel, color: typeColor, size: "sm", flex: 2, weight: "bold" },
+                  { type: "text", text: `${p.first_name} ${p.last_name}`, wrap: true, color: "#333333", size: "sm", flex: 5, weight: "bold" }
+                ]
+              },
+              {
+                type: "box",
+                layout: "baseline",
+                spacing: "sm",
+                contents: [
+                  { type: "text", text: "ทะเบียน", color: "#aaaaaa", size: "sm", flex: 2 },
+                  { type: "text", text: plateInfo, wrap: true, color: "#666666", size: "sm", flex: 5 }
+                ]
+              },
+              {
+                type: "box",
+                layout: "baseline",
+                spacing: "sm",
+                contents: [
+                  { type: "text", text: "หมดอายุ", color: "#aaaaaa", size: "sm", flex: 2 },
+                  { 
+                    type: "text", 
+                    text: p.days_left === 0 ? "วันนี้" : `อีก ${p.days_left} วัน`, 
+                    wrap: true, 
+                    color: p.days_left <= 7 ? "#ff0000" : "#666666", 
+                    size: "sm", 
+                    flex: 5, 
+                    weight: p.days_left <= 7 ? "bold" : "regular" 
+                  }
+                ]
+              }
+            ]
+          });
+        });
+
+        if (policies.length > 10) {
+          flexContents.push({ type: "separator", margin: "md" });
+          flexContents.push({
+            type: "text",
+            text: `และลูกค้าอีก ${policies.length - 10} ราย...`,
+            size: "sm",
+            color: "#aaaaaa",
+            margin: "md",
+            align: "center"
+          });
+        }
+
+        const flexMessage = {
+          type: "flex",
+          altText: `⏰ แจ้งเตือนกรมธรรม์ใกล้หมดอายุ! (ติดตาม ${policies.length} ราย)`,
+          contents: {
+            type: "bubble",
+            size: "giga",
+            header: {
+              type: "box",
+              layout: "vertical",
+              backgroundColor: "#ff5252",
+              paddingAll: "20px",
+              contents: [
+                { type: "text", text: "⏰ แจ้งเตือนต่ออายุประกัน", weight: "bold", color: "#ffffff", size: "xl" },
+                { type: "text", text: `วันนี้มีลูกค้าต้องติดตาม ${policies.length} ราย`, color: "#ffffffcc", size: "sm", margin: "md" }
+              ]
+            },
+            body: {
+              type: "box",
+              layout: "vertical",
+              contents: flexContents
+            }
+          }
+        };
+        
+        await sendLineNotify(flexMessage, db);
       }
     } catch (error) {
       console.error('Cron job error:', error);

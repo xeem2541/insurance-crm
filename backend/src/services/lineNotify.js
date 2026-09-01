@@ -20,13 +20,15 @@ const sendLineNotify = async (message, db) => {
       return;
     }
 
+    const messagePayload = typeof message === 'string' 
+      ? { type: 'text', text: message } 
+      : message;
+
     await axios.post(
       'https://api.line.me/v2/bot/message/push',
       {
         to: to,
-        messages: [
-          { type: 'text', text: message }
-        ]
+        messages: [ messagePayload ]
       },
       {
         headers: {
