@@ -237,6 +237,7 @@ const Layout = () => {
 
               {/* Notification Dropdown — 3D Edition */}
               <Dropdown align="end">
+                {/* ห่อด้วย div position:relative เพื่อให้ badge ไม่ล้นทับ element อื่น */}
                 <Dropdown.Toggle
                   as="div"
                   id="dropdown-notifications"
@@ -249,6 +250,7 @@ const Layout = () => {
                     alignItems: 'center',
                     justifyContent: 'center',
                     position: 'relative',
+                    flexShrink: 0,
                     background: darkMode
                       ? 'linear-gradient(145deg, #1e293b, #0f172a)'
                       : 'linear-gradient(145deg, #ffffff, #e2e8f0)',
@@ -275,23 +277,24 @@ const Layout = () => {
                     <span
                       style={{
                         position: 'absolute',
-                        top: '-4px',
-                        right: '-4px',
-                        minWidth: '20px',
-                        height: '20px',
-                        borderRadius: '10px',
+                        top: '2px',
+                        right: '2px',
+                        minWidth: '18px',
+                        height: '18px',
+                        borderRadius: '9px',
                         background: 'linear-gradient(135deg, #ef4444, #dc2626)',
-                        boxShadow: '0 2px 8px rgba(239,68,68,0.7), 0 0 0 2px ' + (darkMode ? '#0f172a' : '#f1f5f9'),
+                        boxShadow: '0 1px 6px rgba(239,68,68,0.7), 0 0 0 1.5px ' + (darkMode ? '#1e293b' : '#ffffff'),
                         color: '#fff',
-                        fontSize: '0.68rem',
-                        fontWeight: '700',
+                        fontSize: '0.62rem',
+                        fontWeight: '800',
                         display: 'flex',
                         alignItems: 'center',
                         justifyContent: 'center',
-                        padding: '0 4px',
+                        padding: '0 3px',
                         lineHeight: 1,
-                        transform: 'translateZ(4px)',
                         letterSpacing: '-0.3px',
+                        zIndex: 10,
+                        pointerEvents: 'none',
                       }}
                     >
                       {notifications.total > 99 ? '99+' : notifications.total}
