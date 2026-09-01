@@ -208,7 +208,7 @@ const Layout = () => {
       </div>
       
       <div className="flex-grow-1 d-flex flex-column" style={{ overflowX: 'hidden' }}>
-        <nav className={`navbar navbar-expand-lg border-bottom px-3 px-lg-4 py-2 py-lg-3 shadow-sm glass-nav fade-in ${darkMode ? 'navbar-dark bg-dark border-secondary' : 'navbar-light bg-white'}`}>
+        <nav className={`navbar navbar-expand-lg border-bottom px-3 px-lg-4 py-2 py-lg-3 shadow-sm glass-nav fade-in ${darkMode ? 'navbar-dark bg-dark border-secondary' : 'navbar-light bg-white'}`} style={{ zIndex: 1050, position: 'relative' }}>
           <div className="container-fluid d-flex justify-content-between align-items-center">
             <div className="d-flex align-items-center">
               <button className={`btn btn-sm d-lg-none me-3 ${darkMode ? 'btn-outline-light' : 'btn-outline-dark'}`} onClick={toggleSidebar}>
@@ -314,15 +314,11 @@ const Layout = () => {
                     borderRadius: '20px',
                     padding: 0,
                     zIndex: 9999,
-                    background: darkMode
-                      ? 'linear-gradient(160deg, #1e293b 0%, #0f172a 100%)'
-                      : 'linear-gradient(160deg, #ffffff 0%, #f1f5f9 100%)',
+                    background: darkMode ? '#1e293b' : '#ffffff',
                     boxShadow: darkMode
-                      ? '0 20px 60px rgba(0,0,0,0.7), 0 8px 24px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.07)'
-                      : '0 20px 60px rgba(0,0,0,0.15), 0 8px 24px rgba(0,0,0,0.08), inset 0 1px 0 rgba(255,255,255,1)',
-                    border: darkMode ? '1px solid rgba(255,255,255,0.08)' : '1px solid rgba(0,0,0,0.06)',
-                    backdropFilter: 'blur(20px)',
-                    WebkitBackdropFilter: 'blur(20px)',
+                      ? '0 10px 40px rgba(0,0,0,0.6), 0 4px 12px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.1)'
+                      : '0 10px 40px rgba(0,0,0,0.15), 0 4px 12px rgba(0,0,0,0.08), inset 0 1px 0 rgba(255,255,255,1)',
+                    border: darkMode ? '1px solid #334155' : '1px solid #e2e8f0',
                     marginTop: '8px',
                     transform: 'perspective(800px) rotateX(0deg)',
                     transformOrigin: 'top right',
