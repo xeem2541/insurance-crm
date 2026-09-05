@@ -61,12 +61,16 @@ router.get('/', authenticateToken, async (req, res) => {
     const total = countResult[0].total;
     const totalPages = Math.ceil(total / itemsPerPage);
 
-    // 2. Get data
-    const query = `
-      SELECT c.*, 
+    // 2. Get data (optimize select fields for dropdown lists)
+    const selectFields = isAll
+      ? `c.id, c.customer_code, c.prefix, c.first_name, c.last_name, c.phone, c.id_card_no, c.email`
+      : `c.*, 
         (SELECT v.plate_no FROM vehicles v WHERE v.customer_id = c.id ORDER BY v.created_at DESC LIMIT 1) as plate_no,
         (SELECT CONCAT(p.company, ' - ', p.type) FROM policies p WHERE p.customer_id = c.id ORDER BY p.created_at DESC LIMIT 1) as motor_type,
-        (SELECT CONCAT(np.company, ' - ', t.name) FROM non_motor_policies np JOIN non_motor_types t ON np.non_motor_type_id = t.id WHERE np.customer_id = c.id ORDER BY np.created_at DESC LIMIT 1) as non_motor_type
+        (SELECT CONCAT(np.company, ' - ', t.name) FROM non_motor_policies np JOIN non_motor_types t ON np.non_motor_type_id = t.id WHERE np.customer_id = c.id ORDER BY np.created_at DESC LIMIT 1) as non_motor_type`;
+
+    const query = `
+      SELECT ${selectFields}
       FROM customers c 
       ${whereClause} 
       ORDER BY c.created_at DESC 
