@@ -21,14 +21,31 @@ const NonMotorPolicies = () => {
   const [loading, setLoading] = useState(true);
   const [customers, setCustomers] = useState([]);
   const [search, setSearch] = useState('');
+  const [debouncedSearch, setDebouncedSearch] = useState('');
   const [showModal, setShowModal] = useState(false);
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   
   const [sortConfig, setSortConfig] = useState({ key: 'start_date', direction: 'descending' });
 
+  // Debounce search input (300ms)
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearch(search);
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [search]);
+
+  const safePolicies = React.useMemo(() => {
+    return Array.isArray(policies) ? policies : (policies?.data || []);
+  }, [policies]);
+
+  const safeCustomers = React.useMemo(() => {
+    return Array.isArray(customers) ? customers : (customers?.data || []);
+  }, [customers]);
+
   const sortedPolicies = React.useMemo(() => {
-    let sortablePolicies = [...policies];
+    let sortablePolicies = [...safePolicies];
     if (sortConfig !== null) {
       sortablePolicies.sort((a, b) => {
         let aVal = a[sortConfig.key];
@@ -55,7 +72,7 @@ const NonMotorPolicies = () => {
       });
     }
     return sortablePolicies;
-  }, [policies, sortConfig]);
+  }, [safePolicies, sortConfig]);
 
   const requestSort = (key) => {
     let direction = 'ascending';
@@ -65,49 +82,70 @@ const NonMotorPolicies = () => {
     setSortConfig({ key, direction });
   };
   
-  // Master Data
+  // Master Data States
   const [nonMotorTypes, setNonMotorTypes] = useState([]);
   const [companies, setCompanies] = useState([]);
   const [jobStatuses, setJobStatuses] = useState([]);
 
   const [formData, setFormData] = useState({
-    id: null, customer_id: '', policy_no: '', company: '', non_motor_type_id: '', insured_name: '',
+    id: null, customer_id: '', non_motor_type_id: '', policy_no: '', company: '', insured_name: '',
     sum_insured: '', net_premium: '', stamp_duty: '', vat: '', total_premium: '',
     commission_percent: '', commission_baht: '', start_date: '', expiry_date: '', 
     status: 'รอดำเนินการ', note: '', additional_data: {}
   });
 
-  const fetchData = async () => {
-    setLoading(true);
+  // Fetch dropdown and master data once on mount
+  const fetchDropdownData = async () => {
     try {
-      const [polRes, custRes, typesRes, mdRes] = await Promise.all([
-        api.get(`/non-motor-policies?search=${search}&page=${page}&limit=50`),
-        api.get('/customers'),
+      const [custRes, typesRes, mdRes] = await Promise.all([
+        api.get('/customers?all=true'),
         api.get('/non-motor-policies/types'),
         api.get('/master-data')
       ]);
-      setPolicies(polRes.data.data || []);
-      setTotalPages(polRes.data.totalPages || 1);
-      setCustomers(custRes.data);
-      setNonMotorTypes(typesRes.data.map(t => ({ value: t.id, label: t.name })));
+      const custList = Array.isArray(custRes.data) ? custRes.data : (custRes.data?.data || []);
+      setCustomers(custList);
+      setNonMotorTypes(Array.isArray(typesRes.data) ? typesRes.data.map(t => ({ value: t.id, label: t.name })) : []);
       
-      const md = mdRes.data;
+      const md = Array.isArray(mdRes.data) ? mdRes.data : (mdRes.data?.data || []);
       setCompanies(md.filter(m => m.category === 'InsuranceCompany').map(m => ({ value: m.value, label: m.value })));
       setJobStatuses(md.filter(m => m.category === 'JobStatus').map(m => ({ value: m.value, label: m.value })));
+    } catch (err) {
+      console.error('Fetch dropdown data error:', err);
+    }
+  };
+
+  useEffect(() => {
+    fetchDropdownData();
+  }, []);
+
+  // Fetch policies list on search/page change
+  const fetchPolicies = async () => {
+    setLoading(true);
+    try {
+      const polRes = await api.get(`/non-motor-policies?search=${encodeURIComponent(debouncedSearch.trim())}&page=${page}&limit=50`);
+      const polData = polRes.data?.data || (Array.isArray(polRes.data) ? polRes.data : []);
+      setPolicies(polData);
+      setTotalPages(polRes.data?.totalPages || 1);
     } catch (error) {
-      console.error(error);
+      console.error('Fetch non-motor policies error:', error);
+      setPolicies([]);
     } finally {
       setLoading(false);
     }
   };
 
+  const fetchData = () => {
+    fetchPolicies();
+    fetchDropdownData();
+  };
+
   useEffect(() => {
-    fetchData();
-  }, [search, page]);
+    fetchPolicies();
+  }, [debouncedSearch, page]);
 
   useEffect(() => {
     setPage(1);
-  }, [search]);
+  }, [debouncedSearch]);
 
   const exportToExcel = () => {
     const dataToExport = policies.map(p => ({
@@ -279,7 +317,10 @@ const NonMotorPolicies = () => {
     return <span className="badge bg-secondary">{status}</span>;
   };
 
-  const customerOptions = customers.map(c => ({ value: c.id, label: `${c.customer_code} - ${c.first_name} ${c.last_name}` }));
+  const customerOptions = safeCustomers.map(c => ({ 
+    value: c.id, 
+    label: `${c.customer_code || ''} - ${c.first_name || ''} ${c.last_name || ''}`.trim() 
+  }));
 
   return (
     <div>
@@ -297,13 +338,26 @@ const NonMotorPolicies = () => {
 
       <div className="card shadow-sm border-0 mb-4">
         <div className="card-body">
-          <input 
-            type="text" 
-            className="form-control form-control-lg" 
-            placeholder="ค้นหาเลขกรมธรรม์, ชื่อลูกค้า..." 
-            value={search} 
-            onChange={(e) => setSearch(e.target.value)} 
-          />
+          <div className="position-relative">
+            <input 
+              type="text" 
+              className="form-control form-control-lg pe-5" 
+              placeholder="ค้นหาเลขกรมธรรม์, ชื่อลูกค้า, ผู้เอาประกัน, บริษัทประกัน, ประเภทประกัน, เบอร์โทร..." 
+              value={search} 
+              onChange={(e) => setSearch(e.target.value)} 
+            />
+            {search && (
+              <button 
+                type="button"
+                className="btn btn-link position-absolute top-50 end-0 translate-middle-y text-muted text-decoration-none me-2"
+                onClick={() => setSearch('')}
+                style={{ fontSize: '1.2rem', padding: '0 8px' }}
+                title="ล้างคำค้นหา"
+              >
+                ✕
+              </button>
+            )}
+          </div>
         </div>
       </div>
 

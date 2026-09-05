@@ -29,6 +29,7 @@ const Vehicles = () => {
   const [vehicles, setVehicles] = useState([]);
   const [customers, setCustomers] = useState([]);
   const [search, setSearch] = useState('');
+  const [debouncedSearch, setDebouncedSearch] = useState('');
   const [showModal, setShowModal] = useState(false);
   
   // Master Data
@@ -39,24 +40,61 @@ const Vehicles = () => {
     plate_no: '', plate_province: '', vin: '', engine_no: '', sum_insured: '', tax_expiry: '', act_expiry: ''
   });
 
-  const fetchData = async () => {
+  // Debounce search input (300ms)
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearch(search);
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [search]);
+
+  const safeVehicles = React.useMemo(() => {
+    return Array.isArray(vehicles) ? vehicles : (vehicles?.data || []);
+  }, [vehicles]);
+
+  const safeCustomers = React.useMemo(() => {
+    return Array.isArray(customers) ? customers : (customers?.data || []);
+  }, [customers]);
+
+  // Load dropdown data once on mount
+  const fetchDropdownData = async () => {
     try {
-      const [vehRes, custRes, mdRes] = await Promise.all([
-        api.get(`/vehicles?search=${search}`),
-        api.get('/customers'),
+      const [custRes, mdRes] = await Promise.all([
+        api.get('/customers?all=true'),
         api.get('/master-data?category=VehicleType')
       ]);
-      setVehicles(vehRes.data);
-      setCustomers(custRes.data);
-      setVehicleTypes(mdRes.data.map(m => ({ value: m.value, label: m.value })));
+      const custList = Array.isArray(custRes.data) ? custRes.data : (custRes.data?.data || []);
+      setCustomers(custList);
+      const mdList = Array.isArray(mdRes.data) ? mdRes.data : (mdRes.data?.data || []);
+      setVehicleTypes(mdList.map(m => ({ value: m.value, label: m.value })));
     } catch (error) {
-      console.error(error);
+      console.error('Fetch dropdown data error:', error);
     }
   };
 
   useEffect(() => {
-    fetchData();
-  }, [search]);
+    fetchDropdownData();
+  }, []);
+
+  const fetchVehicles = async () => {
+    try {
+      const vehRes = await api.get(`/vehicles?search=${encodeURIComponent(debouncedSearch.trim())}`);
+      const vehList = Array.isArray(vehRes.data) ? vehRes.data : (vehRes.data?.data || []);
+      setVehicles(vehList);
+    } catch (error) {
+      console.error('Fetch vehicles error:', error);
+      setVehicles([]);
+    }
+  };
+
+  const fetchData = () => {
+    fetchVehicles();
+    fetchDropdownData();
+  };
+
+  useEffect(() => {
+    fetchVehicles();
+  }, [debouncedSearch]);
 
   const handleOpenModal = (v = null) => {
     if (v) {
@@ -102,7 +140,10 @@ const Vehicles = () => {
     }
   };
 
-  const customerOptions = customers.map(c => ({ value: c.id, label: `${c.customer_code} - ${c.first_name} ${c.last_name}` }));
+  const customerOptions = safeCustomers.map(c => ({ 
+    value: c.id, 
+    label: `${c.customer_code || ''} - ${c.first_name || ''} ${c.last_name || ''}`.trim() 
+  }));
 
   return (
     <div>
@@ -115,13 +156,26 @@ const Vehicles = () => {
 
       <div className="card shadow-sm border-0 mb-4">
         <div className="card-body">
-          <input 
-            type="text" 
-            className="form-control form-control-lg" 
-            placeholder="ค้นหาทะเบียนรถ, ชื่อลูกค้า, เลขตัวถัง..." 
-            value={search} 
-            onChange={(e) => setSearch(e.target.value)} 
-          />
+          <div className="position-relative">
+            <input 
+              type="text" 
+              className="form-control form-control-lg pe-5" 
+              placeholder="ค้นหาทะเบียนรถ, ชื่อลูกค้า, เลขตัวถัง, ยี่ห้อ, รุ่น..." 
+              value={search} 
+              onChange={(e) => setSearch(e.target.value)} 
+            />
+            {search && (
+              <button 
+                type="button"
+                className="btn btn-link position-absolute top-50 end-0 translate-middle-y text-muted text-decoration-none me-2"
+                onClick={() => setSearch('')}
+                style={{ fontSize: '1.2rem', padding: '0 8px' }}
+                title="ล้างคำค้นหา"
+              >
+                ✕
+              </button>
+            )}
+          </div>
         </div>
       </div>
 

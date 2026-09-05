@@ -30,7 +30,16 @@ const Documents = () => {
   const [policies, setPolicies] = useState([]);
   const [vehicles, setVehicles] = useState([]);
   const [search, setSearch] = useState('');
+  const [debouncedSearch, setDebouncedSearch] = useState('');
   const [viewMode, setViewMode] = useState('active'); // 'active' or 'trash'
+
+  // Debounce search input (300ms)
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearch(search);
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [search]);
   
   const [showUploadModal, setShowUploadModal] = useState(false);
   const [showPreviewModal, setShowPreviewModal] = useState(false);
@@ -48,7 +57,7 @@ const Documents = () => {
   const fetchDocuments = async () => {
     try {
       const statusParam = viewMode === 'trash' ? '&status=deleted' : '';
-      const res = await api.get(`/documents?search=${search}${statusParam}`);
+      const res = await api.get(`/documents?search=${encodeURIComponent(debouncedSearch.trim())}${statusParam}`);
       setDocuments(Array.isArray(res.data) ? res.data : []);
     } catch (error) {
       console.error(error);
@@ -59,14 +68,14 @@ const Documents = () => {
     try {
       const [typeRes, custRes, polRes, vehRes] = await Promise.all([
         api.get('/documents/types').catch(() => ({ data: [] })),
-        api.get('/customers').catch(() => ({ data: [] })),
-        api.get('/policies').catch(() => ({ data: [] })),
+        api.get('/customers?all=true').catch(() => ({ data: [] })),
+        api.get('/policies?limit=1000').catch(() => ({ data: [] })),
         api.get('/vehicles').catch(() => ({ data: [] }))
       ]);
-      setDocumentTypes(Array.isArray(typeRes.data) ? typeRes.data : []);
-      setCustomers(Array.isArray(custRes.data) ? custRes.data : []);
-      setPolicies(Array.isArray(polRes.data) ? polRes.data : []);
-      setVehicles(Array.isArray(vehRes.data) ? vehRes.data : []);
+      setDocumentTypes(Array.isArray(typeRes.data) ? typeRes.data : (typeRes.data?.data || []));
+      setCustomers(Array.isArray(custRes.data) ? custRes.data : (custRes.data?.data || []));
+      setPolicies(Array.isArray(polRes.data) ? polRes.data : (polRes.data?.data || []));
+      setVehicles(Array.isArray(vehRes.data) ? vehRes.data : (vehRes.data?.data || []));
     } catch (error) {
       console.error(error);
     }
@@ -74,7 +83,7 @@ const Documents = () => {
 
   useEffect(() => {
     fetchDocuments();
-  }, [search, viewMode]);
+  }, [debouncedSearch, viewMode]);
 
   useEffect(() => {
     fetchDependencies();
@@ -168,10 +177,15 @@ const Documents = () => {
     setShowPreviewModal(true);
   };
 
-  const customerOptions = customers.map(c => ({ value: c.id, label: `${c.customer_code} - ${c.first_name} ${c.last_name}` }));
-  const policyOptions = policies.filter(p => p.customer_id === formData.customer_id).map(p => ({ value: p.id, label: `${p.policy_no} (${p.type})` }));
-  const vehicleOptions = vehicles.filter(v => v.customer_id === formData.customer_id).map(v => ({ value: v.id, label: `${v.plate_no} ${v.plate_province} - ${v.brand}` }));
-  const typeOptions = documentTypes.map(t => ({ value: t.id, label: t.name }));
+  const safeCustomers = Array.isArray(customers) ? customers : (customers?.data || []);
+  const safePolicies = Array.isArray(policies) ? policies : (policies?.data || []);
+  const safeVehicles = Array.isArray(vehicles) ? vehicles : (vehicles?.data || []);
+  const safeDocumentTypes = Array.isArray(documentTypes) ? documentTypes : (documentTypes?.data || []);
+
+  const customerOptions = safeCustomers.map(c => ({ value: c.id, label: `${c.customer_code || ''} - ${c.first_name || ''} ${c.last_name || ''}`.trim() }));
+  const policyOptions = safePolicies.filter(p => p.customer_id === formData.customer_id).map(p => ({ value: p.id, label: `${p.policy_no || ''} (${p.type || ''})` }));
+  const vehicleOptions = safeVehicles.filter(v => v.customer_id === formData.customer_id).map(v => ({ value: v.id, label: `${v.plate_no || ''} ${v.plate_province || ''} - ${v.brand || ''}`.trim() }));
+  const typeOptions = safeDocumentTypes.map(t => ({ value: t.id, label: t.name }));
 
   const getGroupedDocuments = () => {
     const groups = {};

@@ -25,10 +25,34 @@ router.get('/', authenticateToken, async (req, res) => {
     params.push(vehicle_id);
   }
   
-  if (search) {
-    conditions.push(`(p.policy_no LIKE ? OR c.first_name LIKE ? OR c.last_name LIKE ? OR v.plate_no LIKE ?)`);
-    const s = `%${search}%`;
-    params.push(s, s, s, s);
+  if (search && search.trim()) {
+    const trimmed = search.trim();
+    const s = `%${trimmed}%`;
+    const cleanSearch = `%${trimmed.replace(/[\s-]/g, '')}%`;
+    conditions.push(`(
+      p.policy_no LIKE ? OR 
+      c.first_name LIKE ? OR 
+      c.last_name LIKE ? OR 
+      CONCAT(IFNULL(c.prefix, ''), IFNULL(c.first_name, ''), ' ', IFNULL(c.last_name, '')) LIKE ? OR
+      CONCAT(IFNULL(c.first_name, ''), ' ', IFNULL(c.last_name, '')) LIKE ? OR
+      c.phone LIKE ? OR
+      c.customer_code LIKE ? OR
+      c.id_card_no LIKE ? OR
+      p.company LIKE ? OR
+      p.type LIKE ? OR
+      v.plate_no LIKE ? OR
+      v.plate_province LIKE ? OR
+      v.brand LIKE ? OR
+      v.model LIKE ? OR
+      v.vin LIKE ? OR
+      v.engine_no LIKE ? OR
+      REPLACE(REPLACE(IFNULL(v.plate_no, ''), ' ', ''), '-', '') LIKE ? OR
+      REPLACE(REPLACE(IFNULL(v.vin, ''), ' ', ''), '-', '') LIKE ?
+    )`);
+    params.push(
+      s, s, s, s, s, s, s, s, s, s, s, s, s, s, s, s,
+      cleanSearch, cleanSearch
+    );
   }
 
   let whereClause = '';

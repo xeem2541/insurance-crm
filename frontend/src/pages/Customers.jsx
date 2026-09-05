@@ -42,10 +42,20 @@ const Customers = () => {
   const [customers, setCustomers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState(() => sessionStorage.getItem('customersSearch') || '');
+  const [debouncedSearch, setDebouncedSearch] = useState(search);
   const [selectedMonth, setSelectedMonth] = useState(() => sessionStorage.getItem('customersMonth') || ''); // Month filter
   const [showModal, setShowModal] = useState(false);
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
+  
+  // Debounce search input (300ms)
+  useEffect(() => {
+    sessionStorage.setItem('customersSearch', search);
+    const timer = setTimeout(() => {
+      setDebouncedSearch(search);
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [search]);
   
   // Master Data
   const [leadSources, setLeadSources] = useState([]);
@@ -70,13 +80,23 @@ const Customers = () => {
   const exportToExcel = () => {
     const dataToExport = customers.map(c => ({
       'รหัสลูกค้า': c.customer_code,
-      'คำนำหน้า': c.prefix || '',
+      'คำนำหน้า': c.prefix,
       'ชื่อ': c.first_name,
       'นามสกุล': c.last_name,
+      'เลขบัตรประชาชน': c.id_card_no,
       'เบอร์โทรศัพท์': c.phone,
-      'LINE ID': c.line_id || '',
+      'เบอร์โทรศัพท์สำรอง': c.alt_phone || '',
+      'Line ID': c.line_id || '',
+      'Facebook': c.facebook || '',
+      'วันเกิด': c.dob ? c.dob.split('T')[0] : '',
+      'อายุ': c.age || '',
+      'ที่อยู่': c.address || '',
+      'ตำบล/แขวง': c.sub_district || '',
+      'อำเภอ/เขต': c.district || '',
+      'จังหวัด': c.province || '',
+      'รหัสไปรษณีย์': c.zipcode || '',
       'สถานะลูกค้า': c.customer_status,
-      'สถานะการขาย': c.lead_status,
+      'สถานะ Lead': c.lead_status,
       'ที่มา': c.source || '',
       'วันที่สร้าง': c.created_at ? c.created_at.split('T')[0] : ''
     }));
@@ -97,12 +117,13 @@ const Customers = () => {
     setLoading(true);
     try {
       const [custRes, mdRes] = await Promise.all([
-        api.get(`/customers?search=${search}&month=${selectedMonth}&page=${page}&limit=50`),
+        api.get(`/customers?search=${encodeURIComponent(debouncedSearch.trim())}&month=${selectedMonth}&page=${page}&limit=50`),
         api.get('/master-data')
       ]);
-      setCustomers(custRes.data.data || []);
-      setTotalPages(custRes.data.totalPages || 1);
-      const md = mdRes.data;
+      const custList = custRes.data?.data || (Array.isArray(custRes.data) ? custRes.data : []);
+      setCustomers(custList);
+      setTotalPages(custRes.data?.totalPages || 1);
+      const md = Array.isArray(mdRes.data) ? mdRes.data : (mdRes.data?.data || []);
       setLeadSources(md.filter(m => m.category === 'LeadSource').map(m => ({ value: m.value, label: m.value })));
     } catch (error) {
       console.error(error);
@@ -112,10 +133,9 @@ const Customers = () => {
   };
 
   useEffect(() => {
-    sessionStorage.setItem('customersSearch', search);
     sessionStorage.setItem('customersMonth', selectedMonth);
     fetchData();
-  }, [search, selectedMonth, page]);
+  }, [debouncedSearch, selectedMonth, page]);
 
   // Reset page when search or month changes
   useEffect(() => {
@@ -206,14 +226,26 @@ const Customers = () => {
 
       <div className="card shadow-sm border-0 mb-4">
         <div className="card-body d-flex gap-2 flex-wrap">
-          <input 
-            type="text" 
-            className="form-control form-control-lg flex-grow-1" 
-            placeholder="ค้นหาชื่อ, เบอร์โทร, เลขบัตรประชาชน, ทะเบียนรถ..." 
-            value={search} 
-            onChange={(e) => setSearch(e.target.value)} 
-            style={{ minWidth: '200px' }}
-          />
+          <div className="position-relative flex-grow-1" style={{ minWidth: '200px' }}>
+            <input 
+              type="text" 
+              className="form-control form-control-lg pe-5" 
+              placeholder="ค้นหาชื่อ, เบอร์โทร, เลขบัตรประชาชน, ทะเบียนรถ..." 
+              value={search} 
+              onChange={(e) => setSearch(e.target.value)} 
+            />
+            {search && (
+              <button 
+                type="button"
+                className="btn btn-link position-absolute top-50 end-0 translate-middle-y text-muted text-decoration-none me-2"
+                onClick={() => setSearch('')}
+                style={{ fontSize: '1.2rem', padding: '0 8px' }}
+                title="ล้างคำค้นหา"
+              >
+                ✕
+              </button>
+            )}
+          </div>
           <input 
             type="month" 
             className="form-control form-control-lg" 

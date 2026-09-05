@@ -8,9 +8,10 @@ router.get('/', authenticateToken, async (req, res) => {
   const { search, month, page, limit } = req.query;
   
   // Pagination parameters
-  const currentPage = parseInt(page) || 1;
-  const itemsPerPage = parseInt(limit) || 50;
-  const offset = (currentPage - 1) * itemsPerPage;
+  const isAll = req.query.all === 'true' || req.query.limit === 'all';
+  const currentPage = isAll ? 1 : (parseInt(page) || 1);
+  const itemsPerPage = isAll ? 10000 : (parseInt(limit) || 50);
+  const offset = isAll ? 0 : (currentPage - 1) * itemsPerPage;
   
   let conditions = [];
   let params = [];

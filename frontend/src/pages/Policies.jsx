@@ -35,14 +35,36 @@ const Policies = () => {
   const [vehicles, setVehicles] = useState([]);
   const [salesPersons, setSalesPersons] = useState([]);
   const [search, setSearch] = useState(() => sessionStorage.getItem('policiesSearch') || '');
+  const [debouncedSearch, setDebouncedSearch] = useState(search);
   const [showModal, setShowModal] = useState(false);
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   
   const [sortConfig, setSortConfig] = useState({ key: 'start_date', direction: 'descending' });
 
+  // Debounce search input (300ms)
+  useEffect(() => {
+    sessionStorage.setItem('policiesSearch', search);
+    const timer = setTimeout(() => {
+      setDebouncedSearch(search);
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [search]);
+
+  const safePolicies = React.useMemo(() => {
+    return Array.isArray(policies) ? policies : (policies?.data || []);
+  }, [policies]);
+
+  const safeCustomers = React.useMemo(() => {
+    return Array.isArray(customers) ? customers : (customers?.data || []);
+  }, [customers]);
+
+  const safeVehicles = React.useMemo(() => {
+    return Array.isArray(vehicles) ? vehicles : (vehicles?.data || []);
+  }, [vehicles]);
+
   const sortedPolicies = React.useMemo(() => {
-    let sortablePolicies = [...policies];
+    let sortablePolicies = [...safePolicies];
     if (sortConfig !== null) {
       sortablePolicies.sort((a, b) => {
         let aVal = a[sortConfig.key];
@@ -69,7 +91,7 @@ const Policies = () => {
       });
     }
     return sortablePolicies;
-  }, [policies, sortConfig]);
+  }, [safePolicies, sortConfig]);
 
   const requestSort = (key) => {
     let direction = 'ascending';
@@ -86,7 +108,7 @@ const Policies = () => {
   const [paymentMethods, setPaymentMethods] = useState([]);
 
   const exportToExcel = () => {
-    const dataToExport = policies.map(p => ({
+    const dataToExport = safePolicies.map(p => ({
       'เลขกรมธรรม์': p.policy_no,
       'ลูกค้า': `${p.first_name} ${p.last_name}`,
       'ทะเบียนรถ': p.plate_no || '-',
@@ -115,40 +137,61 @@ const Policies = () => {
     repair_type: 'อู่'
   });
 
-  const fetchData = async () => {
-    setLoading(true);
+  // Load dropdown data once on mount
+  const fetchDropdownData = async () => {
     try {
-      const [polRes, custRes, vehRes, mdRes] = await Promise.all([
-        api.get(`/policies?search=${search}&page=${page}&limit=50`),
-        api.get('/customers'),
+      const [custRes, vehRes, mdRes] = await Promise.all([
+        api.get('/customers?all=true'),
         api.get('/vehicles'),
         api.get('/master-data')
       ]);
-      setPolicies(polRes.data.data || []);
-      setTotalPages(polRes.data.totalPages || 1);
-      setCustomers(custRes.data);
-      setVehicles(vehRes.data);
+      const custList = Array.isArray(custRes.data) ? custRes.data : (custRes.data?.data || []);
+      const vehList = Array.isArray(vehRes.data) ? vehRes.data : (vehRes.data?.data || []);
+      setCustomers(custList);
+      setVehicles(vehList);
       
-      const md = mdRes.data;
+      const md = Array.isArray(mdRes.data) ? mdRes.data : (mdRes.data?.data || []);
       setPolicyTypes(md.filter(m => m.category === 'PolicyType').map(m => ({ value: m.value, label: m.value })));
       setCompanies(md.filter(m => m.category === 'InsuranceCompany').map(m => ({ value: m.value, label: m.value })));
       setJobStatuses(md.filter(m => m.category === 'JobStatus').map(m => ({ value: m.value, label: m.value })));
       setPaymentMethods(md.filter(m => m.category === 'PaymentMethod').map(m => ({ value: m.value, label: m.value })));
+    } catch (err) {
+      console.error('Fetch dropdown data error:', err);
+    }
+  };
+
+  useEffect(() => {
+    fetchDropdownData();
+  }, []);
+
+  // Fetch policies list on search/page change
+  const fetchPolicies = async () => {
+    setLoading(true);
+    try {
+      const polRes = await api.get(`/policies?search=${encodeURIComponent(debouncedSearch.trim())}&page=${page}&limit=50`);
+      const polData = polRes.data?.data || (Array.isArray(polRes.data) ? polRes.data : []);
+      setPolicies(polData);
+      setTotalPages(polRes.data?.totalPages || 1);
     } catch (error) {
-      console.error(error);
+      console.error('Fetch policies error:', error);
+      setPolicies([]);
     } finally {
       setLoading(false);
     }
   };
 
+  const fetchData = () => {
+    fetchPolicies();
+    fetchDropdownData();
+  };
+
   useEffect(() => {
-    sessionStorage.setItem('policiesSearch', search);
-    fetchData();
-  }, [search, page]);
+    fetchPolicies();
+  }, [debouncedSearch, page]);
 
   useEffect(() => {
     setPage(1);
-  }, [search]);
+  }, [debouncedSearch]);
 
   const handleCalculate = () => {
     const net = parseFloat(formData.net_premium) || 0;
@@ -242,8 +285,11 @@ const Policies = () => {
     return <span className="badge bg-secondary">{status}</span>;
   };
 
-  const customerOptions = customers.map(c => ({ value: c.id, label: `${c.customer_code} - ${c.first_name} ${c.last_name}` }));
-  const vehicleOptions = vehicles.filter(v => v.customer_id === formData.customer_id).map(v => ({ 
+  const customerOptions = safeCustomers.map(c => ({ 
+    value: c.id, 
+    label: `${c.customer_code || ''} - ${c.first_name || ''} ${c.last_name || ''}`.trim() 
+  }));
+  const vehicleOptions = safeVehicles.filter(v => v.customer_id === formData.customer_id).map(v => ({ 
     value: v.id, 
     label: `${v.plate_no || ''} ${v.plate_province && v.plate_province !== 'null' ? v.plate_province : ''} ${v.brand && v.brand !== 'null' ? `- ${v.brand}` : ''}`.trim()
   }));
@@ -264,13 +310,26 @@ const Policies = () => {
 
       <div className="card shadow-sm border-0 mb-4">
         <div className="card-body">
-          <input 
-            type="text" 
-            className="form-control form-control-lg" 
-            placeholder="ค้นหาเลขกรมธรรม์, ชื่อลูกค้า, ทะเบียนรถ..." 
-            value={search} 
-            onChange={(e) => setSearch(e.target.value)} 
-          />
+          <div className="position-relative">
+            <input 
+              type="text" 
+              className="form-control form-control-lg pe-5" 
+              placeholder="ค้นหาเลขกรมธรรม์, ชื่อลูกค้า, ทะเบียนรถ, ยี่ห้อ, รุ่น, บริษัทประกัน, เบอร์โทร..." 
+              value={search} 
+              onChange={(e) => setSearch(e.target.value)} 
+            />
+            {search && (
+              <button 
+                type="button"
+                className="btn btn-link position-absolute top-50 end-0 translate-middle-y text-muted text-decoration-none me-2"
+                onClick={() => setSearch('')}
+                style={{ fontSize: '1.2rem', padding: '0 8px' }}
+                title="ล้างคำค้นหา"
+              >
+                ✕
+              </button>
+            )}
+          </div>
         </div>
       </div>
 

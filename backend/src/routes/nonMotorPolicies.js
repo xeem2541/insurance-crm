@@ -15,14 +15,38 @@ router.get('/', authenticateToken, async (req, res) => {
       JOIN customers c ON p.customer_id = c.id
       LEFT JOIN non_motor_types t ON p.non_motor_type_id = t.id
       LEFT JOIN users u ON p.sales_person_id = u.id
-      WHERE (c.first_name LIKE ? OR c.last_name LIKE ? OR p.policy_no LIKE ?)
     `;
 
+    let conditions = [];
+    let params = [];
+
+    if (search && search.trim()) {
+      const trimmed = search.trim();
+      const s = `%${trimmed}%`;
+      conditions.push(`(
+        p.policy_no LIKE ? OR
+        c.first_name LIKE ? OR
+        c.last_name LIKE ? OR
+        CONCAT(IFNULL(c.prefix, ''), IFNULL(c.first_name, ''), ' ', IFNULL(c.last_name, '')) LIKE ? OR
+        CONCAT(IFNULL(c.first_name, ''), ' ', IFNULL(c.last_name, '')) LIKE ? OR
+        c.phone LIKE ? OR
+        c.customer_code LIKE ? OR
+        c.id_card_no LIKE ? OR
+        p.company LIKE ? OR
+        p.insured_name LIKE ? OR
+        t.name LIKE ?
+      )`);
+      params.push(s, s, s, s, s, s, s, s, s, s, s);
+    }
+
     // Filter by sales person if the user is Sales
-    let params = [`%${search}%`, `%${search}%`, `%${search}%`];
     if (req.user.role === 'Sales') {
-      baseQuery += ` AND p.sales_person_id = ?`;
+      conditions.push(`p.sales_person_id = ?`);
       params.push(req.user.id);
+    }
+
+    if (conditions.length > 0) {
+      baseQuery += ` WHERE ` + conditions.join(' AND ');
     }
 
     // 1. Get total count
