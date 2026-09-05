@@ -63,7 +63,7 @@ router.get('/', authenticateToken, async (req, res) => {
 
     // 2. Get data (optimize select fields for dropdown lists)
     const selectFields = isAll
-      ? `c.id, c.customer_code, c.prefix, c.first_name, c.last_name, c.phone, c.id_card_no, c.email`
+      ? `c.id, c.customer_code, c.prefix, c.first_name, c.last_name, c.phone, c.id_card_no`
       : `c.*, 
         (SELECT v.plate_no FROM vehicles v WHERE v.customer_id = c.id ORDER BY v.created_at DESC LIMIT 1) as plate_no,
         (SELECT CONCAT(p.company, ' - ', p.type) FROM policies p WHERE p.customer_id = c.id ORDER BY p.created_at DESC LIMIT 1) as motor_type,
