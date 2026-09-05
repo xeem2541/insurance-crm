@@ -12,13 +12,16 @@ export default defineConfig({
     }
   },
   build: {
-    chunkSizeWarningLimit: 2000,
+    chunkSizeWarningLimit: 1200,
     rollupOptions: {
       output: {
         manualChunks: {
           vendor: ['react', 'react-dom', 'react-router-dom'],
           ui: ['react-bootstrap', 'bootstrap'],
-          utils: ['jspdf', 'html2canvas', 'moment', 'react-big-calendar']
+          charts: ['chart.js', 'react-chartjs-2', 'recharts'],
+          export: ['jspdf', 'jspdf-autotable', 'xlsx'],
+          calendar: ['moment', 'react-big-calendar'],
+          motion: ['framer-motion', 'lucide-react']
         }
       }
     }

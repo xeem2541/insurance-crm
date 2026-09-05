@@ -1,26 +1,31 @@
-import React, { useContext, Component } from 'react';
+import React, { useContext, Component, Suspense, lazy } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, AuthContext } from './contexts/AuthContext';
 import { ThemeProvider } from './contexts/ThemeContext';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import Layout from './components/Layout';
+
+// Eager load critical initial pages
 import Login from './pages/Login';
-import Register from './pages/Register';
 import Dashboard from './pages/Dashboard';
-import Customers from './pages/Customers';
-import Vehicles from './pages/Vehicles';
-import Policies from './pages/Policies';
-import Documents from './pages/Documents';
-import Reports from './pages/Reports';
-import MasterData from './pages/MasterData';
-import CalendarView from './pages/CalendarView';
-import PrintPolicy from './pages/PrintPolicy';
-import PrintReceipt from './pages/PrintReceipt';
-import Payments from './pages/Payments';
-import NonMotorPolicies from './pages/NonMotorPolicies';
-import IssuePolicyMotorForm from './pages/IssuePolicyMotorForm';
-import IssuePolicyNonMotorForm from './pages/IssuePolicyNonMotorForm';
-import ActivityLogs from './pages/ActivityLogs';
-import MobileDashboard from './pages/MobileDashboard';
+
+// Lazy load secondary pages on-demand for maximum smoothness & fast initial bundle
+const Register = lazy(() => import('./pages/Register'));
+const Customers = lazy(() => import('./pages/Customers'));
+const Vehicles = lazy(() => import('./pages/Vehicles'));
+const Policies = lazy(() => import('./pages/Policies'));
+const Documents = lazy(() => import('./pages/Documents'));
+const Reports = lazy(() => import('./pages/Reports'));
+const MasterData = lazy(() => import('./pages/MasterData'));
+const CalendarView = lazy(() => import('./pages/CalendarView'));
+const PrintPolicy = lazy(() => import('./pages/PrintPolicy'));
+const PrintReceipt = lazy(() => import('./pages/PrintReceipt'));
+const Payments = lazy(() => import('./pages/Payments'));
+const NonMotorPolicies = lazy(() => import('./pages/NonMotorPolicies'));
+const IssuePolicyMotorForm = lazy(() => import('./pages/IssuePolicyMotorForm'));
+const IssuePolicyNonMotorForm = lazy(() => import('./pages/IssuePolicyNonMotorForm'));
+const ActivityLogs = lazy(() => import('./pages/ActivityLogs'));
+const MobileDashboard = lazy(() => import('./pages/MobileDashboard'));
 
 // Resilient Error Boundary to ensure the web application never crashes to a blank screen
 class ErrorBoundary extends Component {
@@ -141,48 +146,58 @@ const PrivateRoute = ({ children }) => {
   return user ? children : <Navigate to="/login" />;
 };
 
-const AppRoutes = () => {
-  return (
-    <Routes>
-      <Route path="/login" element={<Login />} />
-      <Route path="/register" element={<Register />} />
-      <Route path="/" element={<PrivateRoute><Layout /></PrivateRoute>}>
-        <Route index element={<Dashboard />} />
-        <Route path="issue-policy-motor" element={<IssuePolicyMotorForm />} />
-        <Route path="issue-policy-non-motor" element={<IssuePolicyNonMotorForm />} />
-        <Route path="customers" element={<Customers />} />
-        <Route path="vehicles" element={<Vehicles />} />
-        <Route path="policies" element={<Policies />} />
-        <Route path="non-motor" element={<NonMotorPolicies />} />
-        <Route path="documents" element={<Documents />} />
-        <Route path="calendar" element={<CalendarView />} />
-        <Route path="reports" element={<Reports />} />
-        <Route path="master-data" element={<MasterData />} />
-        <Route path="payments" element={<Payments />} />
-        <Route path="activity-logs" element={<ActivityLogs />} />
-      </Route>
-      {/* Route for printing without Layout (sidebar/header) */}
-      <Route path="/print-policy/:id" element={
-        <PrivateRoute>
-          <PrintPolicy />
-        </PrivateRoute>
-      } />
-      <Route path="/print-receipt/:id" element={
-        <PrivateRoute>
-          <PrintReceipt />
-        </PrivateRoute>
-      } />
-      <Route path="/mobile" element={
-        <PrivateRoute>
-          <MobileDashboard />
-        </PrivateRoute>
-      } />
-      <Route path="*" element={<Navigate to="/" replace />} />
-    </Routes>
-  );
-};
-
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+// Smooth, non-intrusive page loader for on-demand lazy routes
+const PageLoader = () => (
+  <div style={{
+    minHeight: '60vh',
+    display: 'flex',
+    flexDirection: 'column',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: '40px 20px',
+  }}>
+    <div style={{
+      position: 'relative',
+      width: '44px',
+      height: '44px',
+    }}>
+      <div style={{
+        width: '44px',
+        height: '44px',
+        borderRadius: '50%',
+        border: '3px solid rgba(59, 130, 246, 0.15)',
+        borderTop: '3px solid #3b82f6',
+        animation: 'spin 0.8s cubic-bezier(0.4, 0, 0.2, 1) infinite',
+      }} />
+      <div style={{
+        position: 'absolute',
+        top: '6px',
+        left: '6px',
+        width: '32px',
+        height: '32px',
+        borderRadius: '50%',
+        border: '2px solid rgba(245, 158, 11, 0.2)',
+        borderBottom: '2px solid #f59e0b',
+        animation: 'spinReverse 1.2s cubic-bezier(0.4, 0, 0.2, 1) infinite',
+      }} />
+    </div>
+    <p style={{
+      marginTop: '16px',
+      color: '#94a3b8',
+      fontSize: '0.875rem',
+      fontWeight: '500',
+      letterSpacing: '0.02em',
+      animation: 'pulse 1.5s ease-in-out infinite'
+    }}>
+      กำลังโหลดข้อมูล...
+    </p>
+    <style>{`
+      @keyframes spin { to { transform: rotate(360deg); } }
+      @keyframes spinReverse { to { transform: rotate(-360deg); } }
+      @keyframes pulse { 0%, 100% { opacity: 0.6; } 50% { opacity: 1; } }
+    `}</style>
+  </div>
+);
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -190,9 +205,53 @@ const queryClient = new QueryClient({
       refetchOnWindowFocus: false,
       retry: 1,
       staleTime: 5 * 60 * 1000, // 5 minutes
+      gcTime: 10 * 60 * 1000,    // 10 minutes cache retention
     },
   },
 });
+
+const AppRoutes = () => {
+  return (
+    <Suspense fallback={<PageLoader />}>
+      <Routes>
+        <Route path="/login" element={<Login />} />
+        <Route path="/register" element={<Register />} />
+        <Route path="/" element={<PrivateRoute><Layout /></PrivateRoute>}>
+          <Route index element={<Dashboard />} />
+          <Route path="issue-policy-motor" element={<IssuePolicyMotorForm />} />
+          <Route path="issue-policy-non-motor" element={<IssuePolicyNonMotorForm />} />
+          <Route path="customers" element={<Customers />} />
+          <Route path="vehicles" element={<Vehicles />} />
+          <Route path="policies" element={<Policies />} />
+          <Route path="non-motor" element={<NonMotorPolicies />} />
+          <Route path="documents" element={<Documents />} />
+          <Route path="calendar" element={<CalendarView />} />
+          <Route path="reports" element={<Reports />} />
+          <Route path="master-data" element={<MasterData />} />
+          <Route path="payments" element={<Payments />} />
+          <Route path="activity-logs" element={<ActivityLogs />} />
+        </Route>
+        {/* Route for printing without Layout (sidebar/header) */}
+        <Route path="/print-policy/:id" element={
+          <PrivateRoute>
+            <PrintPolicy />
+          </PrivateRoute>
+        } />
+        <Route path="/print-receipt/:id" element={
+          <PrivateRoute>
+            <PrintReceipt />
+          </PrivateRoute>
+        } />
+        <Route path="/mobile" element={
+          <PrivateRoute>
+            <MobileDashboard />
+          </PrivateRoute>
+        } />
+        <Route path="*" element={<Navigate to="/" replace />} />
+      </Routes>
+    </Suspense>
+  );
+};
 
 function App() {
   return (
