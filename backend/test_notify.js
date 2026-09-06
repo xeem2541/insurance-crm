@@ -1,0 +1,1 @@
+const { startCronJobs } = require('./src/cron'); const db = require('./src/config/db'); async function test() { console.log('Testing notification...'); await startCronJobs(db); console.log('Check your LINE!'); process.exit(0); } test(); 

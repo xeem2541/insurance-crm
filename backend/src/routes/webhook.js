@@ -13,21 +13,16 @@ if (process.env.GEMINI_API_KEY) {
   const apiKey = process.env.GEMINI_API_KEY.trim();
   genAI = new GoogleGenerativeAI(apiKey);
   
-  // Set default model first
   generativeModel = genAI.getGenerativeModel({ model: "gemini-3.5-flash" });
 
-  // Debug: Print available models to console and select the best available model dynamically
+  // Select best model
   axios.get(`https://generativelanguage.googleapis.com/v1beta/models`, {
-    headers: {
-      'x-goog-api-key': apiKey
-    }
+    headers: { 'x-goog-api-key': apiKey }
   })
     .then(res => {
       const models = res.data.models
         .filter(m => m.supportedGenerationMethods?.includes('generateContent'))
         .map(m => m.name.replace('models/', ''));
-      
-      console.log("✅ Gemini Models Available:", models.join(", "));
       
       const preferredModels = [
         'gemini-3.5-flash-lite',
@@ -42,12 +37,7 @@ if (process.env.GEMINI_API_KEY) {
       console.log(`🤖 Line Bot initialized with best available model: ${bestModel}`);
     })
     .catch(err => {
-      const errMsg = err.response?.data?.error?.message || err.message;
-      if (errMsg.includes('API key not valid') || errMsg.includes('400') || errMsg.includes('key')) {
-        console.log("ℹ️ Gemini API key in environment (process.env.GEMINI_API_KEY) is invalid. (You can still enter a valid key in the web UI settings).");
-      } else {
-        console.error("❌ Error fetching models:", errMsg);
-      }
+      console.error("❌ Error fetching models:", err.message);
     });
 }
 
@@ -63,23 +53,57 @@ const SYSTEM_PROMPT = `
 4. การเคลม: หากลูกค้าแจ้งอุบัติเหตุหรือต้องการเคลม ให้แสดงความห่วงใยก่อน (เช่น "ทุกคนปลอดภัยไหมคะ?") และแนะนำให้เตรียมเอกสาร หรือรอแอดมินตัวจริงมาช่วยเหลือทันที
 5. ข้อมูลส่วนตัว: ห้ามมโนเลขกรมธรรม์หรือข้อมูลส่วนตัวลูกค้า หากลูกค้าต้องการเช็กข้อมูล ให้แนะนำลูกค้าพิมพ์ "เลขทะเบียนรถ" หรือ "เลขบัตรประชาชน" ส่งมาในแชท เพื่อให้ระบบดึงข้อมูลอัตโนมัติ
 6. ที่ตั้งสำนักงาน: ถ้าลูกค้าถามหาที่ตั้งสำนักงาน แผนที่ พิกัด หรือหน้าร้าน ให้แจ้งว่าเดินทางสะดวก มีที่จอดรถ และแนบลิงก์ Google Maps นี้เสมอ: https://maps.app.goo.gl/uzHeCxL2g3KtWPRd7
+7. ติดต่อพนักงาน: หากลูกค้าดูหงุดหงิด หรือพิมพ์บอกว่า "ขอคุยกับคน", "ติดต่อพนักงาน", "แอดมิน" ให้คุณตอบรับลูกค้าอย่างสุภาพ และ **ต้องพิมพ์คำว่า [NOTIFY_ADMIN] ต่อท้ายข้อความของคุณเสมอ** เพื่อให้ระบบแจ้งเตือนแอดมินที่เป็นคนจริงๆ
 `;
 
 const LINE_ACCESS_TOKEN = process.env.LINE_CHANNEL_ACCESS_TOKEN;
 
-// Store group ID to send notifications to
-const GROUP_ID_FILE = path.join(__dirname, '../../line_group_id.txt');
+// Notify Admin Function
+async function notifyAdminGroup(db, messageText) {
+  try {
+    const [rows] = await db.query("SELECT value FROM master_data WHERE category = 'LINE_GROUP'");
+    if (rows.length > 0) {
+      for (const row of rows) {
+        await axios.post('https://api.line.me/v2/bot/message/push', {
+          to: row.value,
+          messages: [{ type: 'text', text: messageText }]
+        }, {
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${LINE_ACCESS_TOKEN}`
+          }
+        });
+      }
+    }
+  } catch (err) {
+    console.error('Error notifying admin:', err);
+  }
+}
+
+// Image Download Helper
+async function downloadImage(messageId) {
+  try {
+    const response = await axios.get(`https://api-data.line.me/v2/bot/message/${messageId}/content`, {
+      headers: { 'Authorization': `Bearer ${LINE_ACCESS_TOKEN}` },
+      responseType: 'arraybuffer'
+    });
+    return Buffer.from(response.data, 'binary');
+  } catch (error) {
+    console.error('Error downloading image:', error);
+    return null;
+  }
+}
 
 router.post('/', async (req, res) => {
-  res.status(200).send('OK'); // Always return 200 OK immediately for LINE webhooks
+  res.status(200).send('OK'); 
 
   const events = req.body.events;
   if (!events || events.length === 0) return;
 
   for (const event of events) {
-    console.log('Received LINE event:', JSON.stringify(event));
+    console.log('Received LINE event:', event.type);
     
-    // If the bot is invited to a group, or someone types in a group, save the Group ID!
+    // Save Group ID
     if (event.source.type === 'group' || event.source.type === 'room') {
       const groupId = event.source.groupId || event.source.roomId;
       try {
@@ -87,52 +111,43 @@ router.post('/', async (req, res) => {
           "INSERT INTO master_data (category, value) VALUES ('LINE_GROUP', ?) ON DUPLICATE KEY UPDATE value = ?",
           [groupId, groupId]
         );
-        console.log("Saved LINE Group ID:", groupId);
-      } catch (err) {
-        console.error("Error saving group ID:", err);
-      }
+      } catch (err) {}
     } else if (event.source.type === 'user' && event.type === 'message' && event.message.type === 'text') {
       if (event.message.text.trim() === '#admin_notify_on') {
         const userId = event.source.userId;
-        try {
-          await req.db.query(
-            "INSERT INTO master_data (category, value) VALUES ('LINE_GROUP', ?) ON DUPLICATE KEY UPDATE value = ?",
-            [userId, userId]
-          );
-          console.log("Saved LINE Admin User ID:", userId);
-          replyText = '✅ เปิดการแจ้งเตือนสำหรับแอดมินแล้ว';
-        } catch (err) {
-          console.error("Error saving user ID:", err);
-        }
+        await req.db.query(
+          "INSERT INTO master_data (category, value) VALUES ('LINE_GROUP', ?) ON DUPLICATE KEY UPDATE value = ?",
+          [userId, userId]
+        );
+        axios.post('https://api.line.me/v2/bot/message/reply', {
+          replyToken: event.replyToken,
+          messages: [{ type: 'text', text: '✅ เปิดการแจ้งเตือนสำหรับแอดมินแล้ว' }]
+        }, { headers: { 'Authorization': `Bearer ${LINE_ACCESS_TOKEN}` }});
+        continue;
       } else if (event.message.text.trim() === '#admin_notify_off') {
         const userId = event.source.userId;
-        try {
-          await req.db.query(
-            "DELETE FROM master_data WHERE category = 'LINE_GROUP' AND value = ?",
-            [userId]
-          );
-          console.log("Removed LINE Admin User ID:", userId);
-          replyText = '❌ ปิดการแจ้งเตือนสำหรับแอดมินแล้ว';
-        } catch (err) {
-          console.error("Error removing user ID:", err);
-        }
+        await req.db.query("DELETE FROM master_data WHERE category = 'LINE_GROUP' AND value = ?", [userId]);
+        axios.post('https://api.line.me/v2/bot/message/reply', {
+          replyToken: event.replyToken,
+          messages: [{ type: 'text', text: '❌ ปิดการแจ้งเตือนสำหรับแอดมินแล้ว' }]
+        }, { headers: { 'Authorization': `Bearer ${LINE_ACCESS_TOKEN}` }});
+        continue;
       }
     }
 
-    if (event.type === 'message' && event.message.type === 'text') {
-      const text = event.message.text.trim();
-      let replyText = '';
+    if (event.type === 'message' && (event.message.type === 'text' || event.message.type === 'image')) {
+      let text = event.message.type === 'text' ? event.message.text.trim() : '';
+      let replyMessages = [];
       let policyFound = false;
-      
       const isGroupOrRoom = event.source.type === 'group' || event.source.type === 'room';
       
-      // Feature: Leave group/room if requested
       if (isGroupOrRoom && (
         text.includes('ออกจากระบบ') ||
         text.includes('ออกจากกลุ่ม') ||
         text.includes('ออกไป') ||
         text.includes('แอดมิน ออก')
       )) {
+        // Leave group logic
         const replyTextLeave = 'แอดมินเปิ้ลขออนุญาตออกจากกลุ่มก่อนนะคะ หากต้องการใช้งานอีกครั้งสามารถเชิญกลับเข้ามาได้ตลอดเวลาค่ะ 🙏😊';
         try {
           await axios.post('https://api.line.me/v2/bot/message/reply', {
@@ -144,35 +159,24 @@ router.post('/', async (req, res) => {
               'Authorization': `Bearer ${LINE_ACCESS_TOKEN}`
             }
           });
-        } catch (replyError) {
-          console.error('Error replying before leave:', replyError);
-        }
-        
-        const groupId = event.source.groupId || event.source.roomId;
-        const leaveType = event.source.type === 'room' ? 'room' : 'group';
-        try {
-          console.log(`LINE bot leaving ${leaveType}: ${groupId}`);
+          
+          const groupId = event.source.groupId || event.source.roomId;
+          const leaveType = event.source.type === 'room' ? 'room' : 'group';
           await axios.post(`https://api.line.me/v2/bot/${leaveType}/${groupId}/leave`, {}, {
-            headers: {
-              'Authorization': `Bearer ${LINE_ACCESS_TOKEN}`
-            }
+            headers: { 'Authorization': `Bearer ${LINE_ACCESS_TOKEN}` }
           });
           
-          await req.db.query(
-            "DELETE FROM master_data WHERE category = 'LINE_GROUP' AND value = ?",
-            [groupId]
-          );
-          console.log(`Successfully deleted group ${groupId} from master_data`);
-        } catch (leaveError) {
-          console.error(`Error leaving ${leaveType}:`, leaveError.response?.data || leaveError.message);
+          await req.db.query("DELETE FROM master_data WHERE category = 'LINE_GROUP' AND value = ?", [groupId]);
+        } catch (e) {
+          console.error('Error leaving group:', e);
         }
         continue;
       } else if (!isGroupOrRoom && text === 'ออกจากระบบ') {
-        replyText = 'สำหรับแชทเดี่ยว แอดมินไม่สามารถกดออกจากห้องแชทได้ค่ะ หากต้องการยกเลิกการติดต่อ คุณลูกค้าสามารถกดบล็อก (Block) แอดมินได้เลยนะคะ 🙏';
+        replyMessages.push({ type: 'text', text: 'สำหรับแชทเดี่ยว แอดมินไม่สามารถกดออกจากห้องแชทได้ค่ะ หากต้องการยกเลิกการติดต่อ คุณลูกค้าสามารถกดบล็อก (Block) แอดมินได้เลยนะคะ 🙏' });
       }
       
       // Feature: Check policy if text looks like an ID, Plate, or Policy No.
-      if (text.length >= 6) { 
+      if (event.message.type === 'text' && text.length >= 6) { 
         try {
           const [policies] = await req.db.query(`
             SELECT p.policy_no, p.company, p.type, p.expiry_date, v.plate_no, c.first_name
@@ -186,7 +190,44 @@ router.post('/', async (req, res) => {
           if (policies.length > 0) {
             const p = policies[0];
             const expDate = new Date(p.expiry_date).toLocaleDateString('th-TH', { year: 'numeric', month: 'long', day: 'numeric' });
-            replyText = `สวัสดีคุณ ${p.first_name} 👋\n\nกรมธรรม์รถทะเบียน ${p.plate_no || '-'}\nบริษัท: ${p.company} (ชั้น ${p.type})\nเลขกรมธรรม์: ${p.policy_no}\n\n⏳ จะหมดอายุวันที่:\n${expDate}`;
+            
+            // Flex Message for Policy
+            const flexMsg = {
+              type: 'flex',
+              altText: 'ข้อมูลกรมธรรม์ของคุณ',
+              contents: {
+                type: 'bubble',
+                body: {
+                  type: 'box',
+                  layout: 'vertical',
+                  contents: [
+                    { type: 'text', text: '🚗 ข้อมูลกรมธรรม์', weight: 'bold', size: 'xl', color: '#1DB446' },
+                    { type: 'text', text: 'สวัสดีคุณ ' + p.first_name + ' 👋', margin: 'md' },
+                    { type: 'separator', margin: 'md' },
+                    { type: 'box', layout: 'vertical', margin: 'md', spacing: 'sm', contents: [
+                      { type: 'box', layout: 'horizontal', contents: [
+                        { type: 'text', text: 'บริษัท', size: 'sm', color: '#555555', flex: 1 },
+                        { type: 'text', text: p.company + ' (ชั้น ' + p.type + ')', size: 'sm', color: '#111111', flex: 2, wrap: true }
+                      ]},
+                      { type: 'box', layout: 'horizontal', contents: [
+                        { type: 'text', text: 'ทะเบียน', size: 'sm', color: '#555555', flex: 1 },
+                        { type: 'text', text: p.plate_no || '-', size: 'sm', color: '#111111', flex: 2 }
+                      ]},
+                      { type: 'box', layout: 'horizontal', contents: [
+                        { type: 'text', text: 'เลขกรมธรรม์', size: 'sm', color: '#555555', flex: 1 },
+                        { type: 'text', text: p.policy_no, size: 'sm', color: '#111111', flex: 2, wrap: true }
+                      ]}
+                    ]},
+                    { type: 'separator', margin: 'md' },
+                    { type: 'box', layout: 'horizontal', margin: 'md', contents: [
+                      { type: 'text', text: 'วันหมดอายุ', size: 'sm', color: '#555555', flex: 1 },
+                      { type: 'text', text: expDate, size: 'sm', color: '#ff334b', weight: 'bold', flex: 2 }
+                    ]}
+                  ]
+                }
+              }
+            };
+            replyMessages.push(flexMsg);
             policyFound = true;
           }
         } catch (error) {
@@ -194,41 +235,86 @@ router.post('/', async (req, res) => {
         }
       }
 
-      // If no policy is found, and it's a direct message to the bot, use AI.
-      if (!policyFound && event.source.type === 'user') {
+      // Fallback to Gemini AI
+      if (!policyFound && event.source.type === 'user' && !isGroupOrRoom) {
+        const userId = event.source.userId;
         if (generativeModel) {
           try {
-            console.log("Passing message to Gemini API...");
-            
             let currentPrompt = SYSTEM_PROMPT;
             try {
               const [promptRows] = await req.db.query("SELECT value FROM master_data WHERE category = 'BotPrompt' LIMIT 1");
               if (promptRows.length > 0 && promptRows[0].value.trim() !== '') {
                 currentPrompt = promptRows[0].value;
               }
-            } catch(dbErr) {
-              console.error("Error fetching BotPrompt from DB:", dbErr);
+            } catch(dbErr) {}
+
+            // Load Chat History
+            const [historyRows] = await req.db.query(
+              "SELECT role, message FROM chat_history WHERE user_id = ? ORDER BY id ASC LIMIT 10",
+              [userId]
+            );
+            
+            let contents = [];
+            for (const row of historyRows) {
+              contents.push({ role: row.role, parts: [{ text: row.message }] });
             }
 
-            const promptContext = currentPrompt + "\n\nคำถามจากลูกค้า: " + text + "\nตอบลูกค้า:";
-            const result = await generativeModel.generateContent(promptContext);
-            replyText = result.response.text();
+            // Current message part
+            let currentParts = [];
+            if (event.message.type === 'image') {
+              const imageBuffer = await downloadImage(event.message.id);
+              if (imageBuffer) {
+                currentParts.push({
+                  inlineData: { data: imageBuffer.toString('base64'), mimeType: 'image/jpeg' }
+                });
+                currentParts.push({ text: 'ผู้ใช้ส่งรูปภาพมา ช่วยวิเคราะห์หรือตอบกลับรูปภาพนี้' });
+              }
+            } else {
+              currentParts.push({ text: text });
+            }
+
+            contents.push({ role: 'user', parts: currentParts });
+
+            // Initialize Gemini Chat
+            const modelConfig = genAI.getGenerativeModel({
+               model: generativeModel.model,
+               systemInstruction: currentPrompt
+            });
+
+            const result = await modelConfig.generateContent({ contents: contents });
+            let aiText = result.response.text();
+
+            // Admin Notify check
+            if (aiText.includes('[NOTIFY_ADMIN]')) {
+              aiText = aiText.replace('[NOTIFY_ADMIN]', '').trim();
+              notifyAdminGroup(req.db, `🚨 ผู้ใช้ (ID: ${userId}) ขอคุยกับพนักงาน!\n\nข้อความล่าสุด: ${text}`);
+            }
+
+            replyMessages.push({ type: 'text', text: aiText });
+
+            // Save to Chat History
+            if (event.message.type === 'text') {
+               await req.db.query("INSERT INTO chat_history (user_id, role, message) VALUES (?, 'user', ?)", [userId, text]);
+            } else if (event.message.type === 'image') {
+               await req.db.query("INSERT INTO chat_history (user_id, role, message) VALUES (?, 'user', ?)", [userId, '[ส่งรูปภาพ]']);
+            }
+            await req.db.query("INSERT INTO chat_history (user_id, role, message) VALUES (?, 'model', ?)", [userId, aiText]);
+
           } catch (aiError) {
             console.error('Gemini API Error:', aiError);
-            const errMsg = aiError.message ? aiError.message.substring(0, 50) : "Unknown Error";
-            replyText = `ขออภัยค่ะ ตอนนี้สมอง AI ของแอดมินกำลังปรับปรุง ไม่สามารถตอบคำถามได้ชั่วคราวนะคะ 🙏 (Error: ${errMsg})`;
+            const errMsg = aiError.message ? aiError.message.substring(0, 50) : 'Unknown Error';
+            replyMessages.push({ type: 'text', text: `ขออภัยค่ะ ระบบ AI ขัดข้อง (Error: ${errMsg})` });
           }
         } else {
-          // Fallback if no GEMINI_API_KEY is configured
-          replyText = 'ขออภัยค่ะ ไม่พบข้อมูลกรมธรรม์จากรหัสที่คุณพิมพ์มาค่ะ 🥺 (ยังไม่ได้ตั้งค่า API Key สำหรับ AI)';
+          replyMessages.push({ type: 'text', text: 'ขออภัยค่ะ ยังไม่ได้ตั้งค่า API Key สำหรับ AI' });
         }
       }
 
-      if (replyText) {
+      if (replyMessages.length > 0) {
         try {
           await axios.post('https://api.line.me/v2/bot/message/reply', {
             replyToken: event.replyToken,
-            messages: [{ type: 'text', text: replyText }]
+            messages: replyMessages
           }, {
             headers: {
               'Content-Type': 'application/json',
@@ -236,7 +322,7 @@ router.post('/', async (req, res) => {
             }
           });
         } catch (replyError) {
-          console.error('Error replying to LINE:', replyError);
+          console.error('Error replying to LINE:', replyError.response?.data || replyError.message);
         }
       }
     }
