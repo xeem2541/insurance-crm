@@ -216,7 +216,7 @@ router.post('/', async (req, res) => {
           } catch (aiError) {
             console.error('Gemini API Error:', aiError);
             const errMsg = aiError.message ? aiError.message.substring(0, 50) : "Unknown Error";
-            replyText = \`ขออภัยค่ะ ตอนนี้สมอง AI ของแอดมินกำลังปรับปรุง ไม่สามารถตอบคำถามได้ชั่วคราวนะคะ 🙏 (Error: \${errMsg})\`;
+            replyText = `ขออภัยค่ะ ตอนนี้สมอง AI ของแอดมินกำลังปรับปรุง ไม่สามารถตอบคำถามได้ชั่วคราวนะคะ 🙏 (Error: ${errMsg})`;
           }
         } else {
           // Fallback if no GEMINI_API_KEY is configured
