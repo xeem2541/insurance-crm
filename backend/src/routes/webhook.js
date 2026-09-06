@@ -285,12 +285,27 @@ router.post('/', async (req, res) => {
             }
 
             // Initialize Gemini Chat
-            const modelConfig = genAI.getGenerativeModel({
+            const primaryModelConfig = genAI.getGenerativeModel({
                model: generativeModel.model,
                systemInstruction: currentPrompt
             });
+            const fallbackModelConfig = genAI.getGenerativeModel({
+               model: 'gemini-1.5-flash',
+               systemInstruction: currentPrompt
+            });
 
-            const result = await modelConfig.generateContent({ contents: contents });
+            let result;
+            try {
+              result = await primaryModelConfig.generateContent({ contents: contents });
+            } catch (primaryErr) {
+              console.warn(`Primary model (${generativeModel.model}) failed: ${primaryErr.message}. Trying fallback model...`);
+              try {
+                result = await fallbackModelConfig.generateContent({ contents: contents });
+              } catch (fallbackErr) {
+                throw fallbackErr; // If fallback also fails, throw to the main catch block
+              }
+            }
+            
             let aiText = result.response.text();
 
             // Admin Notify check
@@ -311,8 +326,7 @@ router.post('/', async (req, res) => {
 
           } catch (aiError) {
             console.error('Gemini API Error:', aiError);
-            const errMsg = aiError.message ? aiError.message.substring(0, 50) : 'Unknown Error';
-            replyMessages.push({ type: 'text', text: `ขออภัยค่ะ ระบบ AI ขัดข้อง (Error: ${errMsg})` });
+            replyMessages.push({ type: 'text', text: `ขออภัยค่ะ ตอนนี้ระบบแอดมินเปิ้ลมีผู้ใช้งานเยอะมาก หรือระบบขัดข้องชั่วคราว รบกวนคุณลูกค้าพิมพ์ข้อความอีกครั้งในภายหลังนะคะ 🙏` });
           }
         } else {
           replyMessages.push({ type: 'text', text: 'ขออภัยค่ะ ยังไม่ได้ตั้งค่า API Key สำหรับ AI' });
