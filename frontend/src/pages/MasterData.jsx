@@ -27,9 +27,14 @@ const MasterData = () => {
   const [showUserModal, setShowUserModal] = useState(false);
   const [userFormData, setUserFormData] = useState({ id: null, username: '', password: '', name: '', role: 'Sales' });
 
+  // For Bot Prompt
+  const [botPromptData, setBotPromptData] = useState({ id: null, value: '' });
+  const [botPromptMsg, setBotPromptMsg] = useState({ type: '', text: '' });
+
   const fetchData = async () => {
-    if (activeTab === 'system_clear' || activeTab === 'system_password' || activeTab === 'system_users') {
+    if (activeTab === 'system_clear' || activeTab === 'system_password' || activeTab === 'system_users' || activeTab === 'BotPrompt') {
       if (activeTab === 'system_users') fetchUsers();
+      if (activeTab === 'BotPrompt') fetchBotPrompt();
       return;
     }
     try {
@@ -37,6 +42,35 @@ const MasterData = () => {
       setDataList(res.data);
     } catch (error) {
       console.error(error);
+    }
+  };
+
+  const fetchBotPrompt = async () => {
+    try {
+      const res = await api.get('/master-data?category=BotPrompt');
+      if (res.data && res.data.length > 0) {
+        setBotPromptData({ id: res.data[0].id, value: res.data[0].value });
+      } else {
+        setBotPromptData({ id: null, value: '' });
+      }
+    } catch (error) {
+      console.error(error);
+    }
+  };
+
+  const handleBotPromptSubmit = async (e) => {
+    e.preventDefault();
+    setBotPromptMsg({ type: '', text: '' });
+    try {
+      if (botPromptData.id) {
+        await api.put(`/master-data/${botPromptData.id}`, { value: botPromptData.value });
+      } else {
+        await api.post('/master-data', { category: 'BotPrompt', value: botPromptData.value });
+      }
+      setBotPromptMsg({ type: 'success', text: 'บันทึกการตั้งค่า AI บอทสำเร็จ!' });
+      fetchBotPrompt();
+    } catch (error) {
+      setBotPromptMsg({ type: 'danger', text: error.response?.data?.error || 'เกิดข้อผิดพลาด' });
     }
   };
 
@@ -279,6 +313,15 @@ const MasterData = () => {
             </li>
             <li className="nav-item">
               <button
+                className={`nav-link fw-bold ${activeTab === 'BotPrompt' ? 'active text-primary border-bottom-0' : 'text-muted'}`}
+                onClick={() => setActiveTab('BotPrompt')}
+                style={{ borderRadius: '10px 10px 0 0' }}
+              >
+                <i className="bi bi-robot me-1"></i> ตั้งค่า AI บอท (LINE)
+              </button>
+            </li>
+            <li className="nav-item">
+              <button
                 className={`nav-link fw-bold ${activeTab === 'system_clear' ? 'active text-danger border-bottom-0' : 'text-danger opacity-75'}`}
                 onClick={() => setActiveTab('system_clear')}
                 style={{ borderRadius: '10px 10px 0 0' }}
@@ -292,7 +335,7 @@ const MasterData = () => {
         <div className="card-body p-4">
           
           {/* Master Data Tab Content */}
-          {!['system_clear', 'system_password', 'system_users'].includes(activeTab) && (
+          {!['system_clear', 'system_password', 'system_users', 'BotPrompt'].includes(activeTab) && (
             <>
               <div className="d-flex justify-content-end mb-3">
                 <button className="btn btn-primary fw-bold" onClick={() => handleOpenModal()}>
@@ -421,6 +464,41 @@ const MasterData = () => {
                   </Form.Group>
                   <Button variant="primary" type="submit" className="w-100 fw-bold py-2">
                     บันทึกรหัสผ่านใหม่
+                  </Button>
+                </Form>
+              </div>
+            </div>
+          )}
+
+          {/* Bot Prompt Tab Content */}
+          {activeTab === 'BotPrompt' && (
+            <div className="row justify-content-center py-4">
+              <div className="col-md-10">
+                <h4 className="fw-bold mb-4">ตั้งค่า AI บอท (LINE)</h4>
+                <p className="text-muted mb-4">
+                  กำหนดบุคลิกภาพ, ข้อห้าม, กฎกติกา หรือวิธีตอบคำถามของ แอดมินเปิ้ล (AI) ได้ที่นี่
+                </p>
+                {botPromptMsg.text && (
+                  <div className={`alert alert-${botPromptMsg.type} shadow-sm border-0`} role="alert">
+                    {botPromptMsg.type === 'success' ? <i className="bi bi-check-circle-fill me-2"></i> : <i className="bi bi-exclamation-triangle-fill me-2"></i>}
+                    {botPromptMsg.text}
+                  </div>
+                )}
+                <Form onSubmit={handleBotPromptSubmit}>
+                  <Form.Group className="mb-4">
+                    <Form.Label className="fw-bold">System Prompt (คำสั่งตั้งต้นสำหรับ AI)</Form.Label>
+                    <Form.Control 
+                      as="textarea"
+                      rows={20}
+                      value={botPromptData.value}
+                      onChange={(e) => setBotPromptData({...botPromptData, value: e.target.value})}
+                      required
+                      placeholder="ใส่คำสั่งให้ AI เช่น 'คุณคือ แอดมินเปิ้ล เป็นผู้เชี่ยวชาญด้านประกัน...'"
+                      style={{ fontSize: '14px', fontFamily: 'monospace' }}
+                    />
+                  </Form.Group>
+                  <Button variant="primary" type="submit" className="w-100 fw-bold py-3 shadow-sm">
+                    บันทึก System Prompt
                   </Button>
                 </Form>
               </div>

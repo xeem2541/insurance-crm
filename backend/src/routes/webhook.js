@@ -31,8 +31,10 @@ if (process.env.GEMINI_API_KEY) {
       
       const preferredModels = [
         'gemini-3.5-flash',
+        'gemini-3.1-flash-lite',
         'gemini-2.5-flash',
-        'gemini-3.1-flash-lite'
+        'gemini-2.0-flash',
+        'gemini-1.5-flash'
       ];
       
       const bestModel = preferredModels.find(m => models.includes(m)) || 'gemini-3.5-flash';
@@ -90,7 +92,7 @@ router.post('/', async (req, res) => {
         console.error("Error saving group ID:", err);
       }
     } else if (event.source.type === 'user' && event.type === 'message' && event.message.type === 'text') {
-      if (event.message.text.trim() === 'รับแจ้งเตือน') {
+      if (event.message.text.trim() === '#admin_notify_on') {
         const userId = event.source.userId;
         try {
           await req.db.query(
@@ -98,8 +100,21 @@ router.post('/', async (req, res) => {
             [userId, userId]
           );
           console.log("Saved LINE Admin User ID:", userId);
+          replyText = '✅ เปิดการแจ้งเตือนสำหรับแอดมินแล้ว';
         } catch (err) {
           console.error("Error saving user ID:", err);
+        }
+      } else if (event.message.text.trim() === '#admin_notify_off') {
+        const userId = event.source.userId;
+        try {
+          await req.db.query(
+            "DELETE FROM master_data WHERE category = 'LINE_GROUP' AND value = ?",
+            [userId]
+          );
+          console.log("Removed LINE Admin User ID:", userId);
+          replyText = '❌ ปิดการแจ้งเตือนสำหรับแอดมินแล้ว';
+        } catch (err) {
+          console.error("Error removing user ID:", err);
         }
       }
     }
@@ -184,7 +199,18 @@ router.post('/', async (req, res) => {
         if (generativeModel) {
           try {
             console.log("Passing message to Gemini API...");
-            const promptContext = SYSTEM_PROMPT + "\n\nคำถามจากลูกค้า: " + text + "\nตอบลูกค้า:";
+            
+            let currentPrompt = SYSTEM_PROMPT;
+            try {
+              const [promptRows] = await req.db.query("SELECT value FROM master_data WHERE category = 'BotPrompt' LIMIT 1");
+              if (promptRows.length > 0 && promptRows[0].value.trim() !== '') {
+                currentPrompt = promptRows[0].value;
+              }
+            } catch(dbErr) {
+              console.error("Error fetching BotPrompt from DB:", dbErr);
+            }
+
+            const promptContext = currentPrompt + "\n\nคำถามจากลูกค้า: " + text + "\nตอบลูกค้า:";
             const result = await generativeModel.generateContent(promptContext);
             replyText = result.response.text();
           } catch (aiError) {
