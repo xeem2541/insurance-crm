@@ -248,15 +248,20 @@ router.post('/', async (req, res) => {
               }
             } catch(dbErr) {}
 
-            // Load Chat History
+            // Load Chat History (latest 10, chronological)
             const [historyRows] = await req.db.query(
-              "SELECT role, message FROM chat_history WHERE user_id = ? ORDER BY id ASC LIMIT 10",
+              "SELECT role, message FROM (SELECT id, role, message FROM chat_history WHERE user_id = ? ORDER BY id DESC LIMIT 10) sub ORDER BY id ASC",
               [userId]
             );
             
             let contents = [];
             for (const row of historyRows) {
-              contents.push({ role: row.role, parts: [{ text: row.message }] });
+              if (contents.length > 0 && contents[contents.length - 1].role === row.role) {
+                // Merge consecutive messages from the same role
+                contents[contents.length - 1].parts[0].text += '\n' + row.message;
+              } else {
+                contents.push({ role: row.role, parts: [{ text: row.message }] });
+              }
             }
 
             // Current message part
@@ -273,7 +278,11 @@ router.post('/', async (req, res) => {
               currentParts.push({ text: text });
             }
 
-            contents.push({ role: 'user', parts: currentParts });
+            if (contents.length > 0 && contents[contents.length - 1].role === 'user') {
+              contents[contents.length - 1].parts.push(...currentParts);
+            } else {
+              contents.push({ role: 'user', parts: currentParts });
+            }
 
             // Initialize Gemini Chat
             const modelConfig = genAI.getGenerativeModel({
