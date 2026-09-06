@@ -25,11 +25,11 @@ if (process.env.GEMINI_API_KEY) {
         .map(m => m.name.replace('models/', ''));
       
       const preferredModels = [
+        'gemini-3.5-flash',
         'gemini-3.5-flash-lite',
         'gemini-3.1-flash-lite',
         'gemini-2.5-flash-lite',
-        'gemini-flash-lite-latest',
-        'gemini-3.5-flash'
+        'gemini-flash-lite-latest'
       ];
       
       const bestModel = preferredModels.find(m => models.includes(m)) || 'gemini-3.5-flash';
