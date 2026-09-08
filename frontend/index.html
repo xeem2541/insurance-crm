@@ -30,6 +30,35 @@
         window.__REACT_DEVTOOLS_GLOBAL_HOOK__ = window.__REACT_DEVTOOLS_GLOBAL_HOOK__ || {};
         window.__REACT_DEVTOOLS_GLOBAL_HOOK__.isDisabled = true;
       }
+
+      // ป้องกันการกดคลิกขวา (Context Menu)
+      document.addEventListener('contextmenu', function (e) {
+        e.preventDefault();
+      });
+
+      // ป้องกันการกดปุ่มลัดเพื่อเปิด Developer Tools (F12, Ctrl+Shift+I, Ctrl+Shift+J, Ctrl+U)
+      document.addEventListener('keydown', function (e) {
+        // F12
+        if (e.key === 'F12' || e.keyCode === 123) {
+          e.preventDefault();
+        }
+        // Ctrl+Shift+I หรือ Cmd+Option+I (Inspect)
+        if ((e.ctrlKey || e.metaKey) && e.shiftKey && (e.key === 'I' || e.key === 'i' || e.keyCode === 73)) {
+          e.preventDefault();
+        }
+        // Ctrl+Shift+J หรือ Cmd+Option+J (Console)
+        if ((e.ctrlKey || e.metaKey) && e.shiftKey && (e.key === 'J' || e.key === 'j' || e.keyCode === 74)) {
+          e.preventDefault();
+        }
+        // Ctrl+Shift+C หรือ Cmd+Option+C (Inspect Element)
+        if ((e.ctrlKey || e.metaKey) && e.shiftKey && (e.key === 'C' || e.key === 'c' || e.keyCode === 67)) {
+          e.preventDefault();
+        }
+        // Ctrl+U หรือ Cmd+U (View Source)
+        if ((e.ctrlKey || e.metaKey) && (e.key === 'U' || e.key === 'u' || e.keyCode === 85)) {
+          e.preventDefault();
+        }
+      });
     </script>
   </head>
   <body>
