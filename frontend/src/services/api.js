@@ -20,9 +20,14 @@ const api = axios.create({
   withCredentials: true, // Required for sending HttpOnly cookies (refresh token)
 });
 
-// Request Interceptor: Attach Auth Token
+// Request Interceptor: Attach Auth Token and Cache Buster
 api.interceptors.request.use(
   config => {
+    // Add cache buster to GET requests to bypass old CORS cache in browser
+    if (config.method === 'get') {
+      config.params = { ...config.params, _t: Date.now() };
+    }
+
     const token = localStorage.getItem('token');
     if (token) {
       if (config.headers && typeof config.headers.set === 'function') {
