@@ -68,21 +68,15 @@ const allowedOrigins = [
 ].filter(Boolean);
 
 const corsOptions = {
-  origin: function (origin, callback) {
-    // Allow requests with no origin (mobile apps, curl, Vercel cron jobs)
-    if (!origin) {
-      // Instead of returning true (which can cause '*' wildcard), 
-      // we explicitly return the primary allowed origin.
-      return callback(null, allowedOrigins[0] || 'https://insurance-crm-five-wine.vercel.app');
-    }
-    // Allow any *.vercel.app subdomain
-    if (origin.endsWith('.vercel.app')) return callback(null, origin);
-    // Allow explicit whitelist
-    if (allowedOrigins.includes(origin)) return callback(null, origin);
-    
-    console.warn(`[CORS BLOCKED] Origin: ${origin}`);
-    return callback(new Error('CORS policy: Origin not allowed'), false);
-  },
+  origin: [
+    'https://insurance-crm-five-wine.vercel.app',
+    'https://insurance-crm-frontend.vercel.app',
+    'http://localhost:5173',
+    'http://localhost:3000',
+    'http://127.0.0.1:5173',
+    'http://127.0.0.1:3000',
+    process.env.FRONTEND_URL
+  ].filter(Boolean),
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept', 'Origin'],
