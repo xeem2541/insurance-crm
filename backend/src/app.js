@@ -70,18 +70,23 @@ const allowedOrigins = [
 const corsOptions = {
   origin: function (origin, callback) {
     // Allow requests with no origin (mobile apps, curl, Vercel cron jobs)
-    if (!origin) return callback(null, true);
-    // Allow any *.vercel.app subdomain (covers all preview deployments)
-    if (origin.endsWith('.vercel.app')) return callback(null, true);
+    if (!origin) {
+      // Instead of returning true (which can cause '*' wildcard), 
+      // we explicitly return the primary allowed origin.
+      return callback(null, allowedOrigins[0] || 'https://insurance-crm-five-wine.vercel.app');
+    }
+    // Allow any *.vercel.app subdomain
+    if (origin.endsWith('.vercel.app')) return callback(null, origin);
     // Allow explicit whitelist
-    if (allowedOrigins.includes(origin)) return callback(null, true);
+    if (allowedOrigins.includes(origin)) return callback(null, origin);
+    
     console.warn(`[CORS BLOCKED] Origin: ${origin}`);
     return callback(new Error('CORS policy: Origin not allowed'), false);
   },
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
-  optionsSuccessStatus: 200, // Some browsers (IE11) choke on 204
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept', 'Origin'],
+  optionsSuccessStatus: 200, 
 };
 
 app.use(cors(corsOptions));
