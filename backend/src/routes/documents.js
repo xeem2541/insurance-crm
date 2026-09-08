@@ -4,6 +4,7 @@ const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
 const { authenticateToken } = require('../middlewares/auth');
+const { validateFileType } = require('../middlewares/fileValidator');
 
 // Ensure uploads dir exists
 const uploadsDir = path.join(__dirname, '../../uploads');
@@ -100,7 +101,7 @@ router.get('/', authenticateToken, async (req, res) => {
 });
 
 // Upload document
-router.post('/upload', authenticateToken, upload.single('file'), async (req, res) => {
+router.post('/upload', authenticateToken, upload.single('file'), validateFileType, async (req, res) => {
   if (!req.file) return res.status(400).json({ error: 'No file uploaded' });
 
   const { customer_id, policy_id, document_type_id, name, note } = req.body;

@@ -36,8 +36,21 @@ router.post('/login', loginLimiter, async (req, res) => {
     const token = jwt.sign(
       { id: user.id, username: user.username, role: user.role, name: user.name },
       secret,
-      { expiresIn: '1d' }
+      { expiresIn: '15m' }
     );
+
+    const refreshToken = jwt.sign(
+      { id: user.id, username: user.username },
+      secret, // In a larger system, you'd use a separate JWT_REFRESH_SECRET
+      { expiresIn: '7d' }
+    );
+
+    res.cookie('refreshToken', refreshToken, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'strict',
+      maxAge: 7 * 24 * 60 * 60 * 1000 // 7 days
+    });
 
     // Record Login Activity
     try {
@@ -136,6 +149,52 @@ router.put('/change-password', authenticateToken, async (req, res) => {
   } catch (error) {
     res.status(500).json({ error: 'Server error' });
   }
+});
+
+router.post('/refresh', async (req, res) => {
+  const refreshToken = req.cookies.refreshToken;
+  
+  if (!refreshToken) {
+    return res.status(401).json({ error: 'Refresh token not found' });
+  }
+
+  const secret = process.env.JWT_SECRET;
+  if (!secret) {
+    return res.status(500).json({ error: 'Server error' });
+  }
+
+  try {
+    const decoded = jwt.verify(refreshToken, secret);
+    
+    // In a real app, you might check if the user is still active in DB
+    const [users] = await req.db.query('SELECT * FROM users WHERE id = ?', [decoded.id]);
+    if (users.length === 0) {
+      return res.status(403).json({ error: 'User no longer exists' });
+    }
+
+    const user = users[0];
+    
+    // Sign new access token
+    const token = jwt.sign(
+      { id: user.id, username: user.username, role: user.role, name: user.name },
+      secret,
+      { expiresIn: '15m' }
+    );
+    
+    res.json({ token, user: { id: user.id, username: user.username, role: user.role, name: user.name } });
+  } catch (error) {
+    // Refresh token invalid or expired
+    res.status(403).json({ error: 'Invalid or expired refresh token' });
+  }
+});
+
+router.post('/logout', (req, res) => {
+  res.clearCookie('refreshToken', {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === 'production',
+    sameSite: 'strict',
+  });
+  res.json({ success: true, message: 'Logged out successfully' });
 });
 
 module.exports = router;

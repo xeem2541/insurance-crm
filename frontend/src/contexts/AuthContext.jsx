@@ -77,9 +77,9 @@ export const AuthProvider = ({ children }) => {
     };
   }, [user]);
 
-  const handleIdleLogout = () => {
+  const handleIdleLogout = async () => {
     setShowIdleModal(false);
-    logout();
+    await logout();
     window.location.href = '/login';
   };
 
@@ -94,8 +94,14 @@ export const AuthProvider = ({ children }) => {
     setUser(res.data.user);
   };
 
-  const logout = () => {
+  const logout = async () => {
+    try {
+      await api.post('/auth/logout');
+    } catch (e) {
+      console.warn('Logout request failed or network issue');
+    }
     localStorage.removeItem('token');
+    localStorage.removeItem('user');
     setUser(null);
   };
 

@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const multer = require('multer');
 const { authenticateToken, authorizeRole } = require('../middlewares/auth');
+const { validateFileType } = require('../middlewares/fileValidator');
 const axios = require('axios');
 
 // Use memory storage for quick processing without saving to disk permanently
@@ -94,7 +95,7 @@ router.post('/test-key', async (req, res) => {
   }
 });
 
-router.post('/extract', authenticateToken, upload.array('images', 10), async (req, res) => {
+router.post('/extract', authenticateToken, upload.array('images', 10), validateFileType, async (req, res) => {
   let startTime;
   try {
     startTime = Date.now();

@@ -89,9 +89,12 @@ app.use(cors(corsOptions));
 app.options('*', cors(corsOptions));
 
 
+const cookieParser = require('cookie-parser');
+
 // Body parsers
 app.use(express.json({ limit: '500kb' })); // Limit body size to prevent payload DOS
 app.use(express.urlencoded({ extended: true, limit: '500kb' }));
+app.use(cookieParser());
 
 // Data Sanitization against XSS
 app.use(xss());

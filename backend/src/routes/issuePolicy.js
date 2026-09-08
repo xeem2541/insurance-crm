@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const { authenticateToken } = require('../middlewares/auth');
+const { validateFileType } = require('../middlewares/fileValidator');
 const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
@@ -22,7 +23,7 @@ const upload = multer({
   limits: { fileSize: 15 * 1024 * 1024 } // 15MB limit to prevent DoS
 });
 
-router.post('/', authenticateToken, upload.array('files'), async (req, res) => {
+router.post('/', authenticateToken, upload.array('files'), validateFileType, async (req, res) => {
   const connection = await req.db.getConnection();
   await connection.beginTransaction();
 
