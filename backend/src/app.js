@@ -33,6 +33,16 @@ const app = express();
 const PORT = process.env.PORT || 5000;
 
 app.set('trust proxy', 1);
+app.disable('etag'); // ป้องกัน Vercel คืนค่า 304 แล้วตัด CORS Header ทิ้ง
+
+// Middleware ป้องกันการ Cache API (แก้ปัญหา Vercel Cache 304)
+app.use((req, res, next) => {
+  res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+  res.setHeader('Pragma', 'no-cache');
+  res.setHeader('Expires', '0');
+  res.setHeader('Surrogate-Control', 'no-store');
+  next();
+});
 
 app.use(helmet({
   crossOriginResourcePolicy: false, // allow cross-origin images/resources if needed
