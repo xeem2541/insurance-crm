@@ -19,7 +19,8 @@ const CalendarView = () => {
   const fetchPolicies = async () => {
     try {
       const res = await api.get('/policies');
-      const policies = res.data;
+      // API returns paginated format { data: [...] } or array directly
+      const policies = Array.isArray(res.data) ? res.data : (res.data?.data || []);
       
       const calendarEvents = policies.map(p => ({
         id: p.id,
