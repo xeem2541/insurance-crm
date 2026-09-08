@@ -2263,11 +2263,27 @@ const IssuePolicyNonMotorForm = () => {
                             </tr>
                           </thead>
                           <tbody>
-                            {installmentSchedule.map((inst) => (
+                            {installmentSchedule.map((inst, idx) => (
                               <tr key={inst.installment_no}>
                                 <td><span className="badge bg-primary rounded-circle p-2">{inst.installment_no}</span></td>
                                 <td><span className="fw-bold text-danger">{inst.due_date}</span></td>
-                                <td className="text-end fw-bold">฿{inst.amount.toLocaleString()}</td>
+                                <td>
+                                  <Form.Control
+                                    type="number"
+                                    min="0"
+                                    step="0.01"
+                                    className="text-end fw-bold text-primary"
+                                    value={inst.amount}
+                                    onChange={(e) => {
+                                      const val = e.target.value;
+                                      setInstallmentSchedule(prev => {
+                                        const updated = [...prev];
+                                        updated[idx] = { ...updated[idx], amount: val === '' ? '' : Number(val) };
+                                        return updated;
+                                      });
+                                    }}
+                                  />
+                                </td>
                                 <td><span className="badge bg-warning text-dark">{inst.status}</span></td>
                               </tr>
                             ))}
