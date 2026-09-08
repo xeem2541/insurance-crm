@@ -20,7 +20,8 @@ const getFileUrl = (path) => {
   if (!path) return '';
   if (path.startsWith('http')) return path;
   const baseUrl = import.meta.env.VITE_API_URL ? import.meta.env.VITE_API_URL.replace('/api', '') : 'http://localhost:5000';
-  return `${baseUrl}${path}`;
+  const token = localStorage.getItem('token') || '';
+  return `${baseUrl}${path}?token=${token}`;
 };
 
 const Documents = () => {
@@ -169,9 +170,11 @@ const Documents = () => {
 
   const openPreview = (doc) => {
     // If it's a Cloudinary URL (starts with http), use it directly. Otherwise use local URL.
+    const baseUrl = import.meta.env.VITE_API_URL ? import.meta.env.VITE_API_URL.replace('/api', '') : 'http://localhost:5000';
+    const token = localStorage.getItem('token') || '';
     const url = doc.file_path?.startsWith('http') 
       ? doc.file_path 
-      : `${import.meta.env.VITE_API_URL ? import.meta.env.VITE_API_URL.replace('/api', '') : 'http://localhost:5000'}${doc.file_path}`;
+      : `${baseUrl}${doc.file_path}?token=${token}`;
     setPreviewUrl(url);
     setPreviewType(doc.file_type);
     setShowPreviewModal(true);

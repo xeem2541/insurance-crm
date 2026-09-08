@@ -32,8 +32,8 @@ const upload = multer({
   }
 });
 
-// Serve file dynamically from DB (Publicly accessible like the old /uploads folder)
-router.get('/file/:id', async (req, res) => {
+// Serve file dynamically from DB (Protected)
+router.get('/file/:id', authenticateToken, async (req, res) => {
   try {
     const [docs] = await req.db.query('SELECT file_data, file_type FROM documents WHERE id = ?', [req.params.id]);
     if (docs.length === 0 || !docs[0].file_data) {

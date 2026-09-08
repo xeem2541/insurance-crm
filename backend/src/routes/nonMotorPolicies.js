@@ -93,8 +93,8 @@ router.get('/types', authenticateToken, async (req, res) => {
   }
 });
 
-// Serve file dynamically from DB (Publicly accessible)
-router.get('/documents/file/:id', async (req, res) => {
+// Serve file dynamically from DB (Protected)
+router.get('/documents/file/:id', authenticateToken, async (req, res) => {
   try {
     const [docs] = await req.db.query('SELECT file_data, file_type FROM non_motor_documents WHERE id = ?', [req.params.id]);
     if (docs.length === 0 || !docs[0].file_data) {
