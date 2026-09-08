@@ -25,6 +25,11 @@
       window.addEventListener('error', function(e) {
         console.warn('[System Safe Caught Error]:', e.message, e.filename, e.lineno);
       });
+      // Disable React DevTools to prevent "Cannot read properties of undefined (reading 'startTime')" bug from extension
+      if (typeof window !== 'undefined') {
+        window.__REACT_DEVTOOLS_GLOBAL_HOOK__ = window.__REACT_DEVTOOLS_GLOBAL_HOOK__ || {};
+        window.__REACT_DEVTOOLS_GLOBAL_HOOK__.isDisabled = true;
+      }
     </script>
   </head>
   <body>
