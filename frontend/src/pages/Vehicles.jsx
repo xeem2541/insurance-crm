@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import api from '../services/api';
 import { Modal, Button, Form } from 'react-bootstrap';
 import Select from 'react-select';
@@ -48,11 +48,8 @@ const Vehicles = () => {
     return () => clearTimeout(timer);
   }, [search]);
 
-  const safeVehicles = React.useMemo(() => {
-    return Array.isArray(vehicles) ? vehicles : (vehicles?.data || []);
-  }, [vehicles]);
 
-  const safeCustomers = React.useMemo(() => {
+  const safeCustomers = useMemo(() => {
     return Array.isArray(customers) ? customers : (customers?.data || []);
   }, [customers]);
 
@@ -94,6 +91,7 @@ const Vehicles = () => {
 
   useEffect(() => {
     fetchVehicles();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [debouncedSearch]);
 
   const handleOpenModal = (v = null) => {

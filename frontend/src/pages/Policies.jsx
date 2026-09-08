@@ -33,7 +33,6 @@ const Policies = () => {
   const [loading, setLoading] = useState(true);
   const [customers, setCustomers] = useState([]);
   const [vehicles, setVehicles] = useState([]);
-  const [salesPersons, setSalesPersons] = useState([]);
   const [search, setSearch] = useState(() => sessionStorage.getItem('policiesSearch') || '');
   const [debouncedSearch, setDebouncedSearch] = useState(search);
   const [showModal, setShowModal] = useState(false);
@@ -187,6 +186,7 @@ const Policies = () => {
 
   useEffect(() => {
     fetchPolicies();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [debouncedSearch, page]);
 
   useEffect(() => {

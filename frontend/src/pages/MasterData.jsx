@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useContext } from 'react';
+import { useState, useEffect, useContext } from 'react';
 import { AuthContext } from '../contexts/AuthContext';
 import api from '../services/api';
 import { Modal, Button, Form } from 'react-bootstrap';
@@ -76,6 +76,7 @@ const MasterData = () => {
 
   useEffect(() => {
     fetchData();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeTab]);
 
   const handleOpenModal = (item = null) => {
@@ -214,7 +215,8 @@ const MasterData = () => {
           } catch(e) {
             // ignore
           }
-          const { additional_data, ...rest } = p;
+          const rest = { ...p };
+          delete rest.additional_data;
           return { ...rest, ...extra };
         });
         const wsNmPol = XLSX.utils.json_to_sheet(nmData);
@@ -223,7 +225,8 @@ const MasterData = () => {
       if (usersRes.data && usersRes.data.length > 0) {
         // Remove password hashes from export if they exist
         const safeUsers = usersRes.data.map(u => {
-          const { password, ...safeUser } = u;
+          const safeUser = { ...u };
+          delete safeUser.password;
           return safeUser;
         });
         const wsUsers = XLSX.utils.json_to_sheet(safeUsers);

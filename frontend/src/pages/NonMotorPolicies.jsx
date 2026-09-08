@@ -141,6 +141,7 @@ const NonMotorPolicies = () => {
 
   useEffect(() => {
     fetchPolicies();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [debouncedSearch, page]);
 
   useEffect(() => {

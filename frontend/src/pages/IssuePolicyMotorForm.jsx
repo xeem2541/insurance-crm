@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import axios from 'axios';
 import api from '../services/api';
 import { Form, Button, Row, Col, Accordion, Card, Badge, Modal } from 'react-bootstrap';
@@ -783,103 +783,6 @@ const IssuePolicyMotorForm = () => {
     setVehicleSearchText(pkg.vehicle.plate_no || '');
   };
 
-  const handleSwitchPackage = (targetIdx) => {
-    if (targetIdx === activePackageIdx) return;
-    
-    // Save current active package first
-    const currentPkg = {
-      id: packages[activePackageIdx]?.id || Date.now(),
-      customer,
-      vehicle,
-      policy,
-      payment,
-      followUp,
-      installmentSchedule,
-      files,
-      rawAiData,
-      aiWarning
-    };
-
-    setPackages(prev => {
-      const updated = [...prev];
-      if (updated[activePackageIdx]) {
-        updated[activePackageIdx] = currentPkg;
-      }
-      
-      const targetPkg = updated[targetIdx];
-      if (targetPkg) {
-        loadPackage(targetPkg);
-        setActivePackageIdx(targetIdx);
-      }
-      return updated;
-    });
-  };
-
-  const handleAddPackage = () => {
-    const currentPkg = {
-      id: packages[activePackageIdx]?.id || Date.now(),
-      customer,
-      vehicle,
-      policy,
-      payment,
-      followUp,
-      installmentSchedule,
-      files,
-      rawAiData,
-      aiWarning
-    };
-
-    setPackages(prev => {
-      const updated = [...prev];
-      if (updated[activePackageIdx]) {
-        updated[activePackageIdx] = currentPkg;
-      }
-      const newPkg = createEmptyPackage();
-      const nextList = [...updated, newPkg];
-      
-      setTimeout(() => {
-        loadPackage(newPkg);
-        setActivePackageIdx(nextList.length - 1);
-      }, 0);
-      
-      return nextList;
-    });
-  };
-
-  const handleDeletePackage = (idxToDelete) => {
-    if (packages.length <= 1) {
-      alert("ต้องมีชุดข้อมูลอย่างน้อย 1 ชุดในระบบ");
-      return;
-    }
-    
-    const confirmDelete = window.confirm(`คุณแน่ใจว่าต้องการลบ ชุดข้อมูลที่ ${idxToDelete + 1} หรือไม่?`);
-    if (!confirmDelete) return;
-
-    const pkgToDelete = packages[idxToDelete];
-    if (pkgToDelete && pkgToDelete.files) {
-      pkgToDelete.files.forEach(f => {
-        if (f.preview) URL.revokeObjectURL(f.preview);
-      });
-    }
-
-    setPackages(prev => {
-      const remaining = prev.filter((_, idx) => idx !== idxToDelete);
-      
-      let nextIdx = activePackageIdx;
-      if (activePackageIdx === idxToDelete) {
-        nextIdx = 0;
-      } else if (activePackageIdx > idxToDelete) {
-        nextIdx = activePackageIdx - 1;
-      }
-      
-      setTimeout(() => {
-        loadPackage(remaining[nextIdx]);
-        setActivePackageIdx(nextIdx);
-      }, 0);
-      
-      return remaining;
-    });
-  };
   // -------------------------------------
   
   // Master Data Options
@@ -980,12 +883,11 @@ const IssuePolicyMotorForm = () => {
     const start = Date.now();
     try {
       // 1. Direct Ping to Google Gemini API (Works everywhere on web & mobile without server dependency)
-      const res = await axios.get(
+      await axios.get(
         `https://generativelanguage.googleapis.com/v1beta/models?key=${encodeURIComponent(key)}`,
         { timeout: 8000 }
       );
       const elapsed = Date.now() - start;
-      const models = res.data?.models || [];
       setApiKeyTestResult({
         success: true,
         message: `✅ เชื่อมต่อ Google Gemini AI สำเร็จ (${elapsed}ms) - คีย์ถูกต้องพร้อมใช้งาน!`
@@ -1029,42 +931,38 @@ const IssuePolicyMotorForm = () => {
   });
 
   const extractDirectFromGemini = async (files, apiKey) => {
-    try {
-      const parts = [{ text: GEMINI_EXTRACT_PROMPT }];
-      for (const file of files) {
-        const base64Data = await fileToBase64(file);
-        const mimeType = file.type || 'image/jpeg';
-        parts.push({ inline_data: { mime_type: mimeType, data: base64Data } });
-      }
-
-      const modelsToTry = ['gemini-3.5-flash-lite', 'gemini-3.5-flash', 'gemini-3.1-flash-lite', 'gemini-flash-latest'];
-      let lastErr = null;
-      
-      for (const modelName of modelsToTry) {
-        try {
-          const res = await axios.post(
-            `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${encodeURIComponent(apiKey)}`,
-            {
-              contents: [
-                { parts }
-              ],
-              generationConfig: { responseMimeType: "application/json", temperature: 0.0 }
-            },
-            { timeout: 35000 }
-          );
-          const jsonText = res.data?.candidates?.[0]?.content?.parts?.[0]?.text;
-          if (jsonText) {
-            return JSON.parse(jsonText);
-          }
-        } catch (err) {
-          lastErr = err;
-          console.warn(`Direct model ${modelName} error:`, err.response?.data || err.message);
-        }
-      }
-      throw lastErr || new Error('Direct Gemini extraction failed');
-    } catch (e) {
-      throw e;
+    const parts = [{ text: GEMINI_EXTRACT_PROMPT }];
+    for (const file of files) {
+      const base64Data = await fileToBase64(file);
+      const mimeType = file.type || 'image/jpeg';
+      parts.push({ inline_data: { mime_type: mimeType, data: base64Data } });
     }
+
+    const modelsToTry = ['gemini-3.5-flash-lite', 'gemini-3.5-flash', 'gemini-3.1-flash-lite', 'gemini-flash-latest'];
+    let lastErr = null;
+    
+    for (const modelName of modelsToTry) {
+      try {
+        const res = await axios.post(
+          `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${encodeURIComponent(apiKey)}`,
+          {
+            contents: [
+              { parts }
+            ],
+            generationConfig: { responseMimeType: "application/json", temperature: 0.0 }
+          },
+          { timeout: 35000 }
+        );
+        const jsonText = res.data?.candidates?.[0]?.content?.parts?.[0]?.text;
+        if (jsonText) {
+          return JSON.parse(jsonText);
+        }
+      } catch (err) {
+        lastErr = err;
+        console.warn(`Direct model ${modelName} error:`, err.response?.data || err.message);
+      }
+    }
+    throw lastErr || new Error('Direct Gemini extraction failed');
   };
 
   const handleAIExtract = async (e) => {
@@ -1404,6 +1302,7 @@ const IssuePolicyMotorForm = () => {
         }));
       }
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [policy.net_premium, policy.type, policy.category, policy.non_motor_type_id, policy.commission_percent]);
 
   const handlePremiumChange = (field, val) => {
@@ -1485,6 +1384,7 @@ const IssuePolicyMotorForm = () => {
     } else {
       setInstallmentSchedule([]);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [payment.payment_method, payment.installments, payment.pay_date]);
 
 
@@ -1513,6 +1413,7 @@ const IssuePolicyMotorForm = () => {
     if (policy.category === 'motor' && vehicle.sum_insured && vehicle.sum_insured !== policy.sum_insured) {
       setPolicy(prev => ({ ...prev, sum_insured: vehicle.sum_insured }));
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [vehicle.sum_insured, policy.category]);
 
   useEffect(() => {
@@ -1825,7 +1726,7 @@ const IssuePolicyMotorForm = () => {
 
       if (isLocalhost) {
         // LOCAL MODE: Save directly to computer folder (uploads)
-        files.forEach((f, idx) => {
+        files.forEach((f) => {
           formData.append('files', f.file);
           fileDataList.push({
             type_id: f.type_id,
@@ -1877,7 +1778,7 @@ const IssuePolicyMotorForm = () => {
       formData.append('data', JSON.stringify(payload));
       formData.append('fileData', JSON.stringify(fileDataList));
 
-      const res = await api.post('/issue-policy', formData);
+      await api.post('/issue-policy', formData);
 
       setSuccessMsg({
         text: 'บันทึกข้อมูลลูกค้าและกรมธรรม์สำเร็จ!',
