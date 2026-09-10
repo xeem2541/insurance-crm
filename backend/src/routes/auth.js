@@ -39,6 +39,47 @@ router.post('/login', loginLimiter, async (req, res) => {
       { expiresIn: '15m' }
     );
 
+const express = require('express');
+const router = express.Router();
+const bcrypt = require('bcryptjs');
+const jwt = require('jsonwebtoken');
+const { authenticateToken, authorizeRole } = require('../middlewares/auth');
+const rateLimit = require('express-rate-limit');
+
+const loginLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 10, // Limit each IP to 10 login requests per window
+  message: { error: 'Too many login attempts from this IP, please try again after 15 minutes' },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
+router.post('/login', loginLimiter, async (req, res) => {
+  const { username, password } = req.body;
+  try {
+    const [users] = await req.db.query('SELECT * FROM users WHERE username = ?', [username]);
+    if (users.length === 0) {
+      return res.status(400).json({ error: 'Invalid username or password' });
+    }
+
+    const user = users[0];
+    const validPassword = await bcrypt.compare(password, user.password);
+    if (!validPassword) {
+      return res.status(400).json({ error: 'Invalid username or password' });
+    }
+
+    const secret = process.env.JWT_SECRET;
+    if (!secret) {
+      console.error('[SECURITY FATAL] JWT_SECRET is not set in environment variables! Cannot sign token.');
+      return res.status(500).json({ error: 'Server error: Missing security configuration' });
+    }
+
+    const token = jwt.sign(
+      { id: user.id, username: user.username, role: user.role, name: user.name },
+      secret,
+      { expiresIn: '15m' }
+    );
+
     const refreshToken = jwt.sign(
       { id: user.id, username: user.username },
       secret, // In a larger system, you'd use a separate JWT_REFRESH_SECRET
@@ -48,7 +89,7 @@ router.post('/login', loginLimiter, async (req, res) => {
     res.cookie('refreshToken', refreshToken, {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
-      sameSite: 'strict',
+      sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
       maxAge: 7 * 24 * 60 * 60 * 1000 // 7 days
     });
 
@@ -192,7 +233,7 @@ router.post('/logout', (req, res) => {
   res.clearCookie('refreshToken', {
     httpOnly: true,
     secure: process.env.NODE_ENV === 'production',
-    sameSite: 'strict',
+    sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
   });
   res.json({ success: true, message: 'Logged out successfully' });
 });

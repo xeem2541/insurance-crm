@@ -1335,18 +1335,15 @@ const IssuePolicyMotorForm = () => {
         if (prev.length !== payment.installments) {
           const schedule = [];
           const total = parseFloat(policy.total_premium) || 0;
-          const firstAmount = Math.round((total * 0.37) * 100) / 100;
-          const balance = total - firstAmount;
-          const remainingCount = payment.installments - 1;
-          const remainingAmount = Math.round((balance / remainingCount) * 100) / 100;
+          const amountPerInstallment = Math.round((total / payment.installments) * 100) / 100;
 
           let currentDate = payment.pay_date ? new Date(payment.pay_date) : new Date();
 
           for (let i = 1; i <= payment.installments; i++) {
-            let amt = i === 1 ? firstAmount : remainingAmount;
+            let amt = amountPerInstallment;
             
             if (i === parseInt(payment.installments)) {
-              const sumSoFar = firstAmount + (remainingAmount * (remainingCount - 1));
+              const sumSoFar = amountPerInstallment * (payment.installments - 1);
               amt = Math.round((total - sumSoFar) * 100) / 100;
             }
 
@@ -2341,7 +2338,7 @@ const IssuePolicyMotorForm = () => {
 
                   {installmentSchedule.length > 0 && (
                     <div className="mt-4">
-                      <h6 className="fw-bold text-secondary mb-3"><i className="bi bi-table me-2"></i>ตารางงวดชำระอัตโนมัติ (งวดแรก 37%)</h6>
+                      <h6 className="fw-bold text-secondary mb-3"><i className="bi bi-table me-2"></i>ตารางงวดชำระอัตโนมัติ</h6>
                       <div className="table-responsive">
                         <table className="table table-bordered table-hover align-middle text-center mb-0">
                           <thead className="table-light">
