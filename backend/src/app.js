@@ -142,8 +142,9 @@ async function runMigrationOnce(connection, key, sql) {
 
 // Test connection and seed Admin
 async function initDb() {
+  let connection;
   try {
-    const connection = await pool.getConnection();
+    connection = await pool.getConnection();
     console.log('Database connected successfully');
 
     // ✅ Create migration tracker table first
@@ -484,12 +485,14 @@ async function initDb() {
       UPDATE master_data SET value = 'รถจักรยานยนต์' WHERE category = 'VehicleType' AND value = 'รถมอเตอร์ไซค์'
     `);
     
-    connection.release();
-    
     // Start background cron jobs
     startCronJobs(pool);
   } catch (err) {
     console.error('Database connection failed:', err);
+  } finally {
+    if (connection) {
+      connection.release();
+    }
   }
 }
 
@@ -563,8 +566,9 @@ app.get('/api', async (req, res) => {
 
 // Fix DB route (Manual trigger)
 app.get('/api/fix-db', async (req, res) => {
+  let connection;
   try {
-    const connection = await pool.getConnection();
+    connection = await pool.getConnection();
     let results = [];
     
     // Keep id_card_no, just drop unique index and ensure it exists
@@ -598,10 +602,13 @@ app.get('/api/fix-db', async (req, res) => {
     }
     
     // Also drop from update query if exists? No, just the schema is enough.
-    connection.release();
     res.json({ message: 'Database fix executed!', details: results });
   } catch (err) {
     res.status(500).json({ error: err.message });
+  } finally {
+    if (connection) {
+      connection.release();
+    }
   }
 });
 
@@ -658,6 +665,15 @@ function startServerKeepAlive() {
     });
   }, 4 * 60 * 1000);
 }
+
+// Global Error Handler
+app.use((err, req, res, next) => {
+  console.error('[Global Error]', err.stack || err);
+  res.status(500).json({
+    error: 'Internal Server Error',
+    message: err.message || 'เกิดข้อผิดพลาดที่ไม่รู้จักบนเซิร์ฟเวอร์'
+  });
+});
 
 // Start server
 if (require.main === module) {
