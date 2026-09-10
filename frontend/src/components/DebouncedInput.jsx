@@ -7,17 +7,17 @@ import { Form } from 'react-bootstrap';
  * and only syncing with the parent component after the user stops typing.
  */
 const DebouncedInput = ({ value, onChange, delay = 300, ...props }) => {
-  const [localValue, setLocalValue] = useState(value || '');
+  const [localValue, setLocalValue] = useState(value ?? '');
 
   // Update local value if parent value changes externally
   useEffect(() => {
-    setLocalValue(value || '');
+    setLocalValue(value ?? '');
   }, [value]);
 
   useEffect(() => {
     const handler = setTimeout(() => {
       // Only trigger onChange if the value actually changed to prevent infinite loops
-      if (localValue !== (value || '')) {
+      if (localValue !== (value ?? '') && typeof onChange === 'function') {
         onChange({ target: { value: localValue, name: props.name } });
       }
     }, delay);
@@ -33,7 +33,7 @@ const DebouncedInput = ({ value, onChange, delay = 300, ...props }) => {
 
   const handleBlur = (e) => {
     // Immediately sync on blur
-    if (localValue !== (value || '')) {
+    if (localValue !== (value ?? '') && typeof onChange === 'function') {
       onChange({ target: { value: localValue, name: props.name } });
     }
     if (props.onBlur) {

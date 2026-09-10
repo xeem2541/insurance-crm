@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import axios from 'axios';
 import api from '../services/api';
 import { Form, Button, Row, Col, Accordion, Card, Badge, Modal } from 'react-bootstrap';
+import DebouncedInput from '../components/DebouncedInput';
 import Select from 'react-select';
 import AsyncSelect from 'react-select/async';
 import CreatableSelect from 'react-select/creatable';

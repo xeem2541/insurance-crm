@@ -140,10 +140,10 @@ const Register = () => {
 
         {/* Success Alert */}
         {successMsg && (
-          <div 
+          <div
             className="d-flex align-items-center mb-3 p-3 rounded-3 text-success shadow-sm"
-            style={{ 
-              background: 'rgba(34, 197, 94, 0.15)', 
+            style={{
+              background: 'rgba(34, 197, 94, 0.15)',
               border: '1px solid rgba(34, 197, 94, 0.4)',
               backdropFilter: 'blur(8px)'
             }}
@@ -157,7 +157,7 @@ const Register = () => {
         {/* Registration Form */}
         <form onSubmit={handleSubmit} className="login-form-content">
           <div className="row g-3">
-            
+
             {/* 1. Full Name */}
             <div className="col-12 col-md-6">
               <div className="input-field-group mb-0">
@@ -387,8 +387,8 @@ const Register = () => {
           {/* Return to Login Link */}
           <div className="text-center mt-3 pt-2 border-top border-white border-opacity-10">
             <span className="text-white-50 small me-1">มีบัญชีผู้ใช้งานอยู่แล้ว?</span>
-            <Link 
-              to="/login" 
+            <Link
+              to="/login"
               className="text-info fw-bold text-decoration-none small hover-underline"
               style={{ letterSpacing: '0.2px' }}
             >
