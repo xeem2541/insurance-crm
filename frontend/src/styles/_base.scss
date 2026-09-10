@@ -1,0 +1,193 @@
+@import url('https://fonts.googleapis.com/css2?family=Sarabun:ital,wght@0,200;0,300;0,400;0,500;0,600;0,700;0,800;1,400;1,600;1,700&display=swap');
+
+// 🔔 Bell shake animation for notification icon
+@keyframes bellShake {
+  0%, 100% { transform: rotate(0deg) scale(1); }
+  10%       { transform: rotate(-14deg) scale(1.1); }
+  20%       { transform: rotate(12deg)  scale(1.1); }
+  30%       { transform: rotate(-10deg) scale(1.05); }
+  40%       { transform: rotate(8deg)   scale(1.05); }
+  50%       { transform: rotate(-5deg)  scale(1); }
+  60%       { transform: rotate(4deg)   scale(1); }
+  70%, 90%  { transform: rotate(0deg)   scale(1); }
+}
+
+// 🃏 3D notification card hover
+.dropdown-item:hover > div[style] {
+  transform: translateY(-2px) scale(1.01);
+  filter: brightness(1.05);
+}
+
+// Remove Bootstrap's default Dropdown.Toggle caret arrow when using as="div"
+#dropdown-notifications::after {
+  display: none !important;
+}
+
+
+// 💎 Official TH Sarabun PSK Design Tokens
+$primary: #991b1b; // Deep Red
+$primary-light: #dc2626; // Crimson
+$primary-dark: #7f1d1d; // Dark Red
+$accent-gold: #cba153; // Champagne Gold
+$accent-gold-light: #dfb66c;
+$secondary: #ea580c; // Vibrant Orange
+$dark: #09090b; // Pure Premium Dark
+$dark-glass: rgba(9, 9, 11, 0.94);
+$light: #fdfdfd; // Pristine White
+$text-main: #1e293b;
+$text-muted: #64748b;
+
+$font-sarabun: 'TH Sarabun PSK', 'THSarabunNew', 'TH Sarabun New', 'Sarabun', -apple-system, BlinkMacSystemFont, 'Segoe UI', Tahoma, sans-serif;
+$font-en: $font-sarabun;
+$font-th: $font-sarabun;
+$font-formal: $font-sarabun;
+
+// Global Setup (Official TH-Sarabun-PSK Standard)
+*, html, body {
+  font-family: $font-sarabun !important;
+}
+
+body {
+  font-family: $font-sarabun !important;
+  font-size: 1.05rem;
+  background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+  background-attachment: fixed;
+  color: $text-main;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  min-height: 100vh;
+  line-height: 1.5;
+}
+
+// Typography mixing
+h1, h2, h3, h4, h5, h6, .display-1, .display-2, .display-3, .display-4, .brand-text {
+  font-family: $font-sarabun !important;
+  font-weight: 700;
+}
+
+button, input, select, textarea, .form-control, .form-select, .table, .badge, .nav-link, .modal, .card-title, label, p, span, a, div {
+  font-family: $font-sarabun !important;
+}
+
+// Glassmorphism Panels
+.glass-panel {
+  background: rgba(255, 255, 255, 0.85) !important;
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.9) !important;
+}
+
+.glass-nav {
+  background: rgba(255, 255, 255, 0.9) !important;
+  backdrop-filter: blur(15px);
+  -webkit-backdrop-filter: blur(15px);
+  border-bottom: 1px solid rgba(0, 0, 0, 0.04) !important;
+  box-shadow: 0 4px 30px rgba(0, 0, 0, 0.03) !important;
+}
+
+// Premium Cards (Luxury Softness)
+.card {
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(15px);
+  -webkit-backdrop-filter: blur(15px);
+  border-radius: 32px;
+  border: 1px solid rgba(255, 255, 255, 1);
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.03), 0 2px 10px rgba(0, 0, 0, 0.02);
+  transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+  overflow: hidden;
+
+  &.hover-elevate:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 25px 50px rgba(0, 0, 0, 0.08), 0 5px 15px rgba(0, 0, 0, 0.03);
+  }
+
+  .card-header {
+    background-color: transparent;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.03);
+    padding: 1.5rem 2rem;
+    font-weight: 700;
+  }
+}
+
+// Buttons with Luxury Micro-animations
+.btn {
+  font-family: $font-en;
+  font-weight: 600;
+  border-radius: 14px;
+  padding: 0.75rem 1.8rem;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  letter-spacing: 0.4px;
+  border: 1px solid transparent;
+
+  &:active {
+    transform: scale(0.96) !important;
+  }
+}
+
+.btn-primary {
+  background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+  color: white;
+  box-shadow: 0 8px 20px rgba(37, 99, 235, 0.25);
+  border-color: rgba(255, 255, 255, 0.1);
+
+  &:hover {
+    background: linear-gradient(135deg, #60a5fa, #2563eb);
+    box-shadow: 0 12px 25px rgba(37, 99, 235, 0.35);
+    transform: translateY(-2px);
+    color: white;
+  }
+}
+
+.btn-outline-primary {
+  color: #2563eb;
+  border: 1.5px solid #3b82f6;
+  background: rgba(59, 130, 246, 0.03);
+  
+  &:hover {
+    background: #3b82f6;
+    color: white;
+    box-shadow: 0 8px 20px rgba(37, 99, 235, 0.2);
+    transform: translateY(-2px);
+  }
+}
+
+.btn-success {
+  background: linear-gradient(135deg, #10b981, #047857);
+  color: white;
+  box-shadow: 0 8px 20px rgba(16, 185, 129, 0.25);
+  
+  &:hover {
+    background: linear-gradient(135deg, #34d399, #059669);
+    box-shadow: 0 12px 25px rgba(16, 185, 129, 0.35);
+    transform: translateY(-2px);
+    color: white;
+  }
+}
+
+.btn-outline-success {
+  color: #10b981;
+  border: 1.5px solid #10b981;
+  background: rgba(16, 185, 129, 0.03);
+  
+  &:hover {
+    background: #10b981;
+    color: white;
+    box-shadow: 0 8px 20px rgba(16, 185, 129, 0.2);
+    transform: translateY(-2px);
+  }
+}
+
+.btn-danger {
+  background: linear-gradient(135deg, #ef4444, #b91c1c);
+  color: white;
+  box-shadow: 0 8px 20px rgba(239, 68, 68, 0.25);
+  border: none;
+  
+  &:hover {
+    background: linear-gradient(135deg, #f87171, #dc2626);
+    box-shadow: 0 12px 25px rgba(239, 68, 68, 0.35);
+    transform: translateY(-2px);
+    color: white;
+  }
+}
+

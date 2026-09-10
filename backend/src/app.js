@@ -175,6 +175,8 @@ async function initDb() {
       'ALTER TABLE customers ADD COLUMN moo VARCHAR(50), ADD COLUMN soi VARCHAR(100), ADD COLUMN road VARCHAR(100), ADD COLUMN sub_district VARCHAR(100), ADD COLUMN district VARCHAR(100)');
     await runMigrationOnce(connection, 'add_customers_alt_phone',
       'ALTER TABLE customers ADD COLUMN alt_phone VARCHAR(20) DEFAULT NULL');
+    await runMigrationOnce(connection, 'add_customers_search_text',
+      'ALTER TABLE customers ADD COLUMN search_text TEXT GENERATED ALWAYS AS (CONCAT_WS(\' \', IFNULL(prefix, \'\'), IFNULL(first_name, \'\'), IFNULL(last_name, \'\'), IFNULL(phone, \'\'), IFNULL(id_card_no, \'\'), IFNULL(customer_code, \'\'))) VIRTUAL');
     await runMigrationOnce(connection, 'add_policies_prb_dates',
       'ALTER TABLE policies ADD COLUMN prb_start_date DATE, ADD COLUMN prb_expiry_date DATE');
     await runMigrationOnce(connection, 'add_ai_correction_non_motor_id',

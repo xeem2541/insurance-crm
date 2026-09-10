@@ -31,15 +31,9 @@ router.get('/', authenticateToken, async (req, res) => {
     const cleanSearch = `%${trimmed.replace(/[\s-]/g, '')}%`;
     conditions.push(`(
       p.policy_no LIKE ? OR 
-      c.first_name LIKE ? OR 
-      c.last_name LIKE ? OR 
-      CONCAT(IFNULL(c.prefix, ''), IFNULL(c.first_name, ''), ' ', IFNULL(c.last_name, '')) LIKE ? OR
-      CONCAT(IFNULL(c.first_name, ''), ' ', IFNULL(c.last_name, '')) LIKE ? OR
-      c.phone LIKE ? OR
-      c.customer_code LIKE ? OR
-      c.id_card_no LIKE ? OR
-      p.company LIKE ? OR
-      p.type LIKE ? OR
+      p.company LIKE ? OR 
+      p.type LIKE ? OR 
+      c.search_text LIKE ? OR
       v.plate_no LIKE ? OR
       v.plate_province LIKE ? OR
       v.brand LIKE ? OR
@@ -50,7 +44,7 @@ router.get('/', authenticateToken, async (req, res) => {
       REPLACE(REPLACE(IFNULL(v.vin, ''), ' ', ''), '-', '') LIKE ?
     )`);
     params.push(
-      s, s, s, s, s, s, s, s, s, s, s, s, s, s, s, s,
+      s, s, s, s, s, s, s, s, s, s,
       cleanSearch, cleanSearch
     );
   }

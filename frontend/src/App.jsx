@@ -7,9 +7,9 @@ import Layout from './components/Layout';
 
 // Eager load critical initial pages
 import Login from './pages/Login';
-import Dashboard from './pages/Dashboard';
 
 // Lazy load secondary pages on-demand for maximum smoothness & fast initial bundle
+const Dashboard = lazy(() => import('./pages/Dashboard'));
 const Register = lazy(() => import('./pages/Register'));
 const Customers = lazy(() => import('./pages/Customers'));
 const Vehicles = lazy(() => import('./pages/Vehicles'));

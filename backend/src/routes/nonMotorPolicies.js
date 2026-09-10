@@ -25,18 +25,12 @@ router.get('/', authenticateToken, async (req, res) => {
       const s = `%${trimmed}%`;
       conditions.push(`(
         p.policy_no LIKE ? OR
-        c.first_name LIKE ? OR
-        c.last_name LIKE ? OR
-        CONCAT(IFNULL(c.prefix, ''), IFNULL(c.first_name, ''), ' ', IFNULL(c.last_name, '')) LIKE ? OR
-        CONCAT(IFNULL(c.first_name, ''), ' ', IFNULL(c.last_name, '')) LIKE ? OR
-        c.phone LIKE ? OR
-        c.customer_code LIKE ? OR
-        c.id_card_no LIKE ? OR
+        c.search_text LIKE ? OR
         p.company LIKE ? OR
         p.insured_name LIKE ? OR
         t.name LIKE ?
       )`);
-      params.push(s, s, s, s, s, s, s, s, s, s, s);
+      params.push(s, s, s, s, s);
     }
 
     // Filter by sales person if the user is Sales

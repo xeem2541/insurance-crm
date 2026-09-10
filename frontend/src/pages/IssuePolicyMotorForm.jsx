@@ -1238,11 +1238,11 @@ const IssuePolicyMotorForm = () => {
                 </Col>
                 <Col md={3}>
                   <Form.Label>ชื่อ <span className="text-danger">*</span></Form.Label>
-                  <Form.Control type="text" value={customer.first_name} onChange={e => setCustomer({...customer, first_name: e.target.value})} />
+                  <DebouncedInput type="text" value={customer.first_name} onChange={e => setCustomer({...customer, first_name: e.target.value})} />
                 </Col>
                 <Col md={3}>
                   <Form.Label>นามสกุล <span className="text-danger">*</span></Form.Label>
-                  <Form.Control type="text" value={customer.last_name} onChange={e => setCustomer({...customer, last_name: e.target.value})} />
+                  <DebouncedInput type="text" value={customer.last_name} onChange={e => setCustomer({...customer, last_name: e.target.value})} />
                 </Col>
                 <Col md={3}>
                   <Form.Label>วันเดือนปีเกิด</Form.Label>
@@ -1250,27 +1250,27 @@ const IssuePolicyMotorForm = () => {
                 </Col>
                 <Col md={1}>
                   <Form.Label>อายุ</Form.Label>
-                  <Form.Control type="number" value={customer.age || ''} onChange={e => setCustomer({...customer, age: e.target.value})} />
+                  <DebouncedInput type="number" value={customer.age || ''} onChange={e => setCustomer({...customer, age: e.target.value})} />
                 </Col>
                 <Col md={3}>
                   <Form.Label>เลขบัตรประชาชน</Form.Label>
-                  <Form.Control type="text" inputMode="numeric" value={formatIdCard(customer.id_card_no)} onChange={e => setCustomer({...customer, id_card_no: e.target.value.replace(/\D/g, '')})} maxLength={17} />
+                  <DebouncedInput type="text" inputMode="numeric" value={formatIdCard(customer.id_card_no)} onChange={e => setCustomer({...customer, id_card_no: e.target.value.replace(/\D/g, '')})} maxLength={17} />
                 </Col>
                 <Col md={3}>
                   <Form.Label>เบอร์โทรศัพท์ <span className="text-danger">*</span></Form.Label>
-                  <Form.Control type="text" inputMode="numeric" value={customer.phone} onChange={e => setCustomer({...customer, phone: formatPhone(e.target.value)})} maxLength={12} />
+                  <DebouncedInput type="text" inputMode="numeric" value={customer.phone} onChange={e => setCustomer({...customer, phone: formatPhone(e.target.value)})} maxLength={12} />
                 </Col>
                 <Col md={3}>
                   <Form.Label>เบอร์สำรอง</Form.Label>
-                  <Form.Control type="text" inputMode="numeric" value={customer.alt_phone} onChange={e => setCustomer({...customer, alt_phone: formatPhone(e.target.value)})} maxLength={12} />
+                  <DebouncedInput type="text" inputMode="numeric" value={customer.alt_phone} onChange={e => setCustomer({...customer, alt_phone: formatPhone(e.target.value)})} maxLength={12} />
                 </Col>
                 <Col md={3}>
                   <Form.Label>LINE ID</Form.Label>
-                  <Form.Control type="text" value={customer.line_id} onChange={e => setCustomer({...customer, line_id: e.target.value})} />
+                  <DebouncedInput type="text" value={customer.line_id} onChange={e => setCustomer({...customer, line_id: e.target.value})} />
                 </Col>
                 <Col md={3}>
                   <Form.Label>Facebook</Form.Label>
-                  <Form.Control type="text" value={customer.facebook} onChange={e => setCustomer({...customer, facebook: e.target.value})} />
+                  <DebouncedInput type="text" value={customer.facebook} onChange={e => setCustomer({...customer, facebook: e.target.value})} />
                 </Col>
               </Row>
 
@@ -1285,19 +1285,19 @@ const IssuePolicyMotorForm = () => {
                 />
                 <Col md={2}>
                   <Form.Label>บ้านเลขที่</Form.Label>
-                  <Form.Control type="text" value={customer.address} onChange={e => setCustomer({...customer, address: e.target.value})} />
+                  <DebouncedInput type="text" value={customer.address} onChange={e => setCustomer({...customer, address: e.target.value})} />
                 </Col>
                 <Col md={2}>
                   <Form.Label>หมู่</Form.Label>
-                  <Form.Control type="text" value={customer.moo} onChange={e => setCustomer({...customer, moo: e.target.value})} />
+                  <DebouncedInput type="text" value={customer.moo} onChange={e => setCustomer({...customer, moo: e.target.value})} />
                 </Col>
                 <Col md={3}>
                   <Form.Label>ซอย</Form.Label>
-                  <Form.Control type="text" value={customer.soi} onChange={e => setCustomer({...customer, soi: e.target.value})} />
+                  <DebouncedInput type="text" value={customer.soi} onChange={e => setCustomer({...customer, soi: e.target.value})} />
                 </Col>
                 <Col md={3}>
                   <Form.Label>ถนน</Form.Label>
-                  <Form.Control type="text" value={customer.road} onChange={e => setCustomer({...customer, road: e.target.value})} />
+                  <DebouncedInput type="text" value={customer.road} onChange={e => setCustomer({...customer, road: e.target.value})} />
                 </Col>
               </Row>
 
@@ -1305,7 +1305,7 @@ const IssuePolicyMotorForm = () => {
               <Row className="g-3">
                 <Col md={12}>
                   <Form.Label>หมายเหตุลูกค้า</Form.Label>
-                  <Form.Control as="textarea" rows={2} value={customer.note} onChange={e => setCustomer({...customer, note: e.target.value})} />
+                  <DebouncedInput as="textarea" rows={2} value={customer.note} onChange={e => setCustomer({...customer, note: e.target.value})} />
                 </Col>
               </Row>
             </Accordion.Body>
@@ -1394,7 +1394,7 @@ const IssuePolicyMotorForm = () => {
                   </Col>
                   <Col md={3}>
                     <Form.Label>เลขทะเบียน <span className="text-danger">*</span></Form.Label>
-                    <Form.Control type="text" value={vehicle.plate_no} onChange={e => setVehicle({...vehicle, plate_no: e.target.value})} />
+                    <DebouncedInput type="text" value={vehicle.plate_no} onChange={e => setVehicle({...vehicle, plate_no: e.target.value})} />
                   </Col>
                   <Col md={3}>
                     <Form.Label>จังหวัดทะเบียนรถ</Form.Label>
@@ -1414,8 +1414,7 @@ const IssuePolicyMotorForm = () => {
                         </span>
                       )}
                     </Form.Label>
-                    <Form.Control 
-                      type="text" 
+                    <DebouncedInput type="text" 
                       className={`text-uppercase ${vehicle.vin && vehicle.vin.replace(/\s+/g, '').length !== 17 ? 'border-warning shadow-sm bg-warning-subtle' : ''}`}
                       style={{ transition: 'all 0.3s' }}
                       value={vehicle.vin} 
@@ -1424,7 +1423,7 @@ const IssuePolicyMotorForm = () => {
                   </Col>
                   <Col md={4}>
                     <Form.Label>เลขเครื่องยนต์</Form.Label>
-                    <Form.Control type="text" value={vehicle.engine_no} onChange={e => setVehicle({...vehicle, engine_no: e.target.value})} />
+                    <DebouncedInput type="text" value={vehicle.engine_no} onChange={e => setVehicle({...vehicle, engine_no: e.target.value})} />
                   </Col>
                 </Row>
 
@@ -1500,11 +1499,11 @@ const IssuePolicyMotorForm = () => {
                 </Col>
                 <Col md={4}>
                   <Form.Label>ทุนประกันรถ</Form.Label>
-                  <Form.Control type="number" step="0.01" value={vehicle.sum_insured} onChange={e => setVehicle({...vehicle, sum_insured: e.target.value})} />
+                  <DebouncedInput type="number" step="0.01" value={vehicle.sum_insured} onChange={e => setVehicle({...vehicle, sum_insured: e.target.value})} />
                 </Col>
                 <Col md={4}>
                   <Form.Label>เลขกรมธรรม์</Form.Label>
-                  <Form.Control type="text" value={policy.policy_no} onChange={e => setPolicy({...policy, policy_no: e.target.value})} placeholder="พิมพ์เลขกรมธรรม์ หรือ เว้นว่างไว้เพื่อรัน Auto" />
+                  <DebouncedInput type="text" value={policy.policy_no} onChange={e => setPolicy({...policy, policy_no: e.target.value})} placeholder="พิมพ์เลขกรมธรรม์ หรือ เว้นว่างไว้เพื่อรัน Auto" />
                 </Col>
 
                 {policy.category === 'motor' && (
@@ -1524,11 +1523,11 @@ const IssuePolicyMotorForm = () => {
                   <>
                     <Col md={6}>
                       <Form.Label>ชื่อผู้เอาประกัน (ถ้าไม่ระบุใช้ชื่อลูกค้า)</Form.Label>
-                      <Form.Control type="text" value={policy.insured_name} onChange={e => setPolicy({...policy, insured_name: e.target.value})} />
+                      <DebouncedInput type="text" value={policy.insured_name} onChange={e => setPolicy({...policy, insured_name: e.target.value})} />
                     </Col>
                     <Col md={6}>
                       <Form.Label>ทุนประกันรวม</Form.Label>
-                      <Form.Control type="number" step="0.01" value={policy.sum_insured} onChange={e => setPolicy({...policy, sum_insured: e.target.value})} />
+                      <DebouncedInput type="number" step="0.01" value={policy.sum_insured} onChange={e => setPolicy({...policy, sum_insured: e.target.value})} />
                     </Col>
                   </>
                 )}
@@ -1550,30 +1549,30 @@ const IssuePolicyMotorForm = () => {
               <Row className="g-3">
                 <Col md={3}>
                   <Form.Label>เบี้ยสุทธิ <span className="text-danger">*</span></Form.Label>
-                  <Form.Control type="number" inputMode="decimal" step="0.01" value={policy.net_premium} onChange={e => handlePremiumChange('net_premium', e.target.value)} />
+                  <DebouncedInput type="number" inputMode="decimal" step="0.01" value={policy.net_premium} onChange={e => handlePremiumChange('net_premium', e.target.value)} />
                 </Col>
                 <Col md={2}>
                   <Form.Label>อากร</Form.Label>
-                  <Form.Control type="number" step="0.01" value={policy.stamp_duty} onChange={e => handlePremiumChange('stamp_duty', e.target.value)} />
+                  <DebouncedInput type="number" step="0.01" value={policy.stamp_duty} onChange={e => handlePremiumChange('stamp_duty', e.target.value)} />
                 </Col>
                 <Col md={3}>
                   <Form.Label>VAT</Form.Label>
-                  <Form.Control type="number" step="0.01" value={policy.vat} onChange={e => handlePremiumChange('vat', e.target.value)} />
+                  <DebouncedInput type="number" step="0.01" value={policy.vat} onChange={e => handlePremiumChange('vat', e.target.value)} />
                 </Col>
                 <Col md={4}>
                   <Form.Label className="fw-bold text-success">เบี้ยรวม (Total)</Form.Label>
-                  <Form.Control type="number" step="0.01" className="bg-light fw-bold text-success" value={policy.total_premium} onChange={e => handlePremiumChange('total_premium', e.target.value)} />
+                  <DebouncedInput type="number" step="0.01" className="bg-light fw-bold text-success" value={policy.total_premium} onChange={e => handlePremiumChange('total_premium', e.target.value)} />
                 </Col>
 
                 <Col md={12} className="mt-4"><hr/></Col>
 
                 <Col md={3}>
                   <Form.Label>เปอร์เซ็นต์คอมมิชชัน (%)</Form.Label>
-                  <Form.Control type="number" step="0.01" value={policy.commission_percent || ''} onChange={e => setPolicy({...policy, commission_percent: e.target.value})} />
+                  <DebouncedInput type="number" step="0.01" value={policy.commission_percent || ''} onChange={e => setPolicy({...policy, commission_percent: e.target.value})} />
                 </Col>
                 <Col md={3}>
                   <Form.Label className="fw-bold text-danger">ค่าคอมมิชชัน (บาท)</Form.Label>
-                  <Form.Control type="number" step="0.01" className="bg-light fw-bold text-danger" value={policy.commission_baht || ''} onChange={e => setPolicy({...policy, commission_baht: e.target.value})} />
+                  <DebouncedInput type="number" step="0.01" className="bg-light fw-bold text-danger" value={policy.commission_baht || ''} onChange={e => setPolicy({...policy, commission_baht: e.target.value})} />
                 </Col>
               </Row>
             </Accordion.Body>
@@ -1608,7 +1607,7 @@ const IssuePolicyMotorForm = () => {
                   <Row className="g-3">
                     <Col md={4}>
                       <Form.Label>ยอดชำระทั้งหมด</Form.Label>
-                      <Form.Control type="text" readOnly className="bg-light fw-bold text-success fs-5" value={`฿${(policy.total_premium || 0).toLocaleString()}`} />
+                      <DebouncedInput type="text" readOnly className="bg-light fw-bold text-success fs-5" value={`฿${(policy.total_premium || 0).toLocaleString()}`} />
                     </Col>
                     <Col md={4}>
                       <Form.Label>วันที่ชำระเงิน</Form.Label>
@@ -1639,7 +1638,7 @@ const IssuePolicyMotorForm = () => {
                     </Col>
                     <Col md={4}>
                       <Form.Label>ยอดชำระทั้งหมด (เบี้ยรวม)</Form.Label>
-                      <Form.Control type="text" readOnly className="bg-light fw-bold text-primary" value={`฿${(policy.total_premium || 0).toLocaleString()}`} />
+                      <DebouncedInput type="text" readOnly className="bg-light fw-bold text-primary" value={`฿${(policy.total_premium || 0).toLocaleString()}`} />
                     </Col>
                     <Col md={4}>
                       <Form.Label>วันที่เริ่มผ่อนงวดแรก</Form.Label>
@@ -1666,8 +1665,7 @@ const IssuePolicyMotorForm = () => {
                                 <td><span className="badge bg-primary rounded-circle p-2">{inst.installment_no}</span></td>
                                 <td><span className="fw-bold text-danger">{inst.due_date}</span></td>
                                 <td>
-                                  <Form.Control
-                                    type="number"
+                                  <DebouncedInput type="number"
                                     min="0"
                                     step="0.01"
                                     className="text-end fw-bold text-primary"
@@ -1710,11 +1708,11 @@ const IssuePolicyMotorForm = () => {
                 </Col>
                 <Col md={4}>
                   <Form.Label>ผู้ดูแลลูกค้า (Sales)</Form.Label>
-                  <Form.Control type="text" value="(อ้างอิงตามแอคเคาท์ปัจจุบัน)" disabled className="bg-light" />
+                  <DebouncedInput type="text" value="(อ้างอิงตามแอคเคาท์ปัจจุบัน)" disabled className="bg-light" />
                 </Col>
                 <Col md={12}>
                   <Form.Label>หมายเหตุติดตามงาน</Form.Label>
-                  <Form.Control as="textarea" rows={2} value={followUp.note} onChange={e => setFollowUp({...followUp, note: e.target.value})} />
+                  <DebouncedInput as="textarea" rows={2} value={followUp.note} onChange={e => setFollowUp({...followUp, note: e.target.value})} />
                 </Col>
               </Row>
             </Accordion.Body>
