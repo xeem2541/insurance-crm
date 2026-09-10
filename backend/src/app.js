@@ -124,7 +124,7 @@ app.use('/api', globalLimiter);
 app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
 
 // Database connection pool with 24/7 keepalive & heartbeat
-const { pool, getDbStatus, pingDatabase } = require('./db');
+const { pool, getDbStatus, pingDatabase, queryWithRetry } = require('./db');
 
 // ✅ Migration flag table — แต่ละ ALTER TABLE รันแค่ครั้งเดียว ไม่ซ้ำทุก cold start
 async function runMigrationOnce(connection, key, sql) {
@@ -500,7 +500,14 @@ async function initDb() {
 
 // Pass pool to request object so routes can use it
 app.use((req, res, next) => {
-  req.db = pool;
+  // Intercept query to use the resilient retry logic automatically
+  req.db = new Proxy(pool, {
+    get(target, prop) {
+      if (prop === 'query') return queryWithRetry;
+      const value = target[prop];
+      return typeof value === 'function' ? value.bind(target) : value;
+    }
+  });
   next();
 });
 
