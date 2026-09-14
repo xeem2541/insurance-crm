@@ -169,7 +169,7 @@ const LineAdmin = () => {
                     >
                       <div className="d-flex align-items-center">
                         <img 
-                          src={user.picture_url || 'https://via.placeholder.com/40'} 
+                          src={user.picture_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(user.display_name || 'User')}&background=random&size=40`} 
                           alt="profile" 
                           className="rounded-circle me-3" 
                           width="40" height="40" 
@@ -198,7 +198,7 @@ const LineAdmin = () => {
                   <Card.Header className="d-flex justify-content-between align-items-center">
                     <div className="d-flex align-items-center">
                       <img 
-                        src={selectedUser.picture_url || 'https://via.placeholder.com/40'} 
+                        src={selectedUser.picture_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(selectedUser.display_name || 'User')}&background=random&size=40`} 
                         alt="profile" 
                         className="rounded-circle me-3" 
                         width="40" height="40" 
