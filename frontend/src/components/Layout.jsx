@@ -98,6 +98,7 @@ const Layout = () => {
     { path: '/policies', label: 'Motor Insurance (รถยนต์)', icon: 'bi-shield-fill-check', color: '#60a5fa', roles: ['Admin', 'Manager', 'Staff', 'Sales', 'Viewer'] },
     { path: '/non-motor', label: 'Non-Motor (ประกันอื่น)', icon: 'bi-shield-plus', color: '#f472b6', roles: ['Admin', 'Manager', 'Staff', 'Sales', 'Viewer'] },
     { path: '/payments', label: 'ระบบรับชำระเงิน', icon: 'bi-wallet2', color: '#4ade80', roles: ['Admin', 'Manager', 'Staff', 'Sales'] },
+    { path: '/line-admin', label: 'LINE Admin', icon: 'bi-chat-dots-fill', color: '#10b981', roles: ['Admin', 'Manager', 'Staff'] },
     { path: '/documents', label: 'ระบบเอกสาร', icon: 'bi-file-earmark-medical-fill', color: '#2dd4bf', roles: ['Admin', 'Manager', 'Staff', 'Sales', 'Viewer'] },
     { path: '/reports', label: 'รายงาน', icon: 'bi-bar-chart-line-fill', color: '#fb923c', roles: ['Admin', 'Manager', 'Sales'] },
     { path: '/activity-logs', label: 'ประวัติการทำงาน (Logs)', icon: 'bi-clock-history', color: '#ec4899', roles: ['Admin', 'Manager'] },

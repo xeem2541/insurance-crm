@@ -182,6 +182,21 @@ async function initDb() {
     await runMigrationOnce(connection, 'add_ai_correction_non_motor_id',
       'ALTER TABLE ai_correction_logs ADD COLUMN non_motor_policy_id INT NULL AFTER policy_id');
 
+    // --- LINE Admin Migrations ---
+    await runMigrationOnce(connection, 'create_line_users_table', `
+      CREATE TABLE IF NOT EXISTS line_users (
+        user_id VARCHAR(255) PRIMARY KEY,
+        display_name VARCHAR(255),
+        picture_url VARCHAR(500),
+        is_bot_paused BOOLEAN DEFAULT FALSE,
+        needs_attention BOOLEAN DEFAULT FALSE,
+        last_interacted_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+      )
+    `);
+    await runMigrationOnce(connection, 'add_admin_role_chat_history', `
+      ALTER TABLE chat_history MODIFY COLUMN role VARCHAR(20) NOT NULL
+    `);
+
     // Seed Admin user if not exists
     const [users] = await connection.query('SELECT * FROM users WHERE username = ?', ['admin']);
     if (users.length === 0) {
@@ -638,6 +653,7 @@ app.use('/api/payments', require('./routes/payments'));
 app.use('/api/notifications', require('./routes/notifications'));
 app.use('/api/ai-ocr', require('./routes/aiOcr'));
 app.use('/api/activity-logs', require('./routes/activityLogs'));
+app.use('/api/line-admin', require('./routes/lineAdmin'));
 app.use('/api/cron', require('./routes/cron'));
 
 // Schedule Automated Backup every 1st day of the month at 01:00 AM (End of month backup)

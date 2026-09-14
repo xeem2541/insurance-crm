@@ -26,6 +26,7 @@ const IssuePolicyMotorForm = lazy(() => import('./pages/IssuePolicyMotorForm'));
 const IssuePolicyNonMotorForm = lazy(() => import('./pages/IssuePolicyNonMotorForm'));
 const ActivityLogs = lazy(() => import('./pages/ActivityLogs'));
 const MobileDashboard = lazy(() => import('./pages/MobileDashboard'));
+const LineAdmin = lazy(() => import('./pages/LineAdmin'));
 
 // Resilient Error Boundary to ensure the web application never crashes to a blank screen
 class ErrorBoundary extends Component {
@@ -230,6 +231,7 @@ const AppRoutes = () => {
           <Route path="master-data" element={<MasterData />} />
           <Route path="payments" element={<Payments />} />
           <Route path="activity-logs" element={<ActivityLogs />} />
+          <Route path="line-admin" element={<LineAdmin />} />
         </Route>
         {/* Route for printing without Layout (sidebar/header) */}
         <Route path="/print-policy/:id" element={

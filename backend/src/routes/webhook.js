@@ -141,6 +141,29 @@ router.post('/', async (req, res) => {
       let policyFound = false;
       const isGroupOrRoom = event.source.type === 'group' || event.source.type === 'room';
       
+      const userId = event.source.userId;
+      
+      // Update line_users profile if not a group
+      if (!isGroupOrRoom && userId) {
+        try {
+          const profileRes = await axios.get(`https://api.line.me/v2/bot/profile/${userId}`, {
+            headers: { 'Authorization': `Bearer ${LINE_ACCESS_TOKEN}` }
+          });
+          const { displayName, pictureUrl } = profileRes.data;
+          await req.db.query(`
+            INSERT INTO line_users (user_id, display_name, picture_url)
+            VALUES (?, ?, ?)
+            ON DUPLICATE KEY UPDATE display_name = ?, picture_url = ?, last_interacted_at = CURRENT_TIMESTAMP
+          `, [userId, displayName, pictureUrl, displayName, pictureUrl]);
+        } catch (profileErr) {
+          console.error('Error fetching LINE profile:', profileErr.response?.data || profileErr.message);
+          // Insert dummy if it fails
+          await req.db.query(`
+            INSERT IGNORE INTO line_users (user_id, display_name) VALUES (?, ?)
+          `, [userId, 'Unknown User']);
+        }
+      }
+      
       if (isGroupOrRoom && (
         text.includes('ออกจากระบบ') ||
         text.includes('ออกจากกลุ่ม') ||
@@ -238,6 +261,26 @@ router.post('/', async (req, res) => {
       // Fallback to Gemini AI
       if (!policyFound && event.source.type === 'user' && !isGroupOrRoom) {
         const userId = event.source.userId;
+        
+        // Check if bot is paused
+        let isPaused = false;
+        try {
+          const [userRows] = await req.db.query("SELECT is_bot_paused FROM line_users WHERE user_id = ?", [userId]);
+          if (userRows.length > 0 && userRows[0].is_bot_paused) {
+            isPaused = true;
+          }
+        } catch(e) {}
+        
+        // If bot is paused, we just save the message to chat_history but DO NOT reply.
+        if (isPaused) {
+          if (event.message.type === 'text') {
+             await req.db.query("INSERT INTO chat_history (user_id, role, message) VALUES (?, 'user', ?)", [userId, text]);
+          } else if (event.message.type === 'image') {
+             await req.db.query("INSERT INTO chat_history (user_id, role, message) VALUES (?, 'user', ?)", [userId, '[ส่งรูปภาพ]']);
+          }
+          continue; // Skip AI response
+        }
+
         if (generativeModel) {
           try {
             let currentPrompt = SYSTEM_PROMPT;
@@ -312,6 +355,7 @@ router.post('/', async (req, res) => {
             if (aiText.includes('[NOTIFY_ADMIN]')) {
               aiText = aiText.replace('[NOTIFY_ADMIN]', '').trim();
               notifyAdminGroup(req.db, `🚨 ผู้ใช้ (ID: ${userId}) ขอคุยกับพนักงาน!\n\nข้อความล่าสุด: ${text}`);
+              await req.db.query("UPDATE line_users SET needs_attention = TRUE WHERE user_id = ?", [userId]);
             }
 
             replyMessages.push({ type: 'text', text: aiText });
