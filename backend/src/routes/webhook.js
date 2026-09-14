@@ -95,10 +95,10 @@ async function downloadImage(messageId) {
 }
 
 router.post('/', async (req, res) => {
-  res.status(200).send('OK'); 
-
   const events = req.body.events;
-  if (!events || events.length === 0) return;
+  if (!events || events.length === 0) {
+    return res.status(200).send('OK');
+  }
 
   for (const event of events) {
     console.log('Received LINE event:', event.type);
@@ -394,6 +394,8 @@ router.post('/', async (req, res) => {
       }
     }
   }
+
+  res.status(200).send('OK');
 });
 
 module.exports = router;
