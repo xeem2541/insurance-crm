@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Container, Row, Col, Card, ListGroup, Form, Button, Tabs, Tab, Badge, Spinner } from 'react-bootstrap';
-import axios from 'axios';
+import api from '../services/api';
 import { Send, Users, MessageSquare, Megaphone, Settings } from 'lucide-react';
 
 const LineAdmin = () => {
@@ -29,8 +29,8 @@ const LineAdmin = () => {
 
   const fetchUsers = async () => {
     try {
-      const res = await axios.get('/api/line-admin/users');
-      setUsers(res.data);
+      const res = await api.get('/line-admin/users');
+      setUsers(Array.isArray(res.data) ? res.data : []);
     } catch (error) {
       console.error('Error fetching users:', error);
     }
@@ -39,8 +39,8 @@ const LineAdmin = () => {
   const fetchChatHistory = async (userId, showLoading = true) => {
     if (showLoading) setLoading(true);
     try {
-      const res = await axios.get(`/api/line-admin/chat/${userId}`);
-      setChatHistory(res.data);
+      const res = await api.get(`/line-admin/chat/${userId}`);
+      setChatHistory(Array.isArray(res.data) ? res.data : []);
       if (showLoading) scrollToBottom();
     } catch (error) {
       console.error('Error fetching chat history:', error);
@@ -51,8 +51,8 @@ const LineAdmin = () => {
 
   const fetchBotPrompt = async () => {
     try {
-      const res = await axios.get('/api/line-admin/bot-prompt');
-      setBotPrompt(res.data.prompt);
+      const res = await api.get('/line-admin/bot-prompt');
+      setBotPrompt(res.data?.prompt || '');
     } catch (error) {
       console.error('Error fetching bot prompt:', error);
     }
@@ -80,7 +80,7 @@ const LineAdmin = () => {
     
     setSending(true);
     try {
-      await axios.post('/api/line-admin/reply', {
+      await api.post('/line-admin/reply', {
         userId: selectedUser.user_id,
         message: replyMessage
       });
@@ -97,7 +97,7 @@ const LineAdmin = () => {
     if (!selectedUser) return;
     const newStatus = !selectedUser.is_bot_paused;
     try {
-      await axios.post('/api/line-admin/toggle-bot', {
+      await api.post('/line-admin/toggle-bot', {
         userId: selectedUser.user_id,
         isPaused: newStatus
       });
@@ -115,7 +115,7 @@ const LineAdmin = () => {
     
     setSending(true);
     try {
-      await axios.post('/api/line-admin/broadcast', {
+      await api.post('/line-admin/broadcast', {
         message: broadcastMessage
       });
       alert('Broadcast sent successfully!');
@@ -131,7 +131,7 @@ const LineAdmin = () => {
     e.preventDefault();
     setSending(true);
     try {
-      await axios.post('/api/line-admin/bot-prompt', {
+      await api.post('/line-admin/bot-prompt', {
         prompt: botPrompt
       });
       alert('Prompt updated successfully!');
