@@ -13,9 +13,10 @@ if (process.env.GEMINI_API_KEY) {
   const apiKey = process.env.GEMINI_API_KEY.trim();
   genAI = new GoogleGenerativeAI(apiKey);
   
-  generativeModel = genAI.getGenerativeModel({ model: "gemini-3.5-flash" });
+  // Default to 1.5-flash as the safest standard model
+  generativeModel = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
 
-  // Select best model
+  // Select best model async
   axios.get(`https://generativelanguage.googleapis.com/v1beta/models`, {
     headers: { 'x-goog-api-key': apiKey }
   })
@@ -25,14 +26,12 @@ if (process.env.GEMINI_API_KEY) {
         .map(m => m.name.replace('models/', ''));
       
       const preferredModels = [
-        'gemini-3.5-flash',
-        'gemini-3.5-flash-lite',
-        'gemini-3.1-flash-lite',
-        'gemini-2.5-flash-lite',
-        'gemini-flash-lite-latest'
+        'gemini-2.0-flash',
+        'gemini-2.0-flash-lite',
+        'gemini-1.5-flash',
       ];
       
-      const bestModel = preferredModels.find(m => models.includes(m)) || 'gemini-3.5-flash';
+      const bestModel = preferredModels.find(m => models.includes(m)) || 'gemini-1.5-flash';
       generativeModel = genAI.getGenerativeModel({ model: bestModel });
       console.log(`🤖 Line Bot initialized with best available model: ${bestModel}`);
     })
@@ -299,12 +298,20 @@ router.post('/', async (req, res) => {
             
             let contents = [];
             for (const row of historyRows) {
+              const msgText = row.message ? row.message.trim() : '';
+              if (!msgText) continue;
+
               if (contents.length > 0 && contents[contents.length - 1].role === row.role) {
                 // Merge consecutive messages from the same role
-                contents[contents.length - 1].parts[0].text += '\n' + row.message;
+                contents[contents.length - 1].parts[0].text += '\n' + msgText;
               } else {
-                contents.push({ role: row.role, parts: [{ text: row.message }] });
+                contents.push({ role: row.role, parts: [{ text: msgText }] });
               }
+            }
+
+            // Gemini API STRICT REQUIREMENT: First message MUST be 'user'
+            if (contents.length > 0 && contents[0].role === 'model') {
+              contents.shift();
             }
 
             // Current message part
