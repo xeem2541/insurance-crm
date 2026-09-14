@@ -54,25 +54,58 @@ router.get('/', authenticateToken, async (req, res) => {
     const total = countResult[0].total;
     const totalPages = Math.ceil(total / itemsPerPage);
 
-    // 2. Get data (optimize select fields for dropdown lists)
-    const selectFields = isAll
+    // 2. Get base data with pagination
+    const baseFields = isAll
       ? `c.id, c.customer_code, c.prefix, c.first_name, c.last_name, c.phone, c.id_card_no`
-      : `c.*, 
-        (SELECT v.plate_no FROM vehicles v WHERE v.customer_id = c.id ORDER BY v.created_at DESC LIMIT 1) as plate_no,
-        (SELECT CONCAT(p.company, ' - ', p.type) FROM policies p WHERE p.customer_id = c.id ORDER BY p.created_at DESC LIMIT 1) as motor_type,
-        (SELECT CONCAT(np.company, ' - ', t.name) FROM non_motor_policies np JOIN non_motor_types t ON np.non_motor_type_id = t.id WHERE np.customer_id = c.id ORDER BY np.created_at DESC LIMIT 1) as non_motor_type`;
+      : `c.*`;
 
     const query = `
-      SELECT ${selectFields}
+      SELECT ${baseFields}
       FROM customers c 
       ${whereClause} 
       ORDER BY c.created_at DESC 
       LIMIT ? OFFSET ?
     `;
     
-    // Add limit and offset to params
     const queryParams = [...params, itemsPerPage, offset];
     const [customers] = await req.db.query(query, queryParams);
+
+    // 3. Optimize fetching related data (Avoid Correlated Subqueries / N+1)
+    if (!isAll && customers.length > 0) {
+      const customerIds = customers.map(c => c.id);
+
+      // Fetch Latest Vehicle
+      const [vehicles] = await req.db.query(`
+        SELECT customer_id, plate_no FROM vehicles 
+        WHERE id IN (SELECT MAX(id) FROM vehicles WHERE customer_id IN (?) GROUP BY customer_id)
+      `, [customerIds]);
+
+      // Fetch Latest Motor Policy
+      const [motorPolicies] = await req.db.query(`
+        SELECT customer_id, CONCAT(company, ' - ', type) as motor_type FROM policies 
+        WHERE id IN (SELECT MAX(id) FROM policies WHERE customer_id IN (?) GROUP BY customer_id)
+      `, [customerIds]);
+
+      // Fetch Latest Non-Motor Policy
+      const [nonMotorPolicies] = await req.db.query(`
+        SELECT np.customer_id, CONCAT(np.company, ' - ', t.name) as non_motor_type 
+        FROM non_motor_policies np 
+        JOIN non_motor_types t ON np.non_motor_type_id = t.id 
+        WHERE np.id IN (SELECT MAX(id) FROM non_motor_policies WHERE customer_id IN (?) GROUP BY customer_id)
+      `, [customerIds]);
+
+      // Map to dictionaries for O(1) lookup
+      const vehicleMap = vehicles.reduce((acc, v) => ({ ...acc, [v.customer_id]: v.plate_no }), {});
+      const motorMap = motorPolicies.reduce((acc, p) => ({ ...acc, [p.customer_id]: p.motor_type }), {});
+      const nonMotorMap = nonMotorPolicies.reduce((acc, p) => ({ ...acc, [p.customer_id]: p.non_motor_type }), {});
+
+      // Stitch data back into customers array
+      customers.forEach(c => {
+        c.plate_no = vehicleMap[c.id] || null;
+        c.motor_type = motorMap[c.id] || null;
+        c.non_motor_type = nonMotorMap[c.id] || null;
+      });
+    }
     
     res.json({
       data: customers,
