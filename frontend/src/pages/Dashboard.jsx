@@ -157,10 +157,10 @@ const Dashboard = () => {
           </div>
 
           <div className="col-lg-5 d-flex flex-column flex-sm-row justify-content-lg-end gap-2">
-            <div className="d-flex gap-2">
+            <div className="d-flex gap-2 flex-grow-1 flex-lg-grow-0">
               <select 
                 className="form-select fw-bold py-2 shadow-sm" 
-                style={{ borderRadius: '12px', fontSize: '0.88rem', background: '#ffffff', color: '#1e293b' }}
+                style={{ borderRadius: '12px', fontSize: '0.88rem', background: '#ffffff', color: '#1e293b', minWidth: '130px' }}
                 value={filterMonth} 
                 onChange={(e) => setFilterMonth(e.target.value)}
               >
@@ -170,7 +170,7 @@ const Dashboard = () => {
               </select>
               <select 
                 className="form-select fw-bold py-2 shadow-sm" 
-                style={{ borderRadius: '12px', fontSize: '0.88rem', background: '#ffffff', color: '#1e293b' }}
+                style={{ borderRadius: '12px', fontSize: '0.88rem', background: '#ffffff', color: '#1e293b', minWidth: '100px' }}
                 value={filterYear} 
                 onChange={(e) => setFilterYear(e.target.value)}
               >
