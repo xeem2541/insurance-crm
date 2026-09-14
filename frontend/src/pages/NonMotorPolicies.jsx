@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from 'react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import api from '../services/api';
-import { Modal, Button, Form } from 'react-bootstrap';
-import Select from 'react-select';
 import * as XLSX from 'xlsx';
 import { TableSkeleton, tableContainerVariants, tableRowVariants } from '../components/TableSkeleton';
 import { motion } from 'framer-motion';
+import NonMotorPolicyFormModal from '../components/NonMotorPolicyFormModal';
 
 const formatThaiDate = (dateString) => {
   if (!dateString) return '-';
@@ -17,35 +17,61 @@ const formatThaiDate = (dateString) => {
 };
 
 const NonMotorPolicies = () => {
-  const [policies, setPolicies] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [customers, setCustomers] = useState([]);
-  const [search, setSearch] = useState('');
-  const [debouncedSearch, setDebouncedSearch] = useState('');
+  const queryClient = useQueryClient();
+  const [search, setSearch] = useState(() => sessionStorage.getItem('nonMotorPoliciesSearch') || '');
+  const [debouncedSearch, setDebouncedSearch] = useState(search);
   const [showModal, setShowModal] = useState(false);
+  const [initialData, setInitialData] = useState(null);
   const [page, setPage] = useState(1);
-  const [totalPages, setTotalPages] = useState(1);
-  
   const [sortConfig, setSortConfig] = useState({ key: 'start_date', direction: 'descending' });
 
   // Debounce search input (300ms)
   useEffect(() => {
+    sessionStorage.setItem('nonMotorPoliciesSearch', search);
     const timer = setTimeout(() => {
       setDebouncedSearch(search);
     }, 300);
     return () => clearTimeout(timer);
   }, [search]);
 
-  const safePolicies = React.useMemo(() => {
-    return Array.isArray(policies) ? policies : (policies?.data || []);
-  }, [policies]);
+  useEffect(() => {
+    setPage(1);
+  }, [debouncedSearch]);
 
-  const safeCustomers = React.useMemo(() => {
-    return Array.isArray(customers) ? customers : (customers?.data || []);
-  }, [customers]);
+  // Fetch non-motor policies and master data
+  const { data, isLoading: loading } = useQuery({
+    queryKey: ['nonMotorPolicies', debouncedSearch, page],
+    queryFn: async () => {
+      const [polRes, custRes, typesRes, mdRes] = await Promise.all([
+        api.get(`/non-motor-policies?search=${encodeURIComponent(debouncedSearch.trim())}&page=${page}&limit=50`),
+        api.get('/customers?all=true'),
+        api.get('/non-motor-policies/types'),
+        api.get('/master-data')
+      ]);
+
+      const policies = polRes.data?.data || (Array.isArray(polRes.data) ? polRes.data : []);
+      const totalPages = polRes.data?.totalPages || 1;
+      const customers = Array.isArray(custRes.data) ? custRes.data : (custRes.data?.data || []);
+      
+      const nonMotorTypes = Array.isArray(typesRes.data) ? typesRes.data.map(t => ({ value: t.id, label: t.name })) : [];
+      
+      const md = Array.isArray(mdRes.data) ? mdRes.data : (mdRes.data?.data || []);
+      const companies = md.filter(m => m.category === 'InsuranceCompany').map(m => ({ value: m.value, label: m.value }));
+      const jobStatuses = md.filter(m => m.category === 'JobStatus').map(m => ({ value: m.value, label: m.value }));
+
+      return { policies, totalPages, customers, nonMotorTypes, companies, jobStatuses };
+    }
+  });
+
+  const policies = data?.policies || [];
+  const totalPages = data?.totalPages || 1;
+  const customers = data?.customers || [];
+  const nonMotorTypes = data?.nonMotorTypes || [];
+  const companies = data?.companies || [];
+  const jobStatuses = data?.jobStatuses || [];
 
   const sortedPolicies = React.useMemo(() => {
-    let sortablePolicies = [...safePolicies];
+    let sortablePolicies = [...policies];
     if (sortConfig !== null) {
       sortablePolicies.sort((a, b) => {
         let aVal = a[sortConfig.key];
@@ -72,7 +98,7 @@ const NonMotorPolicies = () => {
       });
     }
     return sortablePolicies;
-  }, [safePolicies, sortConfig]);
+  }, [policies, sortConfig]);
 
   const requestSort = (key) => {
     let direction = 'ascending';
@@ -81,72 +107,6 @@ const NonMotorPolicies = () => {
     }
     setSortConfig({ key, direction });
   };
-  
-  // Master Data States
-  const [nonMotorTypes, setNonMotorTypes] = useState([]);
-  const [companies, setCompanies] = useState([]);
-  const [jobStatuses, setJobStatuses] = useState([]);
-
-  const [formData, setFormData] = useState({
-    id: null, customer_id: '', non_motor_type_id: '', policy_no: '', company: '', insured_name: '',
-    sum_insured: '', net_premium: '', stamp_duty: '', vat: '', total_premium: '',
-    commission_percent: '', commission_baht: '', start_date: '', expiry_date: '', 
-    status: 'รอดำเนินการ', note: '', additional_data: {}
-  });
-
-  // Fetch dropdown and master data once on mount
-  const fetchDropdownData = async () => {
-    try {
-      const [custRes, typesRes, mdRes] = await Promise.all([
-        api.get('/customers?all=true'),
-        api.get('/non-motor-policies/types'),
-        api.get('/master-data')
-      ]);
-      const custList = Array.isArray(custRes.data) ? custRes.data : (custRes.data?.data || []);
-      setCustomers(custList);
-      setNonMotorTypes(Array.isArray(typesRes.data) ? typesRes.data.map(t => ({ value: t.id, label: t.name })) : []);
-      
-      const md = Array.isArray(mdRes.data) ? mdRes.data : (mdRes.data?.data || []);
-      setCompanies(md.filter(m => m.category === 'InsuranceCompany').map(m => ({ value: m.value, label: m.value })));
-      setJobStatuses(md.filter(m => m.category === 'JobStatus').map(m => ({ value: m.value, label: m.value })));
-    } catch (err) {
-      console.error('Fetch dropdown data error:', err);
-    }
-  };
-
-  useEffect(() => {
-    fetchDropdownData();
-  }, []);
-
-  // Fetch policies list on search/page change
-  const fetchPolicies = async () => {
-    setLoading(true);
-    try {
-      const polRes = await api.get(`/non-motor-policies?search=${encodeURIComponent(debouncedSearch.trim())}&page=${page}&limit=50`);
-      const polData = polRes.data?.data || (Array.isArray(polRes.data) ? polRes.data : []);
-      setPolicies(polData);
-      setTotalPages(polRes.data?.totalPages || 1);
-    } catch (error) {
-      console.error('Fetch non-motor policies error:', error);
-      setPolicies([]);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const fetchData = () => {
-    fetchPolicies();
-    fetchDropdownData();
-  };
-
-  useEffect(() => {
-    fetchPolicies();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [debouncedSearch, page]);
-
-  useEffect(() => {
-    setPage(1);
-  }, [debouncedSearch]);
 
   const exportToExcel = () => {
     const dataToExport = policies.map(p => ({
@@ -168,148 +128,27 @@ const NonMotorPolicies = () => {
     XLSX.writeFile(wb, "non_motor_policies.xlsx");
   };
 
-  const handleCalculate = () => {
-    const net = parseFloat(formData.net_premium) || 0;
-    const stamp = Math.ceil(net * 0.004);
-    const v = parseFloat(((net + stamp) * 0.07).toFixed(2));
-    const total = net + stamp + v;
-    const percent = parseFloat(formData.commission_percent) || 0;
-    const comm = parseFloat((net * (percent / 100)).toFixed(2));
-    
-    setFormData({
-      ...formData,
-      stamp_duty: stamp,
-      vat: v,
-      total_premium: total,
-      commission_baht: comm
-    });
-  };
-
   const handleOpenModal = (p = null) => {
-    if (p) {
-      setFormData({
-        ...p,
-        start_date: p.start_date ? p.start_date.split('T')[0] : '',
-        expiry_date: p.expiry_date ? p.expiry_date.split('T')[0] : '',
-        additional_data: typeof p.additional_data === 'string' ? JSON.parse(p.additional_data) : (p.additional_data || {})
-      });
-    } else {
-      setFormData({
-        id: null, customer_id: '', policy_no: '', company: '', non_motor_type_id: '', insured_name: '',
-        sum_insured: '', net_premium: '', stamp_duty: '', vat: '', total_premium: '',
-        commission_percent: '', commission_baht: '', start_date: '', expiry_date: '', 
-        status: 'รอดำเนินการ', note: '', additional_data: {}
-      });
-    }
+    setInitialData(p);
     setShowModal(true);
   };
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    try {
-      if (formData.id) {
-        await api.put(`/non-motor-policies/${formData.id}`, formData);
-      } else {
-        await api.post('/non-motor-policies', formData);
-      }
-      setShowModal(false);
-      fetchData();
-    } catch (error) {
-      alert(error.response?.data?.error || 'เกิดข้อผิดพลาด');
+  const deleteMutation = useMutation({
+    mutationFn: async (id) => {
+      return await api.delete(`/non-motor-policies/${id}`);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['nonMotorPolicies'] });
+    },
+    onError: (error) => {
+      alert(error.response?.data?.error || 'เกิดข้อผิดพลาดในการลบข้อมูล');
     }
-  };
+  });
 
-  const handleDelete = async (id) => {
+  const handleDelete = (id) => {
     if (window.confirm('คุณต้องการลบข้อมูลนี้ใช่หรือไม่? การกระทำนี้ไม่สามารถย้อนกลับได้')) {
-      try {
-        await api.delete(`/non-motor-policies/${id}`);
-        fetchData();
-      } catch (error) {
-        alert(error.response?.data?.error || 'เกิดข้อผิดพลาดในการลบข้อมูล');
-      }
+      deleteMutation.mutate(id);
     }
-  };
-
-  const updateAdditionalData = (key, value) => {
-    setFormData({
-      ...formData,
-      additional_data: {
-        ...formData.additional_data,
-        [key]: value
-      }
-    });
-  };
-
-  const renderDynamicFields = () => {
-    const typeId = parseInt(formData.non_motor_type_id);
-    if (!typeId) return null;
-
-    const t = nonMotorTypes.find(x => x.value === typeId)?.label || '';
-
-    if (t.includes('PA') || t.includes('อุบัติเหตุ')) {
-      return (
-        <>
-          <div className="col-md-4"><Form.Label>จำนวนผู้เอาประกัน</Form.Label><Form.Control type="number" value={formData.additional_data.pa_insured_count || ''} onChange={e => updateAdditionalData('pa_insured_count', e.target.value)} /></div>
-          <div className="col-md-4"><Form.Label>วงเงินคุ้มครอง</Form.Label><Form.Control type="text" value={formData.additional_data.pa_coverage || ''} onChange={e => updateAdditionalData('pa_coverage', e.target.value)} /></div>
-          <div className="col-md-4"><Form.Label>อาชีพ</Form.Label><Form.Control type="text" value={formData.additional_data.pa_occupation || ''} onChange={e => updateAdditionalData('pa_occupation', e.target.value)} /></div>
-        </>
-      );
-    } else if (t.includes('ขนส่ง')) {
-      return (
-        <>
-          <div className="col-md-4"><Form.Label>ประเภทสินค้า</Form.Label><Form.Control type="text" value={formData.additional_data.cargo_type || ''} onChange={e => updateAdditionalData('cargo_type', e.target.value)} /></div>
-          <div className="col-md-4"><Form.Label>มูลค่าสินค้า</Form.Label><Form.Control type="text" value={formData.additional_data.cargo_value || ''} onChange={e => updateAdditionalData('cargo_value', e.target.value)} /></div>
-          <div className="col-md-4"><Form.Label>เส้นทางขนส่ง</Form.Label><Form.Control type="text" value={formData.additional_data.cargo_route || ''} onChange={e => updateAdditionalData('cargo_route', e.target.value)} /></div>
-        </>
-      );
-    } else if (t.includes('อัคคีภัย') || t.includes('ไฟไหม้')) {
-      return (
-        <>
-          <div className="col-md-4"><Form.Label>ประเภททรัพย์สิน</Form.Label><Form.Control type="text" value={formData.additional_data.fire_property_type || ''} onChange={e => updateAdditionalData('fire_property_type', e.target.value)} /></div>
-          <div className="col-md-4"><Form.Label>ที่ตั้งทรัพย์สิน</Form.Label><Form.Control type="text" value={formData.additional_data.fire_location || ''} onChange={e => updateAdditionalData('fire_location', e.target.value)} /></div>
-          <div className="col-md-4"><Form.Label>มูลค่าทรัพย์สิน</Form.Label><Form.Control type="text" value={formData.additional_data.fire_value || ''} onChange={e => updateAdditionalData('fire_value', e.target.value)} /></div>
-        </>
-      );
-    } else if (t.includes('รับผิดต่อบุคคลภายนอก')) {
-      return (
-        <>
-          <div className="col-md-6"><Form.Label>ประเภทธุรกิจ</Form.Label><Form.Control type="text" value={formData.additional_data.liability_business_type || ''} onChange={e => updateAdditionalData('liability_business_type', e.target.value)} /></div>
-          <div className="col-md-6"><Form.Label>วงเงินคุ้มครอง</Form.Label><Form.Control type="text" value={formData.additional_data.liability_coverage || ''} onChange={e => updateAdditionalData('liability_coverage', e.target.value)} /></div>
-        </>
-      );
-    } else if (t.includes('รับเหมา')) {
-      return (
-        <>
-          <div className="col-md-4"><Form.Label>ชื่อโครงการ</Form.Label><Form.Control type="text" value={formData.additional_data.construct_project_name || ''} onChange={e => updateAdditionalData('construct_project_name', e.target.value)} /></div>
-          <div className="col-md-4"><Form.Label>มูลค่าโครงการ</Form.Label><Form.Control type="text" value={formData.additional_data.construct_value || ''} onChange={e => updateAdditionalData('construct_value', e.target.value)} /></div>
-          <div className="col-md-4"><Form.Label>ระยะเวลาก่อสร้าง</Form.Label><Form.Control type="text" value={formData.additional_data.construct_period || ''} onChange={e => updateAdditionalData('construct_period', e.target.value)} /></div>
-        </>
-      );
-    } else if (t.includes('วิชาชีพ')) {
-      return (
-        <>
-          <div className="col-md-6"><Form.Label>ประเภทวิชาชีพ</Form.Label><Form.Control type="text" value={formData.additional_data.prof_type || ''} onChange={e => updateAdditionalData('prof_type', e.target.value)} /></div>
-          <div className="col-md-6"><Form.Label>วงเงินคุ้มครอง</Form.Label><Form.Control type="text" value={formData.additional_data.prof_coverage || ''} onChange={e => updateAdditionalData('prof_coverage', e.target.value)} /></div>
-        </>
-      );
-    } else if (t.includes('สุขภาพ')) {
-      return (
-        <>
-          <div className="col-md-6"><Form.Label>แผนประกัน</Form.Label><Form.Control type="text" value={formData.additional_data.health_plan || ''} onChange={e => updateAdditionalData('health_plan', e.target.value)} /></div>
-          <div className="col-md-6"><Form.Label>อายุผู้เอาประกัน</Form.Label><Form.Control type="number" value={formData.additional_data.health_age || ''} onChange={e => updateAdditionalData('health_age', e.target.value)} /></div>
-        </>
-      );
-    } else if (t.includes('เงินออม') || t.includes('T Life')) {
-      return (
-        <>
-          <div className="col-md-3"><Form.Label>แบบประกัน</Form.Label><Form.Control type="text" value={formData.additional_data.saving_plan || ''} onChange={e => updateAdditionalData('saving_plan', e.target.value)} /></div>
-          <div className="col-md-3"><Form.Label>ระยะเวลาชำระเบี้ย</Form.Label><Form.Control type="text" value={formData.additional_data.saving_pay_period || ''} onChange={e => updateAdditionalData('saving_pay_period', e.target.value)} /></div>
-          <div className="col-md-3"><Form.Label>ระยะเวลาคุ้มครอง</Form.Label><Form.Control type="text" value={formData.additional_data.saving_cover_period || ''} onChange={e => updateAdditionalData('saving_cover_period', e.target.value)} /></div>
-          <div className="col-md-3"><Form.Label>มูลค่าเวนคืน</Form.Label><Form.Control type="text" value={formData.additional_data.saving_surrender || ''} onChange={e => updateAdditionalData('saving_surrender', e.target.value)} /></div>
-        </>
-      );
-    }
-    return null;
   };
 
   const getStatusBadge = (status) => {
@@ -318,7 +157,7 @@ const NonMotorPolicies = () => {
     return <span className="badge bg-secondary">{status}</span>;
   };
 
-  const customerOptions = safeCustomers.map(c => ({ 
+  const customerOptions = customers.map(c => ({ 
     value: c.id, 
     label: `${c.customer_code || ''} - ${c.first_name || ''} ${c.last_name || ''}`.trim() 
   }));
@@ -402,7 +241,7 @@ const NonMotorPolicies = () => {
                       <button className="btn btn-sm btn-outline-primary me-2" onClick={() => handleOpenModal(p)} title="แก้ไข">
                         <i className="bi bi-pencil"></i>
                       </button>
-                      <button className="btn btn-sm btn-outline-danger" onClick={() => handleDelete(p.id)} title="ลบ">
+                      <button className="btn btn-sm btn-outline-danger" onClick={() => handleDelete(p.id)} title="ลบ" disabled={deleteMutation.isPending}>
                         <i className="bi bi-trash"></i>
                       </button>
                     </td>
@@ -449,140 +288,15 @@ const NonMotorPolicies = () => {
         )}
       </div>
 
-      <Modal show={showModal} onHide={() => setShowModal(false)} size="xl">
-        <Modal.Header closeButton>
-          <Modal.Title>{formData.id ? 'แก้ไขกรมธรรม์ Non-Motor' : 'เพิ่มกรมธรรม์ Non-Motor'}</Modal.Title>
-        </Modal.Header>
-        <Modal.Body>
-          <Form onSubmit={handleSubmit}>
-            <div className="row g-3">
-              <div className="col-md-6">
-                <Form.Label>ลูกค้าอ้างอิง <span className="text-danger">*</span></Form.Label>
-                <Select noOptionsMessage={() => "ไม่พบข้อมูล"}
-                  options={customerOptions}
-                  value={customerOptions.find(c => c.value === formData.customer_id)}
-                  onChange={option => setFormData({...formData, customer_id: option?.value || ''})}
-                  isDisabled={formData.id !== null}
-                  isClearable
-                  placeholder="เลือก..."
-                  required
-                />
-              </div>
-              <div className="col-md-6">
-                <Form.Label>ชื่อผู้เอาประกันภัย (ถ้าไม่ระบุ จะยึดตามชื่อลูกค้า)</Form.Label>
-                <Form.Control type="text" value={formData.insured_name} onChange={e => setFormData({...formData, insured_name: e.target.value})} placeholder="ระบุชื่อ-นามสกุล..." />
-              </div>
-
-              <div className="col-12"><hr/></div>
-
-              <div className="col-md-4">
-                <Form.Label>ประเภท Non-Motor <span className="text-danger">*</span></Form.Label>
-                <Select noOptionsMessage={() => "ไม่พบข้อมูล"}
-                  options={nonMotorTypes}
-                  value={nonMotorTypes.find(t => t.value === formData.non_motor_type_id)}
-                  onChange={option => setFormData({...formData, non_motor_type_id: option?.value || ''})}
-                  isClearable
-                  placeholder="เลือก..."
-                  required
-                />
-              </div>
-              <div className="col-md-4">
-                <Form.Label>เลขกรมธรรม์ <span className="text-danger">*</span></Form.Label>
-                <Form.Control type="text" value={formData.policy_no} onChange={e => setFormData({...formData, policy_no: e.target.value})} required />
-              </div>
-              <div className="col-md-4">
-                <Form.Label>บริษัทประกัน <span className="text-danger">*</span></Form.Label>
-                <Select noOptionsMessage={() => "ไม่พบข้อมูล"}
-                  options={companies}
-                  value={companies.find(c => c.value === formData.company)}
-                  onChange={option => setFormData({...formData, company: option?.value || ''})}
-                  isClearable
-                  placeholder="เลือก..."
-                  required
-                />
-              </div>
-
-              {/* Dynamic Fields Section */}
-              {formData.non_motor_type_id && (
-                <>
-                  <div className="col-12 mt-4">
-                    <h5 className="text-primary border-bottom pb-2">ข้อมูลเพิ่มเติมเฉพาะประเภท</h5>
-                  </div>
-                  {renderDynamicFields()}
-                </>
-              )}
-
-              <div className="col-12 mt-4"><hr/></div>
-
-              <div className="col-md-3">
-                <Form.Label>ทุนประกันรวม</Form.Label>
-                <Form.Control type="number" step="0.01" value={formData.sum_insured} onChange={e => setFormData({...formData, sum_insured: e.target.value})} />
-              </div>
-              <div className="col-md-3">
-                <Form.Label>วันเริ่มคุ้มครอง <span className="text-danger">*</span></Form.Label>
-                <Form.Control type="date" value={formData.start_date} onChange={e => setFormData({...formData, start_date: e.target.value})} required />
-              </div>
-              <div className="col-md-3">
-                <Form.Label>วันหมดอายุ <span className="text-danger">*</span></Form.Label>
-                <Form.Control type="date" value={formData.expiry_date} onChange={e => setFormData({...formData, expiry_date: e.target.value})} required />
-              </div>
-              <div className="col-md-3">
-                <Form.Label>สถานะกรมธรรม์</Form.Label>
-                <Select noOptionsMessage={() => "ไม่พบข้อมูล"}
-                  options={jobStatuses}
-                  value={jobStatuses.find(j => j.value === formData.status)}
-                  onChange={option => setFormData({...formData, status: option?.value || ''})}
-                  isClearable
-                />
-              </div>
-
-              <div className="col-12"><hr/></div>
-
-              {/* Premium Calculation Block */}
-              <div className="col-md-12 mb-2 d-flex justify-content-between align-items-center">
-                <h5 className="mb-0 text-primary fw-bold">ส่วนคำนวณเบี้ยและคอมมิชชัน</h5>
-                <Button variant="outline-success" size="sm" onClick={handleCalculate}><i className="bi bi-calculator"></i> คำนวณอัตโนมัติ</Button>
-              </div>
-
-              <div className="col-md-3">
-                <Form.Label>เบี้ยสุทธิ</Form.Label>
-                <Form.Control type="number" step="0.01" value={formData.net_premium} onChange={e => setFormData({...formData, net_premium: e.target.value})} onBlur={handleCalculate} />
-              </div>
-              <div className="col-md-3">
-                <Form.Label>อากรแสตมป์</Form.Label>
-                <Form.Control type="number" step="0.01" value={formData.stamp_duty} onChange={e => setFormData({...formData, stamp_duty: e.target.value})} />
-              </div>
-              <div className="col-md-3">
-                <Form.Label>VAT (7%)</Form.Label>
-                <Form.Control type="number" step="0.01" value={formData.vat} onChange={e => setFormData({...formData, vat: e.target.value})} />
-              </div>
-              <div className="col-md-3">
-                <Form.Label className="fw-bold text-success">เบี้ยรวม (Total)</Form.Label>
-                <Form.Control type="number" step="0.01" className="bg-light fw-bold text-success" value={formData.total_premium} onChange={e => setFormData({...formData, total_premium: e.target.value})} />
-              </div>
-
-              <div className="col-md-3">
-                <Form.Label>ค่าคอมฯ (%)</Form.Label>
-                <Form.Control type="number" step="0.01" value={formData.commission_percent} onChange={e => setFormData({...formData, commission_percent: e.target.value})} onBlur={handleCalculate} />
-              </div>
-              <div className="col-md-3">
-                <Form.Label className="fw-bold text-danger">คอมมิชชัน (บาท)</Form.Label>
-                <Form.Control type="number" step="0.01" className="bg-light fw-bold text-danger" value={formData.commission_baht} onChange={e => setFormData({...formData, commission_baht: e.target.value})} />
-              </div>
-              
-              <div className="col-12">
-                <Form.Label>หมายเหตุ</Form.Label>
-                <Form.Control as="textarea" rows={2} value={formData.note} onChange={e => setFormData({...formData, note: e.target.value})} />
-              </div>
-
-            </div>
-            <div className="text-end mt-4 pt-3 border-top">
-              <Button variant="secondary" className="me-2" onClick={() => setShowModal(false)}>ยกเลิก</Button>
-              <Button variant="primary" type="submit">บันทึกข้อมูล</Button>
-            </div>
-          </Form>
-        </Modal.Body>
-      </Modal>
+      <NonMotorPolicyFormModal
+        show={showModal}
+        onHide={() => setShowModal(false)}
+        initialData={initialData}
+        customerOptions={customerOptions}
+        nonMotorTypes={nonMotorTypes}
+        companies={companies}
+        jobStatuses={jobStatuses}
+      />
     </div>
   );
 };
