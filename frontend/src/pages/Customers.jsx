@@ -198,7 +198,7 @@ const Customers = () => {
             value={selectedMonth} 
             onChange={(e) => setSelectedMonth(e.target.value)} 
           />
-          <button className="btn btn-success fw-bold px-4" onClick={fetchData}>
+          <button className="btn btn-success fw-bold px-4" onClick={() => queryClient.invalidateQueries({ queryKey: ['customers'] })}>
             <i className="bi bi-funnel-fill"></i> กรองข้อมูล
           </button>
           {selectedMonth && (
