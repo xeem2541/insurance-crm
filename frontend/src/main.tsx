@@ -3,6 +3,7 @@ import ReactDOM from 'react-dom/client'
 import App from './App.jsx'
 import 'bootstrap/dist/css/bootstrap.min.css'
 import './index.scss'
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 
 // ห้ามลบ: ป้องกัน Error จาก Chrome Extensions (เช่น React DevTools) ทำให้เกิดข้อความแดงใน Console
 const originalConsoleError = console.error;
@@ -26,8 +27,12 @@ window.addEventListener('error', (e) => {
   }
 });
 
+const queryClient = new QueryClient()
+
 ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>
-    <App />
+    <QueryClientProvider client={queryClient}>
+      <App />
+    </QueryClientProvider>
   </React.StrictMode>,
 )

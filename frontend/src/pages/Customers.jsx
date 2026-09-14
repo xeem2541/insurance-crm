@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import api from '../services/api';
 import { Modal, Button, Form } from 'react-bootstrap';
 import Select from 'react-select';
@@ -39,14 +40,12 @@ const formatIdCard = (val) => {
 };
 
 const Customers = () => {
-  const [customers, setCustomers] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const queryClient = useQueryClient();
   const [search, setSearch] = useState(() => sessionStorage.getItem('customersSearch') || '');
   const [debouncedSearch, setDebouncedSearch] = useState(search);
   const [selectedMonth, setSelectedMonth] = useState(() => sessionStorage.getItem('customersMonth') || ''); // Month filter
   const [showModal, setShowModal] = useState(false);
   const [page, setPage] = useState(1);
-  const [totalPages, setTotalPages] = useState(1);
   
   // Debounce search input (300ms)
   useEffect(() => {
@@ -56,9 +55,6 @@ const Customers = () => {
     }, 300);
     return () => clearTimeout(timer);
   }, [search]);
-  
-  // Master Data
-  const [leadSources, setLeadSources] = useState([]);
   
   const prefixes = ['นาย', 'นาง', 'นางสาว', 'บริษัท', 'หจก.', 'คุณ'];
 
@@ -113,58 +109,71 @@ const Customers = () => {
     secondary_contact: '', customer_status: 'ลูกค้าใหม่', lead_status: 'สนใจ', source: '', note: ''
   });
 
-  const fetchData = async () => {
-    setLoading(true);
-    try {
+  // Reset page when search or month changes
+  useEffect(() => {
+    setPage(1);
+    sessionStorage.setItem('customersMonth', selectedMonth);
+  }, [search, selectedMonth]);
+
+  // Fetch Customers and Master Data
+  const { data, isLoading: loading } = useQuery({
+    queryKey: ['customers', debouncedSearch, selectedMonth, page],
+    queryFn: async () => {
       const [custRes, mdRes] = await Promise.all([
         api.get(`/customers?search=${encodeURIComponent(debouncedSearch.trim())}&month=${selectedMonth}&page=${page}&limit=50`),
         api.get('/master-data')
       ]);
-      const custList = custRes.data?.data || (Array.isArray(custRes.data) ? custRes.data : []);
-      setCustomers(custList);
-      setTotalPages(custRes.data?.totalPages || 1);
+      const customers = custRes.data?.data || (Array.isArray(custRes.data) ? custRes.data : []);
+      const totalPages = custRes.data?.totalPages || 1;
+      
       const md = Array.isArray(mdRes.data) ? mdRes.data : (mdRes.data?.data || []);
-      setLeadSources(md.filter(m => m.category === 'LeadSource').map(m => ({ value: m.value, label: m.value })));
-    } catch (error) {
-      console.error(error);
-    } finally {
-      setLoading(false);
+      const leadSources = md.filter(m => m.category === 'LeadSource').map(m => ({ value: m.value, label: m.value }));
+      
+      return { customers, totalPages, leadSources };
     }
-  };
+  });
 
-  useEffect(() => {
-    sessionStorage.setItem('customersMonth', selectedMonth);
-    fetchData();
-  }, [debouncedSearch, selectedMonth, page]);
+  const customers = data?.customers || [];
+  const totalPages = data?.totalPages || 1;
+  const leadSources = data?.leadSources || [];
 
-  // Reset page when search or month changes
-  useEffect(() => {
-    setPage(1);
-  }, [search, selectedMonth]);
-
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    try {
-      if (formData.id) {
-        await api.put(`/customers/${formData.id}`, formData);
+  const saveMutation = useMutation({
+    mutationFn: async (formDataToSave) => {
+      if (formDataToSave.id) {
+        return await api.put(`/customers/${formDataToSave.id}`, formDataToSave);
       } else {
-        await api.post('/customers', formData);
+        return await api.post('/customers', formDataToSave);
       }
+    },
+    onSuccess: () => {
       setShowModal(false);
-      fetchData();
-    } catch (error) {
+      queryClient.invalidateQueries({ queryKey: ['customers'] });
+    },
+    onError: (error) => {
       alert(error.response?.data?.error || 'เกิดข้อผิดพลาด');
     }
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: async (id) => {
+      return await api.delete(`/customers/${id}`);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['customers'] });
+    },
+    onError: (error) => {
+      alert(error.response?.data?.error || 'เกิดข้อผิดพลาดในการลบข้อมูล');
+    }
+  });
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    saveMutation.mutate(formData);
   };
 
-  const handleDelete = async (id) => {
+  const handleDelete = (id) => {
     if (window.confirm('คุณต้องการลบข้อมูลนี้ใช่หรือไม่? (หากลูกค้ามีกรมธรรม์ผูกอยู่ จะไม่สามารถลบได้)')) {
-      try {
-        await api.delete(`/customers/${id}`);
-        fetchData();
-      } catch (error) {
-        alert(error.response?.data?.error || 'เกิดข้อผิดพลาดในการลบข้อมูล');
-      }
+      deleteMutation.mutate(id);
     }
   };
 
