@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import api from '../services/api';
 import { Modal, Button, Form, Card, Badge, Row, Col } from 'react-bootstrap';
-import Select from 'react-select';
-import CloudinaryUpload from '../components/CloudinaryUpload';
+import DocumentUploadModal from '../components/DocumentUploadModal';
 
 const formatThaiDate = (dateString) => {
   if (!dateString) return '-';
@@ -25,11 +25,7 @@ const getFileUrl = (path) => {
 };
 
 const Documents = () => {
-  const [documents, setDocuments] = useState([]);
-  const [documentTypes, setDocumentTypes] = useState([]);
-  const [customers, setCustomers] = useState([]);
-  const [policies, setPolicies] = useState([]);
-  const [vehicles, setVehicles] = useState([]);
+  const queryClient = useQueryClient();
   const [search, setSearch] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
   const [viewMode, setViewMode] = useState('active'); // 'active' or 'trash'
@@ -52,124 +48,108 @@ const Documents = () => {
   });
   const [fileUrl, setFileUrl] = useState('');
   const [localFile, setLocalFile] = useState(null);
-  const [fileType, setFileType] = useState('');
-  const [fileSize, setFileSize] = useState(0);
 
-  const fetchDocuments = async () => {
-    try {
+  const { data: documents = [] } = useQuery({
+    queryKey: ['documents', debouncedSearch, viewMode],
+    queryFn: async () => {
       const statusParam = viewMode === 'trash' ? '&status=deleted' : '';
       const res = await api.get(`/documents?search=${encodeURIComponent(debouncedSearch.trim())}${statusParam}`);
-      setDocuments(Array.isArray(res.data) ? res.data : []);
-    } catch (error) {
-      console.error(error);
+      return Array.isArray(res.data) ? res.data : [];
     }
-  };
+  });
 
-  const fetchDependencies = async () => {
-    try {
+  const { data: dependencies = { documentTypes: [], customers: [], policies: [], vehicles: [] } } = useQuery({
+    queryKey: ['documentDependencies'],
+    queryFn: async () => {
       const [typeRes, custRes, polRes, vehRes] = await Promise.all([
         api.get('/documents/types').catch(() => ({ data: [] })),
         api.get('/customers?all=true').catch(() => ({ data: [] })),
         api.get('/policies?limit=1000').catch(() => ({ data: [] })),
         api.get('/vehicles').catch(() => ({ data: [] }))
       ]);
-      setDocumentTypes(Array.isArray(typeRes.data) ? typeRes.data : (typeRes.data?.data || []));
-      setCustomers(Array.isArray(custRes.data) ? custRes.data : (custRes.data?.data || []));
-      setPolicies(Array.isArray(polRes.data) ? polRes.data : (polRes.data?.data || []));
-      setVehicles(Array.isArray(vehRes.data) ? vehRes.data : (vehRes.data?.data || []));
-    } catch (error) {
-      console.error(error);
+      return {
+        documentTypes: Array.isArray(typeRes.data) ? typeRes.data : (typeRes.data?.data || []),
+        customers: Array.isArray(custRes.data) ? custRes.data : (custRes.data?.data || []),
+        policies: Array.isArray(polRes.data) ? polRes.data : (polRes.data?.data || []),
+        vehicles: Array.isArray(vehRes.data) ? vehRes.data : (vehRes.data?.data || [])
+      };
     }
-  };
+  });
 
-  useEffect(() => {
-    fetchDocuments();
-  }, [debouncedSearch, viewMode]);
+  const { documentTypes, customers, policies, vehicles } = dependencies;
 
-  useEffect(() => {
-    fetchDependencies();
-  }, []);
-
-  const handleUploadSuccess = (info) => {
-    setFileUrl(info.secure_url);
-    setFileType(info.format === 'pdf' ? 'application/pdf' : `image/${info.format}`);
-    setFileSize(info.bytes);
-    if (!formData.name) {
-      setFormData({ ...formData, name: info.original_filename });
+  const saveDocumentMutation = useMutation({
+    mutationFn: async (data) => {
+      const isLocalhost = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+      if (isLocalhost) {
+        const formDataPayload = new FormData();
+        formDataPayload.append('file', localFile);
+        formDataPayload.append('customer_id', data.customer_id);
+        formDataPayload.append('policy_id', data.policy_id || '');
+        formDataPayload.append('vehicle_id', data.vehicle_id || '');
+        formDataPayload.append('document_type_id', data.document_type_id);
+        formDataPayload.append('name', data.name);
+        formDataPayload.append('note', data.note || '');
+        return await api.post('/documents', formDataPayload);
+      } else {
+        return await api.post('/documents/save-url', {
+          ...data,
+          file_path: fileUrl,
+          file_type: data.fileType,
+          file_size: data.fileSize
+        });
+      }
+    },
+    onSuccess: () => {
+      setShowUploadModal(false);
+      setLocalFile(null);
+      setFileUrl('');
+      setFormData({ customer_id: '', policy_id: '', vehicle_id: '', document_type_id: '', name: '', note: '' });
+      queryClient.invalidateQueries({ queryKey: ['documents'] });
+    },
+    onError: (error) => {
+      alert(error.response?.data?.error || 'เกิดข้อผิดพลาดในการบันทึกเอกสาร');
     }
-  };
+  });
 
-  const handleSaveDocument = async (e) => {
+  const handleSaveDocument = (e) => {
     e.preventDefault();
     const isLocalhost = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
-
-    if (isLocalhost) {
-      if (!localFile) return alert('กรุณาเลือกไฟล์เอกสารก่อนบันทึก');
-      
-      const data = new FormData();
-      data.append('file', localFile);
-      data.append('customer_id', formData.customer_id);
-      data.append('policy_id', formData.policy_id || '');
-      data.append('vehicle_id', formData.vehicle_id || '');
-      data.append('document_type_id', formData.document_type_id);
-      data.append('name', formData.name);
-      data.append('note', formData.note || '');
-
-      try {
-        await api.post('/documents', data);
-        setShowUploadModal(false);
-        setLocalFile(null);
-        setFormData({ customer_id: '', policy_id: '', vehicle_id: '', document_type_id: '', name: '', note: '' });
-        fetchDocuments();
-      } catch (error) {
-        alert(error.response?.data?.error || 'เกิดข้อผิดพลาดในการบันทึกเอกสาร');
-      }
-    } else {
-      if (!fileUrl) return alert('กรุณาอัปโหลดไฟล์ผ่านระบบ Cloudinary ก่อนบันทึก');
-
-      const data = {
-        ...formData,
-        file_path: fileUrl,
-        file_type: fileType,
-        file_size: fileSize
-      };
-
-      try {
-        await api.post('/documents/save-url', data);
-        setShowUploadModal(false);
-        setFileUrl('');
-        setFormData({ customer_id: '', policy_id: '', vehicle_id: '', document_type_id: '', name: '', note: '' });
-        fetchDocuments();
-      } catch (error) {
-        alert(error.response?.data?.error || 'เกิดข้อผิดพลาดในการบันทึกเอกสาร');
-      }
+    
+    if (isLocalhost && !localFile) {
+      return alert('กรุณาเลือกไฟล์เอกสารก่อนบันทึก');
+    } else if (!isLocalhost && !fileUrl) {
+      return alert('กรุณาอัปโหลดไฟล์ผ่านระบบ Cloudinary ก่อนบันทึก');
     }
+
+    saveDocumentMutation.mutate(formData);
   };
 
-  const handleDelete = async (id) => {
+  const deleteMutation = useMutation({
+    mutationFn: async (id) => await api.delete(`/documents/${id}`),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['documents'] }),
+    onError: () => alert('เกิดข้อผิดพลาดในการลบเอกสาร')
+  });
+
+  const handleDelete = (id) => {
     if (window.confirm('คุณแน่ใจหรือไม่ว่าต้องการลบเอกสารนี้? (สามารถกู้คืนได้ภายหลัง)')) {
-      try {
-        await api.delete(`/documents/${id}`);
-        fetchDocuments();
-      } catch (error) {
-        alert('เกิดข้อผิดพลาดในการลบเอกสาร');
-      }
+      deleteMutation.mutate(id);
     }
   };
 
-  const handleRestore = async (id) => {
+  const restoreMutation = useMutation({
+    mutationFn: async (id) => await api.put(`/documents/${id}/restore`),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['documents'] }),
+    onError: () => alert('เกิดข้อผิดพลาดในการกู้คืนเอกสาร')
+  });
+
+  const handleRestore = (id) => {
     if (window.confirm('ยืนยันการกู้คืนเอกสารนี้กลับสู่ระบบปกติ?')) {
-      try {
-        await api.put(`/documents/${id}/restore`);
-        fetchDocuments();
-      } catch (error) {
-        alert('เกิดข้อผิดพลาดในการกู้คืนเอกสาร');
-      }
+      restoreMutation.mutate(id);
     }
   };
 
   const openPreview = (doc) => {
-    // If it's a Cloudinary URL (starts with http), use it directly. Otherwise use local URL.
     const baseUrl = import.meta.env.VITE_API_URL ? import.meta.env.VITE_API_URL.replace('/api', '') : 'http://localhost:5000';
     const token = localStorage.getItem('token') || '';
     const url = doc.file_path?.startsWith('http') 
@@ -391,102 +371,21 @@ const Documents = () => {
         </div>
       )}
 
-      {/* Upload Modal */}
-      <Modal show={showUploadModal} onHide={() => setShowUploadModal(false)} size="lg">
-        <Modal.Header closeButton>
-          <Modal.Title>อัปโหลดเอกสารใหม่</Modal.Title>
-        </Modal.Header>
-        <Modal.Body>
-          <Form onSubmit={handleSaveDocument}>
-            <div className="row g-3">
-              <div className="col-md-12">
-                <Form.Label>เลือกลูกค้า <span className="text-danger">*</span></Form.Label>
-                <Select noOptionsMessage={() => "ไม่พบข้อมูล"}
-                  options={customerOptions}
-                  value={customerOptions.find(c => c.value === formData.customer_id)}
-                  onChange={option => setFormData({...formData, customer_id: option?.value || '', policy_id: '', vehicle_id: ''})}
-                  isClearable
-                  required
-                />
-              </div>
-              <div className="col-md-6">
-                <Form.Label>ผูกกับกรมธรรม์</Form.Label>
-                <Select noOptionsMessage={() => "ไม่พบข้อมูล"}
-                  options={policyOptions}
-                  value={policyOptions.find(p => p.value === formData.policy_id)}
-                  onChange={option => setFormData({...formData, policy_id: option?.value || ''})}
-                  isClearable
-                  isDisabled={!formData.customer_id}
-                />
-              </div>
-              <div className="col-md-6">
-                <Form.Label>ผูกกับรถยนต์ (รูปรถ)</Form.Label>
-                <Select noOptionsMessage={() => "ไม่พบข้อมูล"}
-                  options={vehicleOptions}
-                  value={vehicleOptions.find(v => v.value === formData.vehicle_id)}
-                  onChange={option => setFormData({...formData, vehicle_id: option?.value || ''})}
-                  isClearable
-                  isDisabled={!formData.customer_id}
-                />
-              </div>
-              <div className="col-md-12">
-                <Form.Label>ประเภทเอกสาร <span className="text-danger">*</span></Form.Label>
-                <Select noOptionsMessage={() => "ไม่พบข้อมูล"}
-                  options={typeOptions}
-                  value={typeOptions.find(t => t.value === formData.document_type_id)}
-                  onChange={option => setFormData({...formData, document_type_id: option?.value || ''})}
-                  isClearable
-                  required
-                />
-              </div>
-              <div className="col-md-12">
-                <Form.Label>ชื่อเอกสารอ้างอิง <span className="text-danger">*</span></Form.Label>
-                <Form.Control type="text" value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} required placeholder="เช่น ใบเสร็จรับเงิน, รูปรถด้านซ้าย" />
-              </div>
-              <div className="col-md-12">
-                <Form.Label>แนบไฟล์เอกสาร <span className="text-danger">*</span></Form.Label>
-                {(() => {
-                  const isLocalhost = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
-                  if (isLocalhost) {
-                    return (
-                      <Form.Control 
-                        type="file" 
-                        required
-                        onChange={(e) => {
-                          const file = e.target.files[0];
-                          setLocalFile(file);
-                          if (file && !formData.name) {
-                            setFormData({ ...formData, name: file.name.split('.')[0] });
-                          }
-                        }} 
-                      />
-                    );
-                  } else {
-                    return (
-                      <div className="d-flex align-items-center">
-                        <CloudinaryUpload 
-                          onUploadSuccess={handleUploadSuccess} 
-                          cloudName="djnuhaq6b" 
-                          uploadPreset="unsigned_preset" 
-                        />
-                        {fileUrl && <span className="ms-3 text-success fw-bold"><i className="bi bi-check-circle-fill"></i> อัปโหลดเรียบร้อยแล้ว</span>}
-                      </div>
-                    );
-                  }
-                })()}
-              </div>
-              <div className="col-12">
-                <Form.Label>หมายเหตุ</Form.Label>
-                <Form.Control as="textarea" rows={2} value={formData.note} onChange={e => setFormData({...formData, note: e.target.value})} />
-              </div>
-            </div>
-            <div className="text-end mt-4 pt-3 border-top">
-              <Button variant="secondary" className="me-2" onClick={() => setShowUploadModal(false)}>ยกเลิก</Button>
-              <Button variant="primary" type="button" onClick={handleSaveDocument} disabled={!fileUrl}><i className="bi bi-save"></i> บันทึกข้อมูล</Button>
-            </div>
-          </Form>
-        </Modal.Body>
-      </Modal>
+      <DocumentUploadModal
+        show={showUploadModal}
+        onHide={() => setShowUploadModal(false)}
+        formData={formData}
+        setFormData={setFormData}
+        fileUrl={fileUrl}
+        setFileUrl={setFileUrl}
+        localFile={localFile}
+        setLocalFile={setLocalFile}
+        handleSaveDocument={handleSaveDocument}
+        customerOptions={customerOptions}
+        policyOptions={policyOptions}
+        vehicleOptions={vehicleOptions}
+        typeOptions={typeOptions}
+      />
 
       {/* Preview Modal */}
       <Modal show={showPreviewModal} onHide={() => setShowPreviewModal(false)} size="xl" centered>

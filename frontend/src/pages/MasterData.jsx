@@ -1,8 +1,11 @@
-import { useState, useEffect, useContext } from 'react';
+import { useState, useContext } from 'react';
 import { AuthContext } from '../contexts/AuthContext';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import api from '../services/api';
-import { Modal, Button, Form } from 'react-bootstrap';
+import { Button, Form } from 'react-bootstrap';
 import * as XLSX from 'xlsx';
+import { MasterDataModal, UserModal } from '../components/MasterDataModals';
+
 const categories = [
   { id: 'PolicyType', label: 'ประเภทประกันภัย' },
   { id: 'InsuranceCompany', label: 'บริษัทประกันภัย' },
@@ -13,8 +16,8 @@ const categories = [
 
 const MasterData = () => {
   const { user } = useContext(AuthContext);
+  const queryClient = useQueryClient();
   const [activeTab, setActiveTab] = useState(categories[0].id);
-  const [dataList, setDataList] = useState([]);
   const [showModal, setShowModal] = useState(false);
   const [formData, setFormData] = useState({ id: null, category: categories[0].id, value: '' });
 
@@ -23,7 +26,6 @@ const MasterData = () => {
   const [pwdMsg, setPwdMsg] = useState({ type: '', text: '' });
 
   // For User Management
-  const [usersList, setUsersList] = useState([]);
   const [showUserModal, setShowUserModal] = useState(false);
   const [userFormData, setUserFormData] = useState({ id: null, username: '', password: '', name: '', role: 'Sales' });
 
@@ -31,53 +33,89 @@ const MasterData = () => {
   const [botPromptData, setBotPromptData] = useState({ id: null, value: '' });
   const [botPromptMsg, setBotPromptMsg] = useState({ type: '', text: '' });
 
-  const fetchData = async () => {
-    if (activeTab === 'system_clear' || activeTab === 'system_password' || activeTab === 'system_users' || activeTab === 'BotPrompt') {
-      if (activeTab === 'system_users') fetchUsers();
-      if (activeTab === 'BotPrompt') fetchBotPrompt();
-      return;
-    }
-    try {
+  const { data: dataList = [] } = useQuery({
+    queryKey: ['masterData', activeTab],
+    queryFn: async () => {
       const res = await api.get(`/master-data?category=${activeTab}`);
-      setDataList(res.data);
-    } catch (error) {
-      console.error(error);
-    }
-  };
+      return res.data;
+    },
+    enabled: !['system_clear', 'system_password', 'system_users', 'BotPrompt'].includes(activeTab)
+  });
 
-  const fetchBotPrompt = async () => {
-    try {
+  const { data: usersList = [] } = useQuery({
+    queryKey: ['users'],
+    queryFn: async () => {
+      const res = await api.get('/users');
+      return res.data;
+    },
+    enabled: activeTab === 'system_users'
+  });
+
+  const { data: botPromptRes } = useQuery({
+    queryKey: ['masterData', 'BotPrompt'],
+    queryFn: async () => {
       const res = await api.get('/master-data?category=BotPrompt');
       if (res.data && res.data.length > 0) {
         setBotPromptData({ id: res.data[0].id, value: res.data[0].value });
       } else {
         setBotPromptData({ id: null, value: '' });
       }
-    } catch (error) {
-      console.error(error);
-    }
-  };
+      return res.data;
+    },
+    enabled: activeTab === 'BotPrompt'
+  });
 
-  const handleBotPromptSubmit = async (e) => {
-    e.preventDefault();
-    setBotPromptMsg({ type: '', text: '' });
-    try {
-      if (botPromptData.id) {
-        await api.put(`/master-data/${botPromptData.id}`, { value: botPromptData.value });
-      } else {
-        await api.post('/master-data', { category: 'BotPrompt', value: botPromptData.value });
+  const masterDataMutation = useMutation({
+    mutationFn: async (data) => {
+      if (data.id) return await api.put(`/master-data/${data.id}`, { value: data.value });
+      return await api.post('/master-data', { category: data.category, value: data.value });
+    },
+    onSuccess: () => {
+      setShowModal(false);
+      queryClient.invalidateQueries({ queryKey: ['masterData', activeTab] });
+    },
+    onError: (error) => alert(error.response?.data?.error || 'เกิดข้อผิดพลาด')
+  });
+
+  const deleteMasterDataMutation = useMutation({
+    mutationFn: async (id) => await api.delete(`/master-data/${id}`),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['masterData', activeTab] }),
+    onError: (error) => alert(error.response?.data?.error || 'เกิดข้อผิดพลาด')
+  });
+
+  const userMutation = useMutation({
+    mutationFn: async (data) => {
+      if (data.id) {
+        const payload = { name: data.name, role: data.role };
+        if (data.password) payload.password = data.password;
+        return await api.put(`/users/${data.id}`, payload);
       }
-      setBotPromptMsg({ type: 'success', text: 'บันทึกการตั้งค่า AI บอทสำเร็จ!' });
-      fetchBotPrompt();
-    } catch (error) {
-      setBotPromptMsg({ type: 'danger', text: error.response?.data?.error || 'เกิดข้อผิดพลาด' });
-    }
-  };
+      return await api.post('/users', data);
+    },
+    onSuccess: () => {
+      setShowUserModal(false);
+      queryClient.invalidateQueries({ queryKey: ['users'] });
+    },
+    onError: (error) => alert(error.response?.data?.error || 'เกิดข้อผิดพลาดในการจัดการผู้ใช้งาน')
+  });
 
-  useEffect(() => {
-    fetchData();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [activeTab]);
+  const deleteUserMutation = useMutation({
+    mutationFn: async (id) => await api.delete(`/users/${id}`),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['users'] }),
+    onError: (error) => alert(error.response?.data?.error || 'เกิดข้อผิดพลาด')
+  });
+
+  const botPromptMutation = useMutation({
+    mutationFn: async (data) => {
+      if (data.id) return await api.put(`/master-data/${data.id}`, { value: data.value });
+      return await api.post('/master-data', { category: 'BotPrompt', value: data.value });
+    },
+    onSuccess: () => {
+      setBotPromptMsg({ type: 'success', text: 'บันทึกการตั้งค่า AI บอทสำเร็จ!' });
+      queryClient.invalidateQueries({ queryKey: ['masterData', 'BotPrompt'] });
+    },
+    onError: (error) => setBotPromptMsg({ type: 'danger', text: error.response?.data?.error || 'เกิดข้อผิดพลาด' })
+  });
 
   const handleOpenModal = (item = null) => {
     if (item) {
@@ -88,38 +126,14 @@ const MasterData = () => {
     setShowModal(true);
   };
 
-  const handleSubmit = async (e) => {
+  const handleSubmit = (e) => {
     e.preventDefault();
-    try {
-      if (formData.id) {
-        await api.put(`/master-data/${formData.id}`, { value: formData.value });
-      } else {
-        await api.post('/master-data', { category: formData.category, value: formData.value });
-      }
-      setShowModal(false);
-      fetchData();
-    } catch (error) {
-      alert(error.response?.data?.error || 'เกิดข้อผิดพลาด');
-    }
+    masterDataMutation.mutate(formData);
   };
 
-  const handleDelete = async (id) => {
+  const handleDelete = (id) => {
     if (window.confirm('คุณต้องการลบข้อมูลนี้หรือไม่?')) {
-      try {
-        await api.delete(`/master-data/${id}`);
-        fetchData();
-      } catch (error) {
-        alert(error.response?.data?.error || 'เกิดข้อผิดพลาด');
-      }
-    }
-  };
-
-  const fetchUsers = async () => {
-    try {
-      const res = await api.get('/users');
-      setUsersList(res.data);
-    } catch (error) {
-      console.error(error);
+      deleteMasterDataMutation.mutate(id);
     }
   };
 
@@ -132,33 +146,22 @@ const MasterData = () => {
     setShowUserModal(true);
   };
 
-  const handleUserSubmit = async (e) => {
+  const handleUserSubmit = (e) => {
     e.preventDefault();
-    try {
-      if (userFormData.id) {
-        const payload = { name: userFormData.name, role: userFormData.role };
-        if (userFormData.password) payload.password = userFormData.password;
-        await api.put(`/users/${userFormData.id}`, payload);
-      } else {
-        if (!userFormData.password) return alert('กรุณากรอกรหัสผ่าน');
-        await api.post('/users', userFormData);
-      }
-      setShowUserModal(false);
-      fetchUsers();
-    } catch (error) {
-      alert(error.response?.data?.error || 'เกิดข้อผิดพลาดในการจัดการผู้ใช้งาน');
+    if (!userFormData.id && !userFormData.password) return alert('กรุณากรอกรหัสผ่าน');
+    userMutation.mutate(userFormData);
+  };
+
+  const handleDeleteUser = (id) => {
+    if (window.confirm('คุณต้องการลบผู้ใช้งานท่านนี้ออกจากระบบหรือไม่?')) {
+      deleteUserMutation.mutate(id);
     }
   };
 
-  const handleDeleteUser = async (id) => {
-    if (window.confirm('คุณต้องการลบผู้ใช้งานท่านนี้ออกจากระบบหรือไม่?')) {
-      try {
-        await api.delete(`/users/${id}`);
-        fetchUsers();
-      } catch (error) {
-        alert(error.response?.data?.error || 'เกิดข้อผิดพลาด');
-      }
-    }
+  const handleBotPromptSubmit = (e) => {
+    e.preventDefault();
+    setBotPromptMsg({ type: '', text: '' });
+    botPromptMutation.mutate(botPromptData);
   };
 
   const handleClearData = async () => {
@@ -171,9 +174,7 @@ const MasterData = () => {
       try {
         const res = await api.post('/master-data/clear-mock', { tables: selectedTables });
         alert(res.data.message || 'ล้างข้อมูลสำเร็จ');
-        // Reset selection after clear
         setFormData(prev => ({ ...prev, clearTables: [] }));
-        // Uncheck all checkboxes visually
         document.querySelectorAll('input[type="checkbox"]').forEach(cb => cb.checked = false);
       } catch (error) {
         alert(error.response?.data?.error || 'เกิดข้อผิดพลาดในการล้างข้อมูล');
@@ -207,14 +208,11 @@ const MasterData = () => {
         XLSX.utils.book_append_sheet(wb, wsPol, "MotorPolicies");
       }
       if (nmPolRes.data && nmPolRes.data.length > 0) {
-        // Prepare non-motor data for export by extracting JSON additional_data
         const nmData = nmPolRes.data.map(p => {
           let extra = {};
           try {
             if (p.additional_data) extra = typeof p.additional_data === 'string' ? JSON.parse(p.additional_data) : p.additional_data;
-          } catch(e) {
-            // ignore
-          }
+          } catch(e) {}
           const rest = { ...p };
           delete rest.additional_data;
           return { ...rest, ...extra };
@@ -223,7 +221,6 @@ const MasterData = () => {
         XLSX.utils.book_append_sheet(wb, wsNmPol, "NonMotorPolicies");
       }
       if (usersRes.data && usersRes.data.length > 0) {
-        // Remove password hashes from export if they exist
         const safeUsers = usersRes.data.map(u => {
           const safeUser = { ...u };
           delete safeUser.password;
@@ -243,7 +240,6 @@ const MasterData = () => {
 
       const dateStr = new Date().toISOString().split('T')[0];
       XLSX.writeFile(wb, `Backup_CRM_${dateStr}.xlsx`);
-
     } catch (error) {
       alert(error.response?.data?.error || 'เกิดข้อผิดพลาดในการสำรองข้อมูล');
     }
@@ -639,92 +635,22 @@ const MasterData = () => {
         </div>
       </div>
 
-      {/* Modal for Master Data */}
-      <Modal show={showModal} onHide={() => setShowModal(false)} centered>
-        <Modal.Header closeButton className="border-0 pb-0">
-          <Modal.Title className="fw-bold">{formData.id ? 'แก้ไขข้อมูล' : 'เพิ่มข้อมูลใหม่'}</Modal.Title>
-        </Modal.Header>
-        <Modal.Body>
-          <Form onSubmit={handleSubmit}>
-            <Form.Group className="mb-3">
-              <Form.Label className="fw-bold text-muted">หมวดหมู่</Form.Label>
-              <Form.Control type="text" value={categories.find(c => c.id === formData.category)?.label} disabled className="bg-light" />
-            </Form.Group>
-            <Form.Group className="mb-4">
-              <Form.Label className="fw-bold">ค่าที่แสดงผล (Value)</Form.Label>
-              <Form.Control 
-                type="text" 
-                value={formData.value} 
-                onChange={(e) => setFormData({...formData, value: e.target.value})} 
-                required 
-                autoFocus
-              />
-            </Form.Group>
-            <div className="text-end">
-              <Button variant="light" className="me-2 fw-bold" onClick={() => setShowModal(false)}>ยกเลิก</Button>
-              <Button variant="primary" type="submit" className="fw-bold px-4 shadow-sm">บันทึกข้อมูล</Button>
-            </div>
-          </Form>
-        </Modal.Body>
-      </Modal>
+      <MasterDataModal
+        show={showModal}
+        onHide={() => setShowModal(false)}
+        formData={formData}
+        setFormData={setFormData}
+        handleSubmit={handleSubmit}
+        categories={categories}
+      />
 
-      {/* Modal for User Management */}
-      <Modal show={showUserModal} onHide={() => setShowUserModal(false)} centered>
-        <Modal.Header closeButton className="border-0 pb-0">
-          <Modal.Title className="fw-bold">{userFormData.id ? 'แก้ไขผู้ใช้งาน' : 'เพิ่มผู้ใช้งานใหม่'}</Modal.Title>
-        </Modal.Header>
-        <Modal.Body>
-          <Form onSubmit={handleUserSubmit}>
-            <Form.Group className="mb-3">
-              <Form.Label className="fw-bold">ชื่อบัญชี (Username)</Form.Label>
-              <Form.Control 
-                type="text" 
-                value={userFormData.username} 
-                onChange={(e) => setUserFormData({...userFormData, username: e.target.value})} 
-                required 
-                disabled={!!userFormData.id} // Cannot edit username after creation
-              />
-              {!userFormData.id && <Form.Text className="text-muted">ใช้สำหรับเข้าสู่ระบบ (ห้ามซ้ำ)</Form.Text>}
-            </Form.Group>
-            <Form.Group className="mb-3">
-              <Form.Label className="fw-bold">ชื่อ-นามสกุล (Name)</Form.Label>
-              <Form.Control 
-                type="text" 
-                value={userFormData.name} 
-                onChange={(e) => setUserFormData({...userFormData, name: e.target.value})} 
-                required 
-              />
-            </Form.Group>
-            <Form.Group className="mb-3">
-              <Form.Label className="fw-bold">รหัสผ่าน (Password)</Form.Label>
-              <Form.Control 
-                type="password" 
-                value={userFormData.password} 
-                onChange={(e) => setUserFormData({...userFormData, password: e.target.value})} 
-                required={!userFormData.id} 
-              />
-              {userFormData.id && <Form.Text className="text-muted">เว้นว่างไว้หากไม่ต้องการเปลี่ยนรหัสผ่าน</Form.Text>}
-            </Form.Group>
-            <Form.Group className="mb-4">
-              <Form.Label className="fw-bold">สิทธิ์การใช้งาน (Role)</Form.Label>
-              <Form.Select 
-                value={userFormData.role} 
-                onChange={(e) => setUserFormData({...userFormData, role: e.target.value})}
-              >
-                <option value="Admin">Admin (ดูแลระบบ)</option>
-                <option value="Manager">Manager (ผู้จัดการ)</option>
-                <option value="Sales">Sales (เซลส์)</option>
-                <option value="Staff">Staff (พนักงานทั่วไป)</option>
-                <option value="Viewer">Viewer (ดูได้อย่างเดียว)</option>
-              </Form.Select>
-            </Form.Group>
-            <div className="text-end">
-              <Button variant="light" className="me-2 fw-bold" onClick={() => setShowUserModal(false)}>ยกเลิก</Button>
-              <Button variant="primary" type="submit" className="fw-bold px-4 shadow-sm">บันทึกข้อมูล</Button>
-            </div>
-          </Form>
-        </Modal.Body>
-      </Modal>
+      <UserModal
+        show={showUserModal}
+        onHide={() => setShowUserModal(false)}
+        userFormData={userFormData}
+        setUserFormData={setUserFormData}
+        handleUserSubmit={handleUserSubmit}
+      />
     </div>
   );
 };

@@ -1,8 +1,7 @@
-import { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect } from 'react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import api from '../services/api';
-import { Modal, Button, Form } from 'react-bootstrap';
-import Select from 'react-select';
-import { carBrands, carModels } from '../data/carData';
+import VehicleFormModal from '../components/VehicleFormModal';
 
 const formatThaiDate = (dateString) => {
   if (!dateString) return '-';
@@ -14,27 +13,12 @@ const formatThaiDate = (dateString) => {
   return `${day}/${month}/${year}`;
 };
 
-const provincesList = [
-  'กรุงเทพมหานคร', 'กระบี่', 'กาญจนบุรี', 'กาฬสินธุ์', 'กำแพงเพชร', 'ขอนแก่น', 'จันทบุรี', 'ฉะเชิงเทรา', 'ชลบุรี', 'ชัยนาท', 
-  'ชัยภูมิ', 'ชุมพร', 'เชียงราย', 'เชียงใหม่', 'ตรัง', 'ตราด', 'ตาก', 'นครนายก', 'นครปฐม', 'นครพนม', 'นครราชสีมา', 
-  'นครศรีธรรมราช', 'นครสวรรค์', 'นนทบุรี', 'นราธิวาส', 'น่าน', 'บึงกาฬ', 'บุรีรัมย์', 'ปทุมธานี', 'ประจวบคีรีขันธ์', 
-  'ปราจีนบุรี', 'ปัตตานี', 'พระนครศรีอยุธยา', 'พะเยา', 'พังงา', 'พัทลุง', 'พิจิตร', 'พิษณุโลก', 'เพชรบุรี', 'เพชรบูรณ์', 
-  'แพร่', 'ภูเก็ต', 'มหาสารคาม', 'มุกดาหาร', 'แม่ฮ่องสอน', 'ยโสธร', 'ยะลา', 'ร้อยเอ็ด', 'ระนอง', 'ระยอง', 'ราชบุรี', 
-  'ลพบุรี', 'ลำปาง', 'ลำพูน', 'เลย', 'ศรีสะเกษ', 'สกลนคร', 'สงขลา', 'สตูล', 'สมุทรปราการ', 'สมุทรสงคราม', 'สมุทรสาคร', 
-  'สระแก้ว', 'สระบุรี', 'สิงห์บุรี', 'สุโขทัย', 'สุพรรณบุรี', 'สุราษฎร์ธานี', 'สุรินทร์', 'หนองคาย', 'หนองบัวลำภู', 
-  'อ่างทอง', 'อำนาจเจริญ', 'อุดรธานี', 'อุตรดิตถ์', 'อุทัยธานี', 'อุบลราชธานี'
-].map(p => ({ value: p, label: p }));
-
 const Vehicles = () => {
-  const [vehicles, setVehicles] = useState([]);
-  const [customers, setCustomers] = useState([]);
+  const queryClient = useQueryClient();
   const [search, setSearch] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
   const [showModal, setShowModal] = useState(false);
   
-  // Master Data
-  const [vehicleTypes, setVehicleTypes] = useState([]);
-
   const [formData, setFormData] = useState({
     id: null, customer_id: '', vehicle_type: '', brand: '', model: '', year: '', color: '', 
     plate_no: '', plate_province: '', vin: '', engine_no: '', sum_insured: '', tax_expiry: '', act_expiry: ''
@@ -48,51 +32,62 @@ const Vehicles = () => {
     return () => clearTimeout(timer);
   }, [search]);
 
-
-  const safeCustomers = useMemo(() => {
-    return Array.isArray(customers) ? customers : (customers?.data || []);
-  }, [customers]);
-
-  // Load dropdown data once on mount
-  const fetchDropdownData = async () => {
-    try {
-      const [custRes, mdRes] = await Promise.all([
+  // Fetch Vehicles, Customers, and Master Data
+  const { data, isLoading } = useQuery({
+    queryKey: ['vehicles', debouncedSearch],
+    queryFn: async () => {
+      const [vehRes, custRes, mdRes] = await Promise.all([
+        api.get(`/vehicles?search=${encodeURIComponent(debouncedSearch.trim())}`),
         api.get('/customers?all=true'),
         api.get('/master-data?category=VehicleType')
       ]);
-      const custList = Array.isArray(custRes.data) ? custRes.data : (custRes.data?.data || []);
-      setCustomers(custList);
+      
+      const vehicles = Array.isArray(vehRes.data) ? vehRes.data : (vehRes.data?.data || []);
+      const customers = Array.isArray(custRes.data) ? custRes.data : (custRes.data?.data || []);
       const mdList = Array.isArray(mdRes.data) ? mdRes.data : (mdRes.data?.data || []);
-      setVehicleTypes(mdList.map(m => ({ value: m.value, label: m.value })));
-    } catch (error) {
-      console.error('Fetch dropdown data error:', error);
+      
+      const customerOptions = customers.map(c => ({ 
+        value: c.id, 
+        label: `${c.customer_code || ''} - ${c.first_name || ''} ${c.last_name || ''}`.trim() 
+      }));
+      const vehicleTypes = mdList.map(m => ({ value: m.value, label: m.value }));
+      
+      return { vehicles, customerOptions, vehicleTypes };
     }
-  };
+  });
 
-  useEffect(() => {
-    fetchDropdownData();
-  }, []);
+  const vehicles = data?.vehicles || [];
+  const customerOptions = data?.customerOptions || [];
+  const vehicleTypes = data?.vehicleTypes || [];
 
-  const fetchVehicles = async () => {
-    try {
-      const vehRes = await api.get(`/vehicles?search=${encodeURIComponent(debouncedSearch.trim())}`);
-      const vehList = Array.isArray(vehRes.data) ? vehRes.data : (vehRes.data?.data || []);
-      setVehicles(vehList);
-    } catch (error) {
-      console.error('Fetch vehicles error:', error);
-      setVehicles([]);
+  const saveMutation = useMutation({
+    mutationFn: async (formDataToSave) => {
+      if (formDataToSave.id) {
+        return await api.put(`/vehicles/${formDataToSave.id}`, formDataToSave);
+      } else {
+        return await api.post('/vehicles', formDataToSave);
+      }
+    },
+    onSuccess: () => {
+      setShowModal(false);
+      queryClient.invalidateQueries({ queryKey: ['vehicles'] });
+    },
+    onError: (error) => {
+      alert(error.response?.data?.error || 'เกิดข้อผิดพลาด');
     }
-  };
+  });
 
-  const fetchData = () => {
-    fetchVehicles();
-    fetchDropdownData();
-  };
-
-  useEffect(() => {
-    fetchVehicles();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [debouncedSearch]);
+  const deleteMutation = useMutation({
+    mutationFn: async (id) => {
+      return await api.delete(`/vehicles/${id}`);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['vehicles'] });
+    },
+    onError: (error) => {
+      alert(error.response?.data?.error || 'เกิดข้อผิดพลาด');
+    }
+  });
 
   const handleOpenModal = (v = null) => {
     if (v) {
@@ -112,36 +107,16 @@ const Vehicles = () => {
     setShowModal(true);
   };
 
-  const handleSubmit = async (e) => {
+  const handleSubmit = (e) => {
     e.preventDefault();
-    try {
-      if (formData.id) {
-        await api.put(`/vehicles/${formData.id}`, formData);
-      } else {
-        await api.post('/vehicles', formData);
-      }
-      setShowModal(false);
-      fetchData();
-    } catch (error) {
-      alert(error.response?.data?.error || 'เกิดข้อผิดพลาด');
-    }
+    saveMutation.mutate(formData);
   };
 
-  const handleDelete = async (id) => {
+  const handleDelete = (id) => {
     if(window.confirm('ยืนยันการลบข้อมูลรถยนต์?')) {
-      try {
-        await api.delete(`/vehicles/${id}`);
-        fetchData();
-      } catch (error) {
-        alert('เกิดข้อผิดพลาด');
-      }
+      deleteMutation.mutate(id);
     }
   };
-
-  const customerOptions = safeCustomers.map(c => ({ 
-    value: c.id, 
-    label: `${c.customer_code || ''} - ${c.first_name || ''} ${c.last_name || ''}`.trim() 
-  }));
 
   return (
     <div>
@@ -191,7 +166,9 @@ const Vehicles = () => {
               </tr>
             </thead>
             <tbody>
-              {vehicles.length > 0 ? vehicles.map(v => (
+              {isLoading ? (
+                <tr><td colSpan="6" className="text-center py-4">กำลังโหลดข้อมูล...</td></tr>
+              ) : vehicles.length > 0 ? vehicles.map(v => (
                 <tr key={v.id}>
                   <td><strong>{v.plate_no} {v.plate_province}</strong></td>
                   <td>{v.first_name} {v.last_name}</td>
@@ -215,112 +192,15 @@ const Vehicles = () => {
         </div>
       </div>
 
-      <Modal show={showModal} onHide={() => setShowModal(false)} size="lg">
-        <Modal.Header closeButton>
-          <Modal.Title>{formData.id ? 'แก้ไขข้อมูลรถยนต์' : 'เพิ่มรถยนต์ใหม่'}</Modal.Title>
-        </Modal.Header>
-        <Modal.Body>
-          <Form onSubmit={handleSubmit}>
-            <div className="row g-3">
-              <div className="col-md-12">
-                <Form.Label>ลูกค้า <span className="text-danger">*</span></Form.Label>
-                <Select
-                  options={customerOptions}
-                  value={customerOptions.find(c => c.value === formData.customer_id)}
-                  onChange={option => setFormData({...formData, customer_id: option?.value || ''})}
-                  isDisabled={formData.id !== null}
-                  isClearable
-                  placeholder="เลือก..."
-                  noOptionsMessage={() => "ไม่พบข้อมูล"}
-                  required
-                />
-              </div>
-              <div className="col-md-6">
-                <Form.Label>ทะเบียนรถ <span className="text-danger">*</span></Form.Label>
-                <Form.Control type="text" value={formData.plate_no} onChange={e => setFormData({...formData, plate_no: e.target.value})} required />
-              </div>
-              <div className="col-md-6">
-                <Form.Label>จังหวัดทะเบียน</Form.Label>
-                <Select noOptionsMessage={() => "ไม่พบข้อมูล"} 
-                  options={provincesList} 
-                  value={provincesList.find(p => p.value === formData.plate_province)} 
-                  onChange={opt => setFormData({...formData, plate_province: opt?.value || ''})} 
-                  isClearable 
-                  placeholder="เลือกจังหวัด..."
-                />
-              </div>
-              <div className="col-md-6">
-                <Form.Label>ประเภทรถ <span className="text-danger">*</span></Form.Label>
-                <Select
-                  options={vehicleTypes}
-                  value={vehicleTypes.find(t => t.value === formData.vehicle_type)}
-                  onChange={option => setFormData({...formData, vehicle_type: option?.value || ''})}
-                  isClearable
-                  placeholder="เลือก..."
-                  noOptionsMessage={() => "ไม่พบข้อมูล"}
-                  required
-                />
-              </div>
-              <div className="col-md-6">
-                <Form.Label>ยี่ห้อ (Brand)</Form.Label>
-                <Form.Select value={formData.brand} onChange={e => setFormData({...formData, brand: e.target.value, model: ''})}>
-                  <option value="">เลือกยี่ห้อ...</option>
-                  {carBrands.map(b => <option key={b} value={b}>{b}</option>)}
-                </Form.Select>
-              </div>
-              <div className="col-md-6">
-                <Form.Label>รุ่น (Model)</Form.Label>
-                <Form.Select value={formData.model} onChange={e => setFormData({...formData, model: e.target.value})}>
-                  <option value="">เลือกรุ่น...</option>
-                  {(carModels[formData.brand] || []).map(m => <option key={m} value={m}>{m}</option>)}
-                </Form.Select>
-              </div>
-              <div className="col-md-6">
-                <Form.Label>ปีจดทะเบียน (Year)</Form.Label>
-                <Form.Select value={formData.year} onChange={e => setFormData({...formData, year: e.target.value})}>
-                  <option value="">เลือกปี...</option>
-                  {Array.from({ length: 40 }, (_, i) => new Date().getFullYear() + 1 - i).map(y => (
-                    <option key={y} value={y}>{y}</option>
-                  ))}
-                </Form.Select>
-              </div>
-              <div className="col-md-6">
-                <Form.Label>สีรถ</Form.Label>
-                <Form.Select value={formData.color} onChange={e => setFormData({...formData, color: e.target.value})}>
-                  <option value="">เลือกสี...</option>
-                  {['ขาว', 'ดำ', 'เทา', 'บรอนซ์เงิน', 'บรอนซ์ทอง', 'แดง', 'น้ำเงิน', 'ฟ้า', 'น้ำตาล', 'เขียว', 'เหลือง', 'ส้ม', 'ชมพู', 'อื่นๆ'].map(c => (
-                    <option key={c} value={c}>{c}</option>
-                  ))}
-                </Form.Select>
-              </div>
-              <div className="col-md-6">
-                <Form.Label>ทุนประกันที่แนะนำ (บาท)</Form.Label>
-                <Form.Control type="number" step="0.01" value={formData.sum_insured} onChange={e => setFormData({...formData, sum_insured: e.target.value})} />
-              </div>
-              <div className="col-md-6">
-                <Form.Label>เลขตัวถัง (VIN)</Form.Label>
-                <Form.Control type="text" value={formData.vin} onChange={e => setFormData({...formData, vin: e.target.value})} />
-              </div>
-              <div className="col-md-6">
-                <Form.Label>เลขเครื่องยนต์</Form.Label>
-                <Form.Control type="text" value={formData.engine_no} onChange={e => setFormData({...formData, engine_no: e.target.value})} />
-              </div>
-              <div className="col-md-6">
-                <Form.Label>วันหมดอายุภาษี (ป้ายวงกลม)</Form.Label>
-                <Form.Control type="date" value={formData.tax_expiry} onChange={e => setFormData({...formData, tax_expiry: e.target.value})} />
-              </div>
-              <div className="col-md-6">
-                <Form.Label>วันหมดอายุ พ.ร.บ.</Form.Label>
-                <Form.Control type="date" value={formData.act_expiry} onChange={e => setFormData({...formData, act_expiry: e.target.value})} />
-              </div>
-            </div>
-            <div className="text-end mt-4">
-              <Button variant="secondary" className="me-2" onClick={() => setShowModal(false)}>ยกเลิก</Button>
-              <Button variant="primary" type="submit">บันทึกข้อมูล</Button>
-            </div>
-          </Form>
-        </Modal.Body>
-      </Modal>
+      <VehicleFormModal
+        show={showModal}
+        onHide={() => setShowModal(false)}
+        formData={formData}
+        setFormData={setFormData}
+        handleSubmit={handleSubmit}
+        customerOptions={customerOptions}
+        vehicleTypes={vehicleTypes}
+      />
     </div>
   );
 };

@@ -1,9 +1,11 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import api from '../services/api';
-import { Modal, Button, Form, Badge, Row, Col } from 'react-bootstrap';
+import { Button, Form, Badge, Row, Col } from 'react-bootstrap';
 import * as XLSX from 'xlsx';
 import { TableSkeleton, tableContainerVariants, tableRowVariants } from '../components/TableSkeleton';
 import { motion } from 'framer-motion';
+import { InstallmentScheduleModal, PayInstallmentModal } from '../components/PaymentModals';
 
 const formatThaiDate = (dateString) => {
   if (!dateString) return '-';
@@ -15,54 +17,102 @@ const formatThaiDate = (dateString) => {
   return `${day}/${month}/${year}`;
 };
 
+const getStatusBadge = (status) => {
+  if (status === 'ชำระครบแล้ว' || status === 'ชำระแล้ว') return <Badge bg="success">{status}</Badge>;
+  if (status === 'กำลังผ่อนชำระ') return <Badge bg="primary">กำลังผ่อนชำระ</Badge>;
+  if (status === 'รอชำระ') return <Badge bg="warning" text="dark">รอชำระ</Badge>;
+  if (status === 'เลยกำหนด') return <Badge bg="danger">เลยกำหนด</Badge>;
+  return <Badge bg="secondary">{status}</Badge>;
+};
+
 const Payments = () => {
-  const [payments, setPayments] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const queryClient = useQueryClient();
   const [filter, setFilter] = useState('all'); // all, เงินสด, เงินผ่อน
   const [searchTerm, setSearchTerm] = useState('');
 
   // Installment Modal State
   const [showModal, setShowModal] = useState(false);
   const [selectedPayment, setSelectedPayment] = useState(null);
-  const [installments, setInstallments] = useState([]);
-  const [loadingInst, setLoadingInst] = useState(false);
 
   // Mark as Paid State
   const [showPayModal, setShowPayModal] = useState(false);
   const [selectedInst, setSelectedInst] = useState(null);
   const [payData, setPayData] = useState({ paid_amount: '', payment_date: new Date().toISOString().split('T')[0] });
 
-  useEffect(() => {
-    fetchPayments();
-  }, []);
-
-  const fetchPayments = async () => {
-    setLoading(true);
-    try {
+  const { data: payments = [], isLoading: loading } = useQuery({
+    queryKey: ['payments'],
+    queryFn: async () => {
       const res = await api.get('/payments');
-      setPayments(res.data);
-    } catch (error) {
-      console.error(error);
-      alert('ไม่สามารถดึงข้อมูลการชำระเงินได้');
-    } finally {
-      setLoading(false);
+      return res.data;
     }
-  };
+  });
 
-  const fetchInstallments = async (payment) => {
+  const { data: installments = [], isLoading: loadingInst } = useQuery({
+    queryKey: ['installments', selectedPayment?.id],
+    queryFn: async () => {
+      if (!selectedPayment?.id) return [];
+      const res = await api.get(`/payments/${selectedPayment.id}/installments`);
+      return res.data;
+    },
+    enabled: !!selectedPayment?.id
+  });
+
+  const fetchInstallments = (payment) => {
     setSelectedPayment(payment);
     setShowModal(true);
-    setLoadingInst(true);
-    try {
-      const res = await api.get(`/payments/${payment.id}/installments`);
-      setInstallments(res.data);
-    } catch (error) {
-      console.error(error);
-      alert('ไม่สามารถดึงข้อมูลค่างวดได้');
-    } finally {
-      setLoadingInst(false);
+  };
+
+  const markCashPaidMutation = useMutation({
+    mutationFn: async (id) => {
+      return await api.put(`/payments/${id}`, { status: 'ชำระครบแล้ว' });
+    },
+    onSuccess: () => {
+      alert('บันทึกรับชำระเงินสำเร็จ');
+      queryClient.invalidateQueries({ queryKey: ['payments'] });
+    },
+    onError: (error) => {
+      alert(error.response?.data?.error || 'เกิดข้อผิดพลาด');
+    }
+  });
+
+  const handleMarkCashPaid = (id) => {
+    if (window.confirm('ยืนยันว่าลูกค้าชำระเงินสดครบถ้วนแล้ว?')) {
+      markCashPaidMutation.mutate(id);
     }
   };
+
+  const deleteMutation = useMutation({
+    mutationFn: async (id) => {
+      return await api.delete(`/payments/${id}`);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['payments'] });
+    },
+    onError: (error) => {
+      alert(error.response?.data?.error || 'ไม่มีสิทธิ์ลบข้อมูล');
+    }
+  });
+
+  const handleDelete = (id) => {
+    if (window.confirm('คุณต้องการลบข้อมูลการชำระเงินนี้หรือไม่?')) {
+      deleteMutation.mutate(id);
+    }
+  };
+
+  const payInstallmentMutation = useMutation({
+    mutationFn: async (data) => {
+      return await api.put(`/payments/installments/${selectedInst.id}`, data);
+    },
+    onSuccess: () => {
+      alert('บันทึกรับชำระเงินสำเร็จ');
+      setShowPayModal(false);
+      queryClient.invalidateQueries({ queryKey: ['installments', selectedPayment?.id] });
+      queryClient.invalidateQueries({ queryKey: ['payments'] });
+    },
+    onError: (error) => {
+      alert(error.response?.data?.error || 'เกิดข้อผิดพลาด');
+    }
+  });
 
   const handleOpenPayModal = (inst) => {
     setSelectedInst(inst);
@@ -71,41 +121,9 @@ const Payments = () => {
     setShowPayModal(true);
   };
 
-  const handlePayInstallment = async (e) => {
+  const handlePayInstallment = (e) => {
     e.preventDefault();
-    try {
-      await api.put(`/payments/installments/${selectedInst.id}`, payData);
-      alert('บันทึกรับชำระเงินสำเร็จ');
-      setShowPayModal(false);
-      // Refresh installments and main list
-      fetchInstallments(selectedPayment);
-      fetchPayments();
-    } catch (error) {
-      alert(error.response?.data?.error || 'เกิดข้อผิดพลาด');
-    }
-  };
-
-  const handleMarkCashPaid = async (id) => {
-    if (window.confirm('ยืนยันว่าลูกค้าชำระเงินสดครบถ้วนแล้ว?')) {
-      try {
-        await api.put(`/payments/${id}`, { status: 'ชำระครบแล้ว' });
-        alert('บันทึกรับชำระเงินสำเร็จ');
-        fetchPayments();
-      } catch (error) {
-        alert(error.response?.data?.error || 'เกิดข้อผิดพลาด');
-      }
-    }
-  };
-
-  const handleDelete = async (id) => {
-    if (window.confirm('คุณต้องการลบข้อมูลการชำระเงินนี้หรือไม่?')) {
-      try {
-        await api.delete(`/payments/${id}`);
-        fetchPayments();
-      } catch (error) {
-        alert(error.response?.data?.error || 'ไม่มีสิทธิ์ลบข้อมูล');
-      }
-    }
+    payInstallmentMutation.mutate(payData);
   };
 
   const handleExport = () => {
@@ -121,14 +139,6 @@ const Payments = () => {
     const matchSearch = searchString.includes(searchTerm.toLowerCase());
     return matchFilter && matchSearch;
   });
-
-  const getStatusBadge = (status) => {
-    if (status === 'ชำระครบแล้ว') return <Badge bg="success">ชำระครบแล้ว</Badge>;
-    if (status === 'กำลังผ่อนชำระ') return <Badge bg="primary">กำลังผ่อนชำระ</Badge>;
-    if (status === 'รอชำระ') return <Badge bg="warning" text="dark">รอชำระ</Badge>;
-    if (status === 'เลยกำหนด') return <Badge bg="danger">เลยกำหนด</Badge>;
-    return <Badge bg="secondary">{status}</Badge>;
-  };
 
   return (
     <div>
@@ -233,111 +243,23 @@ const Payments = () => {
         </div>
       </div>
 
-      {/* Installment Schedule Modal */}
-      <Modal show={showModal} onHide={() => setShowModal(false)} size="lg" centered>
-        <Modal.Header closeButton className="bg-light">
-          <Modal.Title className="fw-bold text-primary">
-            <i className="bi bi-calendar-week me-2"></i>ตารางผ่อนชำระ: {selectedPayment?.first_name} {selectedPayment?.last_name}
-          </Modal.Title>
-        </Modal.Header>
-        <Modal.Body>
-          <div className="d-flex justify-content-between mb-3 p-3 bg-light rounded">
-            <div>
-              <span className="text-muted d-block small">เลขกรมธรรม์</span>
-              <strong className="fs-5">{selectedPayment?.policy_no || '-'}</strong>
-            </div>
-            <div className="text-end">
-              <span className="text-muted d-block small">ยอดรวมทั้งหมด</span>
-              <strong className="fs-5 text-success">฿{(Number(selectedPayment?.total_premium)||0).toLocaleString()}</strong>
-            </div>
-          </div>
+      <InstallmentScheduleModal
+        show={showModal}
+        onHide={() => setShowModal(false)}
+        selectedPayment={selectedPayment}
+        installments={installments}
+        loadingInst={loadingInst}
+        handleOpenPayModal={handleOpenPayModal}
+      />
 
-          {loadingInst ? (
-            <div className="text-center py-4"><div className="spinner-border text-primary"></div></div>
-          ) : (
-            <div className="table-responsive">
-              <table className="table table-bordered text-center align-middle">
-                <thead className="table-light">
-                  <tr>
-                    <th>งวดที่</th>
-                    <th>ดิวเดต</th>
-                    <th>ยอดเรียกเก็บ</th>
-                    <th>ยอดที่ชำระ</th>
-                    <th>วันที่ชำระ</th>
-                    <th>สถานะ</th>
-                    <th>จัดการ</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {installments.map(inst => (
-                    <tr key={inst.id} className={inst.status === 'ชำระแล้ว' ? 'table-success opacity-75' : ''}>
-                      <td><Badge bg="secondary" className="fs-6 px-3">{inst.installment_no}</Badge></td>
-                      <td className="text-danger fw-bold">{formatThaiDate(inst.due_date)}</td>
-                      <td className="fw-bold">฿{Number(inst.amount).toLocaleString()}</td>
-                      <td className="text-success fw-bold">{inst.paid_amount > 0 ? `฿${Number(inst.paid_amount).toLocaleString()}` : '-'}</td>
-                      <td>{inst.payment_date ? formatThaiDate(inst.payment_date) : '-'}</td>
-                      <td>{getStatusBadge(inst.status)}</td>
-                      <td>
-                        {inst.status !== 'ชำระแล้ว' ? (
-                          <Button variant="success" size="sm" onClick={() => handleOpenPayModal(inst)}>
-                            <i className="bi bi-cash-stack me-1"></i> รับชำระ
-                          </Button>
-                        ) : (
-                          <Button variant="outline-secondary" size="sm" onClick={() => window.open(`/print-receipt/${inst.id}`, '_blank')}>
-                            <i className="bi bi-printer"></i> พิมพ์ใบเสร็จ
-                          </Button>
-                        )}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
-        </Modal.Body>
-      </Modal>
-
-      {/* Pay Installment Modal */}
-      <Modal show={showPayModal} onHide={() => setShowPayModal(false)} centered backdrop="static">
-        <Modal.Header closeButton className="bg-success text-white">
-          <Modal.Title><i className="bi bi-cash-coin me-2"></i> บันทึกรับชำระค่างวด</Modal.Title>
-        </Modal.Header>
-        <Form onSubmit={handlePayInstallment}>
-          <Modal.Body>
-            <div className="text-center mb-4">
-              <h5 className="text-muted">ยอดที่ต้องชำระงวดที่ {selectedInst?.installment_no}</h5>
-              <h1 className="text-success display-4 fw-bold mb-0">฿{Number(selectedInst?.amount).toLocaleString()}</h1>
-            </div>
-            
-            <Form.Group className="mb-3">
-              <Form.Label>วันที่รับชำระ</Form.Label>
-              <Form.Control 
-                type="date" 
-                required 
-                value={payData.payment_date} 
-                onChange={(e) => setPayData({...payData, payment_date: e.target.value})}
-              />
-            </Form.Group>
-            
-            <Form.Group className="mb-3">
-              <Form.Label>จำนวนเงินที่รับจริง (บาท)</Form.Label>
-              <Form.Control 
-                type="number" 
-                step="0.01" 
-                required 
-                value={payData.paid_amount} 
-                onChange={(e) => setPayData({...payData, paid_amount: e.target.value})}
-              />
-            </Form.Group>
-          </Modal.Body>
-          <Modal.Footer className="bg-light">
-            <Button variant="secondary" onClick={() => setShowPayModal(false)}>ยกเลิก</Button>
-            <Button variant="success" type="submit" className="fw-bold px-4">
-              <i className="bi bi-check-circle me-2"></i> ยืนยันการรับเงิน
-            </Button>
-          </Modal.Footer>
-        </Form>
-      </Modal>
+      <PayInstallmentModal
+        show={showPayModal}
+        onHide={() => setShowPayModal(false)}
+        selectedInst={selectedInst}
+        payData={payData}
+        setPayData={setPayData}
+        handlePayInstallment={handlePayInstallment}
+      />
     </div>
   );
 };
