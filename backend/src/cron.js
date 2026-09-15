@@ -1,5 +1,12 @@
 const cron = require('node-cron');
+const line = require('@line/bot-sdk');
 const { sendLineNotify } = require('./services/lineNotify');
+
+const botConfig = {
+  channelAccessToken: process.env.LINE_CHANNEL_ACCESS_TOKEN,
+  channelSecret: process.env.LINE_CHANNEL_SECRET,
+};
+const lineClient = new line.messagingApi.MessagingApiClient({ channelAccessToken: botConfig.channelAccessToken });
 
 const startCronJobs = (db) => {
   // Run every day at 08:00 AM
@@ -123,6 +130,77 @@ const startCronJobs = (db) => {
       console.error('Cron job error:', error);
     }
   });
+
+  // Bot Job 1: Auto-Unpause (Every hour)
+  cron.schedule('0 * * * *', async () => {
+    console.log('[Cron] Running Auto-Unpause job...');
+    try {
+      const [users] = await db.query(
+        `SELECT user_id FROM line_users 
+         WHERE is_bot_paused = TRUE 
+         AND needs_attention = FALSE
+         AND last_interacted_at < NOW() - INTERVAL 12 HOUR`
+      );
+
+      for (const user of users) {
+        await db.query(
+          'UPDATE line_users SET is_bot_paused = FALSE WHERE user_id = ?',
+          [user.user_id]
+        );
+        console.log(`[Cron] Auto-unpaused bot for user: ${user.user_id}`);
+        try {
+          await lineClient.pushMessage({
+            to: user.user_id,
+            messages: [{ type: 'text', text: 'แอดมินเปิดระบบผู้ช่วยอัตโนมัติให้แล้วครับ หากมีคำถามเพิ่มเติมพิมพ์มาได้เลยนะครับ 😊' }]
+          });
+        } catch (e) {
+          console.error('[Cron] Push message failed for auto-unpause:', e.message);
+        }
+      }
+    } catch (error) {
+      console.error('[Cron] Auto-Unpause Error:', error);
+    }
+  });
+
+  // Bot Job 2: Follow-up Reminders (Every hour at minute 30)
+  cron.schedule('30 * * * *', async () => {
+    console.log('[Cron] Running Follow-up Reminders job...');
+    try {
+      const [leads] = await db.query(
+        `SELECT l.id, l.user_id, l.brand, l.model, u.last_interacted_at 
+         FROM line_chat_leads l
+         JOIN line_users u ON l.user_id = u.user_id
+         WHERE l.status = 'NEW'
+         AND u.last_interacted_at < NOW() - INTERVAL 24 HOUR`
+      );
+
+      for (const lead of leads) {
+        await db.query(
+          'UPDATE line_chat_leads SET status = ? WHERE id = ?',
+          ['FOLLOWED_UP', lead.id]
+        );
+        console.log(`[Cron] Followed-up with user: ${lead.user_id}`);
+        try {
+          let carText = 'รถของคุณ';
+          if (lead.brand && lead.brand !== 'ไม่ทราบ') {
+            carText = `${lead.brand} ${lead.model || ''}`.trim();
+          }
+          await lineClient.pushMessage({
+            to: lead.user_id,
+            messages: [{ 
+              type: 'text', 
+              text: `สวัสดีครับ ขออนุญาตติดตามเรื่องประกัน ${carText} นะครับ 😊 ไม่ทราบว่าสนใจแผนที่เสนอไปไหมครับ หรืออยากให้ลองปรับแผน/ทุนประกันตรงไหน แจ้งผมได้เลยนะครับ` 
+            }]
+          });
+        } catch (e) {
+          console.error('[Cron] Push message failed for follow-up:', e.message);
+        }
+      }
+    } catch (error) {
+      console.error('[Cron] Follow-up Error:', error);
+    }
+  });
+
   console.log('Cron jobs scheduled.');
 };
 

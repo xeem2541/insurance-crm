@@ -71,6 +71,22 @@ async function initDb() {
     await runMigrationOnce(connection, 'add_admin_role_chat_history', `
       ALTER TABLE chat_history MODIFY COLUMN role VARCHAR(20) NOT NULL
     `);
+    
+    await runMigrationOnce(connection, 'create_line_chat_leads_table', `
+      CREATE TABLE IF NOT EXISTS line_chat_leads (
+        id INT PRIMARY KEY AUTO_INCREMENT,
+        user_id VARCHAR(255) NOT NULL,
+        brand VARCHAR(100),
+        model VARCHAR(100),
+        year VARCHAR(10),
+        expire_date VARCHAR(50),
+        raw_data JSON,
+        status VARCHAR(50) DEFAULT 'NEW',
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+        FOREIGN KEY (user_id) REFERENCES line_users(user_id) ON DELETE CASCADE
+      )
+    `);
 
     // Seed Admin user if not exists
     const [users] = await connection.query('SELECT * FROM users WHERE username = ?', ['admin']);
