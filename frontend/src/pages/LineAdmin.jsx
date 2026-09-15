@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Container, Row, Col, Card, ListGroup, Form, Button, Tabs, Tab, Badge, Spinner } from 'react-bootstrap';
 import api from '../services/api';
-import { Send, Users, MessageSquare, Megaphone, Settings } from 'lucide-react';
+import { Send, Users, MessageSquare, Megaphone, Settings, Bot, User } from 'lucide-react';
 
 const LineAdmin = () => {
   const [users, setUsers] = useState([]);
@@ -211,8 +211,13 @@ const LineAdmin = () => {
                         variant={selectedUser.is_bot_paused ? "warning" : "success"}
                         onClick={handleToggleBot}
                         size="sm"
+                        className="d-flex align-items-center shadow-sm"
                       >
-                        {selectedUser.is_bot_paused ? 'AI ปิดอยู่ (แอดมินตอบ)' : 'AI เปิดอยู่ (Bot ตอบ)'}
+                        {selectedUser.is_bot_paused ? (
+                          <><User size={16} className="me-2" /> แอดมินตอบ (คลิกเพื่อเปิด AI)</>
+                        ) : (
+                          <><Bot size={16} className="me-2" /> AI ตอบ (คลิกเพื่อสลับให้แอดมินตอบ)</>
+                        )}
                       </Button>
                     </div>
                   </Card.Header>
@@ -249,7 +254,7 @@ const LineAdmin = () => {
                     <Form onSubmit={handleSendReply} className="d-flex">
                       <Form.Control
                         type="text"
-                        placeholder="พิมพ์ข้อความตอบกลับ..."
+                        placeholder={selectedUser.is_bot_paused ? "พิมพ์ข้อความตอบกลับ..." : "คลิกปุ่ม 'AI ตอบ' ด้านบนขวา เพื่อปิด AI ก่อนพิมพ์ข้อความ"}
                         value={replyMessage}
                         onChange={(e) => setReplyMessage(e.target.value)}
                         disabled={sending || !selectedUser.is_bot_paused}
@@ -259,8 +264,8 @@ const LineAdmin = () => {
                       </Button>
                     </Form>
                     {!selectedUser.is_bot_paused && (
-                      <div className="text-danger mt-2 text-center" style={{ fontSize: '0.85rem' }}>
-                        * ต้องปิดการทำงานของ AI ก่อน จึงจะสามารถส่งข้อความในนามแอดมินได้
+                      <div className="text-danger mt-2 text-center fw-bold" style={{ fontSize: '0.85rem' }}>
+                        * ต้องปิดการทำงานของ AI ที่ปุ่มด้านบนขวาก่อน จึงจะสามารถส่งข้อความในนามแอดมินได้
                       </div>
                     )}
                   </Card.Footer>
