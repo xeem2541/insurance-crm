@@ -64,13 +64,25 @@ api.interceptors.response.use(
     if (!originalRequest) return Promise.reject(error);
 
     // --- Token Refresh Logic ---
-    if (error.response?.status === 401 && !originalRequest._retry) {
+    if (error.response?.status === 401) {
+      if (originalRequest._retry) {
+        // If it was already retried and still got 401, the new token is invalid or session is broken
+        localStorage.removeItem('token');
+        localStorage.removeItem('user');
+        window.location.href = '/login';
+        return Promise.reject(error);
+      }
+
       if (isRefreshing) {
         try {
           const token = await new Promise(function(resolve, reject) {
             failedQueue.push({ resolve, reject });
           });
-          originalRequest.headers.Authorization = `Bearer ${token}`;
+          if (originalRequest.headers && typeof originalRequest.headers.set === 'function') {
+            originalRequest.headers.set('Authorization', `Bearer ${token}`);
+          } else {
+            originalRequest.headers.Authorization = `Bearer ${token}`;
+          }
           return api(originalRequest);
         } catch (err) {
           return Promise.reject(err);
@@ -90,8 +102,17 @@ api.interceptors.response.use(
           localStorage.setItem('user', JSON.stringify(data.user));
         }
 
-        api.defaults.headers.common['Authorization'] = `Bearer ${newToken}`;
-        originalRequest.headers.Authorization = `Bearer ${newToken}`;
+        if (api.defaults.headers.common && typeof api.defaults.headers.common.set === 'function') {
+          api.defaults.headers.common.set('Authorization', `Bearer ${newToken}`);
+        } else {
+          api.defaults.headers.common['Authorization'] = `Bearer ${newToken}`;
+        }
+        
+        if (originalRequest.headers && typeof originalRequest.headers.set === 'function') {
+          originalRequest.headers.set('Authorization', `Bearer ${newToken}`);
+        } else {
+          originalRequest.headers.Authorization = `Bearer ${newToken}`;
+        }
         
         processQueue(null, newToken);
         return api(originalRequest);
