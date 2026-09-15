@@ -6,7 +6,7 @@ const mysql = require('mysql2/promise');
 const bcrypt = require('bcryptjs');
 require('dotenv').config();
 const helmet = require('helmet');
-const xss = require('xss-clean');
+const { xss } = require('express-xss-sanitizer');
 const hpp = require('hpp');
 const rateLimit = require('express-rate-limit');
 const { startCronJobs } = require('./cron');
