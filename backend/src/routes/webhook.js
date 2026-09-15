@@ -444,18 +444,18 @@ You must ALWAYS respond with a strictly valid JSON object. Do not include markdo
 
             // Initialize Gemini Chat
             const generationConfig = { responseMimeType: "application/json" };
-            const primaryModelConfig = genAI.getGenerativeModel({
-               model: generativeModel.model,
-               systemInstruction: currentPrompt,
-               generationConfig
-            });
-            const fallbackModelConfig = genAI.getGenerativeModel({
-               model: 'gemini-flash-latest',
-               systemInstruction: currentPrompt,
-               generationConfig
-            });
+            
+            // Build a list of models to try, starting with the selected one, then robust fallbacks
+            const fallbackModels = [
+               generativeModel.model,
+               'gemini-1.5-flash',
+               'gemini-1.5-flash-8b',
+               'gemini-1.5-pro',
+               'gemini-flash-latest'
+            ];
+            const uniqueModels = [...new Set(fallbackModels)];
 
-            const MAX_RETRIES = 3;
+            const MAX_RETRIES = 2; // Retries per model
             const delay = ms => new Promise(res => setTimeout(res, ms));
             
             async function generateWithRetry(modelConfig, reqContents) {
@@ -474,15 +474,26 @@ You must ALWAYS respond with a strictly valid JSON object. Do not include markdo
             }
 
             let result;
-            try {
-              result = await generateWithRetry(primaryModelConfig, contents);
-            } catch (primaryErr) {
-              console.warn(`Primary model (${generativeModel.model}) failed: ${primaryErr.message}. Trying fallback model...`);
-              try {
-                result = await generateWithRetry(fallbackModelConfig, contents);
-              } catch (fallbackErr) {
-                throw fallbackErr; // If fallback also fails, throw to the main catch block
-              }
+            let lastAiError;
+            
+            for (const modelName of uniqueModels) {
+               try {
+                  const modelConfig = genAI.getGenerativeModel({
+                     model: modelName,
+                     systemInstruction: currentPrompt,
+                     generationConfig
+                  });
+                  result = await generateWithRetry(modelConfig, contents);
+                  console.log(`Successfully generated content using model: ${modelName}`);
+                  break; // Success, break the loop
+               } catch (err) {
+                  console.warn(`Model ${modelName} failed: ${err.message}. Trying next fallback...`);
+                  lastAiError = err;
+               }
+            }
+            
+            if (!result) {
+               throw lastAiError; // If all fallbacks fail, throw the last error
             }
             
             const rawResponseText = result.response.text();
@@ -589,10 +600,15 @@ You must ALWAYS respond with a strictly valid JSON object. Do not include markdo
             
             // Note: Admins testing the bot in their own chat will see both messages, 
             // but real customers will only see the apology above.
-            if (aiError.status === 429 || (aiError.message && (aiError.message.includes('429') || aiError.message.includes('quota') || aiError.message.includes('Quota')))) {
-                notifyAdminGroup(req.db, `⚠️ ระบบ AI ทำงานถึงขีดจำกัดโควต้าชั่วคราว (Quota Limit 429)\nสำหรับผู้ใช้ (ID: ${userId})\n\n💡 หมายเหตุ: ลูกค้าจะไม่เห็นข้อความแจ้งเตือนนี้ (ระบบส่งแจ้งเตือนให้แอดมินเท่านั้น)`);
+            const isQuota = aiError.status === 429 || (aiError.message && (aiError.message.includes('429') || aiError.message.includes('quota') || aiError.message.includes('Quota')));
+            const isUnavailable = aiError.status === 503 || (aiError.message && (aiError.message.includes('503') || aiError.message.includes('unavailable')));
+            
+            if (isQuota) {
+                notifyAdminGroup(req.db, `⚠️ ระบบ AI ทำงานถึงขีดจำกัดโควต้าชั่วคราว (Quota Limit 429)\nสำหรับผู้ใช้ (ID: ${userId})\n\n💡 หมายเหตุ: ลูกค้าจะไม่เห็นข้อความแจ้งเตือนนี้`);
+            } else if (isUnavailable) {
+                notifyAdminGroup(req.db, `⚠️ เซิร์ฟเวอร์ AI ของ Google ขัดข้องชั่วคราว (503 Service Unavailable)\nสำหรับผู้ใช้ (ID: ${userId})\nระบบได้ส่งข้อความขออภัยลูกค้าแล้ว\n\n💡 หมายเหตุ: อาการนี้จะหายไปเองเมื่อเซิร์ฟเวอร์ Google ทำงานปกติ`);
             } else {
-                notifyAdminGroup(req.db, `⚠️ AI เกิดข้อผิดพลาดกับผู้ใช้ (ID: ${userId})\nError: ${aiError.message}\nข้อความ: ${text}\n\n💡 หมายเหตุ: ลูกค้าจะไม่เห็นข้อความแจ้งเตือนนี้ (ระบบส่งแจ้งเตือนให้แอดมินเท่านั้น)`);
+                notifyAdminGroup(req.db, `⚠️ AI เกิดข้อผิดพลาดกับผู้ใช้ (ID: ${userId})\nError: ${aiError.message}\nข้อความ: ${text}\n\n💡 หมายเหตุ: ลูกค้าจะไม่เห็นข้อความแจ้งเตือนนี้`);
             }
           }
         } else {
