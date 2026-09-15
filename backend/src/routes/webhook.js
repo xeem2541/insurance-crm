@@ -13,8 +13,8 @@ if (process.env.GEMINI_API_KEY) {
   const apiKey = process.env.GEMINI_API_KEY.trim();
   genAI = new GoogleGenerativeAI(apiKey);
   
-  // Default to 3.5-flash as the safest standard model
-  generativeModel = genAI.getGenerativeModel({ model: "gemini-3.5-flash" });
+  // Default to 3.6-flash as the safest standard model
+  generativeModel = genAI.getGenerativeModel({ model: "gemini-3.6-flash" });
 
   // Select best model async
   axios.get(`https://generativelanguage.googleapis.com/v1beta/models`, {
@@ -26,15 +26,15 @@ if (process.env.GEMINI_API_KEY) {
         .map(m => m.name.replace('models/', ''));
       
       const preferredModels = [
-        'gemini-3.5-flash',
-        'gemini-3.5-flash-lite',
-        'gemini-flash-latest',
+        'gemini-3.6-flash',
+        'gemini-3.6-pro',
+        'gemini-3.5-pro',
+        'gemini-3.0-flash',
         'gemini-2.0-flash',
-        'gemini-2.0-flash-lite',
         'gemini-1.5-flash',
       ];
       
-      const bestModel = preferredModels.find(m => models.includes(m)) || 'gemini-3.5-flash';
+      const bestModel = preferredModels.find(m => models.includes(m)) || 'gemini-3.6-flash';
       generativeModel = genAI.getGenerativeModel({ model: bestModel });
       console.log(`🤖 Line Bot initialized with best available model: ${bestModel}`);
     })
@@ -343,7 +343,7 @@ router.post('/', async (req, res) => {
                systemInstruction: currentPrompt
             });
             const fallbackModelConfig = genAI.getGenerativeModel({
-               model: 'gemini-3.5-flash',
+               model: 'gemini-3.6-flash',
                systemInstruction: currentPrompt
             });
 
