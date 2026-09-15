@@ -154,6 +154,21 @@ router.post('/', async (req, res) => {
       const isGroupOrRoom = event.source.type === 'group' || event.source.type === 'room';
       
       const userId = event.source.userId;
+
+      // Feature: Admin Unpause Bot
+      if (text.startsWith('#เปิดบอท')) {
+         const targetUserId = text.split(' ')[1] || (!isGroupOrRoom ? userId : null);
+         if (targetUserId) {
+            try {
+              await req.db.query("UPDATE line_users SET is_bot_paused = FALSE WHERE user_id = ?", [targetUserId]);
+              await axios.post('https://api.line.me/v2/bot/message/reply', {
+                replyToken: event.replyToken,
+                messages: [{ type: 'text', text: `✅ เปิดบอทสำหรับ User ID: ${targetUserId} เรียบร้อยแล้วค่ะ` }]
+              }, { headers: { 'Authorization': `Bearer ${LINE_ACCESS_TOKEN}` }});
+            } catch(e) {}
+         }
+         continue;
+      }
       
       // Update line_users profile if not a group
       if (!isGroupOrRoom && userId) {
@@ -303,9 +318,9 @@ router.post('/', async (req, res) => {
               }
             } catch(dbErr) {}
 
-            // Load Chat History (latest 10, chronological)
+            // Load Chat History (Sliding window: max 6 messages, within 12 hours)
             const [historyRows] = await req.db.query(
-              "SELECT role, message FROM (SELECT id, role, message FROM chat_history WHERE user_id = ? ORDER BY id DESC LIMIT 10) sub ORDER BY id ASC",
+              "SELECT role, message FROM (SELECT id, role, message FROM chat_history WHERE user_id = ? AND created_at >= NOW() - INTERVAL 12 HOUR ORDER BY id DESC LIMIT 6) sub ORDER BY id ASC",
               [userId]
             );
             
@@ -335,7 +350,7 @@ router.post('/', async (req, res) => {
                 currentParts.push({
                   inlineData: { data: imageBuffer.toString('base64'), mimeType: 'image/jpeg' }
                 });
-                currentParts.push({ text: 'ผู้ใช้ส่งรูปภาพมา ช่วยวิเคราะห์หรือตอบกลับรูปภาพนี้' });
+                currentParts.push({ text: 'ผู้ใช้ส่งภาพตารางกรมธรรม์มา โปรดสกัดข้อมูล: ยี่ห้อ/รุ่นรถ, ปีจดทะเบียน, ทุนประกันเดิม และวันหมดอายุ แล้วสรุปข้อมูลที่อ่านได้ตอบกลับหาลูกค้าทันทีเพื่อคอนเฟิร์มความถูกต้องก่อนเช็คเบี้ย (ตอบสั้นๆ และชัดเจน)' });
               }
             } else {
               currentParts.push({ text: text });
@@ -375,23 +390,26 @@ router.post('/', async (req, res) => {
 
             // Admin Notify check
             if (aiText.includes('[NOTIFY_ADMIN]')) {
-              aiText = aiText.replace('[NOTIFY_ADMIN]', '').trim();
+              aiText = aiText.replace(/\[NOTIFY_ADMIN\]/g, '').trim();
               notifyAdminGroup(req.db, `🚨 ผู้ใช้ (ID: ${userId}) ขอคุยกับพนักงาน!\n\nข้อความล่าสุด: ${text}`);
-              await req.db.query("UPDATE line_users SET needs_attention = TRUE WHERE user_id = ?", [userId]);
+              await req.db.query("UPDATE line_users SET needs_attention = TRUE, is_bot_paused = TRUE WHERE user_id = ?", [userId]);
             }
 
             // Create Invoice check
             if (aiText.includes('[CREATE_INVOICE]')) {
-              aiText = aiText.replace('[CREATE_INVOICE]', '').trim();
+              aiText = aiText.replace(/\[CREATE_INVOICE\]/g, '').trim();
               notifyAdminGroup(req.db, `💰 ผู้ใช้ (ID: ${userId}) ตกลงซื้อ/ยืนยันแผนประกัน! กรุณาตรวจสอบเพื่อออกใบเสนอราคา\n\nข้อความล่าสุด: ${text}`);
               await req.db.query("UPDATE line_users SET needs_attention = TRUE WHERE user_id = ?", [userId]);
             }
 
             // Send Map check
             if (aiText.includes('[SEND_MAP]')) {
-              aiText = aiText.replace('[SEND_MAP]', '').trim();
+              aiText = aiText.replace(/\[SEND_MAP\]/g, '').trim();
               mapRequested = true;
             }
+
+            // Extra safety to strip any remaining brackets just in case
+            aiText = aiText.replace(/\[NOTIFY_ADMIN\]/g, '').replace(/\[CREATE_INVOICE\]/g, '').replace(/\[SEND_MAP\]/g, '').trim();
 
             if (aiText.length > 0) {
               replyMessages.push({ type: 'text', text: aiText });
@@ -411,7 +429,8 @@ router.post('/', async (req, res) => {
 
           } catch (aiError) {
             console.error('Gemini API Error:', aiError);
-            replyMessages.push({ type: 'text', text: `ขออภัยค่ะ ตอนนี้ระบบแอดมินเปิ้ลมีผู้ใช้งานเยอะมาก หรือระบบขัดข้องชั่วคราว รบกวนคุณลูกค้าพิมพ์ข้อความอีกครั้งในภายหลังนะคะ 🙏` });
+            replyMessages.push({ type: 'text', text: `ขออภัยค่ะ ตอนนี้ระบบขัดข้องชั่วคราว รบกวนคุณลูกค้าพิมพ์ข้อความทิ้งไว้อีกครั้ง แล้วเจ้าหน้าที่จะรีบติดต่อกลับนะคะ 🙏` });
+            notifyAdminGroup(req.db, `⚠️ AI เกิดข้อผิดพลาดกับผู้ใช้ (ID: ${userId})\nError: ${aiError.message}\nข้อความ: ${text}`);
           }
         } else {
           replyMessages.push({ type: 'text', text: 'ขออภัยค่ะ ยังไม่ได้ตั้งค่า API Key สำหรับ AI' });
