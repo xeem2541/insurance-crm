@@ -565,12 +565,12 @@ You must ALWAYS respond with a strictly valid JSON object. Do not include markdo
 
             // Action Routing
             if (action === 'NOTIFY_ADMIN' || aiText.includes('[NOTIFY_ADMIN]')) {
-              notifyAdminGroup(req.db, `🚨 ผู้ใช้ (ID: ${userId}) ขอคุยกับพนักงาน!\n\nข้อความล่าสุด: ${text}`);
+              await notifyAdminGroup(req.db, `🚨 ผู้ใช้ (ID: ${userId}) ขอคุยกับพนักงาน!\n\nข้อความล่าสุด: ${text}`);
               await req.db.query("UPDATE line_users SET needs_attention = TRUE, is_bot_paused = TRUE WHERE user_id = ?", [userId]);
             }
 
             if (action === 'CREATE_INVOICE' || aiText.includes('[CREATE_INVOICE]')) {
-              notifyAdminGroup(req.db, `💰 ผู้ใช้ (ID: ${userId}) ตกลงซื้อ/ยืนยันแผนประกัน! กรุณาตรวจสอบเพื่อออกใบเสนอราคา\n\nข้อความล่าสุด: ${text}`);
+              await notifyAdminGroup(req.db, `💰 ผู้ใช้ (ID: ${userId}) ตกลงซื้อ/ยืนยันแผนประกัน! กรุณาตรวจสอบเพื่อออกใบเสนอราคา\n\nข้อความล่าสุด: ${text}`);
               await req.db.query("UPDATE line_users SET needs_attention = TRUE WHERE user_id = ?", [userId]);
             }
 
@@ -642,11 +642,11 @@ You must ALWAYS respond with a strictly valid JSON object. Do not include markdo
             const isUnavailable = aiError.status === 503 || (aiError.message && (aiError.message.includes('503') || aiError.message.includes('unavailable')));
             
             if (isQuota) {
-                notifyAdminGroup(req.db, `⚠️ ระบบ AI ทำงานถึงขีดจำกัดโควต้าชั่วคราว (Quota Limit 429)\nสำหรับผู้ใช้ (ID: ${userId})\n\n💡 หมายเหตุ: ลูกค้าจะไม่เห็นข้อความแจ้งเตือนนี้`);
+                await notifyAdminGroup(req.db, `⚠️ ระบบ AI ทำงานถึงขีดจำกัดโควต้าชั่วคราว (Quota Limit 429)\nสำหรับผู้ใช้ (ID: ${userId})\n\n💡 หมายเหตุ: ลูกค้าจะไม่เห็นข้อความแจ้งเตือนนี้`);
             } else if (isUnavailable) {
-                notifyAdminGroup(req.db, `⚠️ เซิร์ฟเวอร์ AI ของ Google ขัดข้องชั่วคราว (503 Service Unavailable)\nสำหรับผู้ใช้ (ID: ${userId})\nระบบได้ส่งข้อความขออภัยลูกค้าแล้ว\n\n💡 หมายเหตุ: อาการนี้จะหายไปเองเมื่อเซิร์ฟเวอร์ Google ทำงานปกติ`);
+                await notifyAdminGroup(req.db, `⚠️ เซิร์ฟเวอร์ AI ของ Google ขัดข้องชั่วคราว (503 Service Unavailable)\nสำหรับผู้ใช้ (ID: ${userId})\nระบบได้ส่งข้อความขออภัยลูกค้าแล้ว\n\n💡 หมายเหตุ: อาการนี้จะหายไปเองเมื่อเซิร์ฟเวอร์ Google ทำงานปกติ`);
             } else {
-                notifyAdminGroup(req.db, `⚠️ AI เกิดข้อผิดพลาดกับผู้ใช้ (ID: ${userId})\nError: ${aiError.message}\nข้อความ: ${text}\n\n💡 หมายเหตุ: ลูกค้าจะไม่เห็นข้อความแจ้งเตือนนี้`);
+                await notifyAdminGroup(req.db, `⚠️ AI เกิดข้อผิดพลาดกับผู้ใช้ (ID: ${userId})\nError: ${aiError.message}\nข้อความ: ${text}\n\n💡 หมายเหตุ: ลูกค้าจะไม่เห็นข้อความแจ้งเตือนนี้`);
             }
           }
         } else {
