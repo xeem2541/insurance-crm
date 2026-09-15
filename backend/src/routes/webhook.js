@@ -365,11 +365,25 @@ router.post('/', async (req, res) => {
 
         if (generativeModel) {
           try {
+            const JSON_INSTRUCTION = `
+# OUTPUT FORMAT (CRITICAL REQUIREMENT)
+You must ALWAYS respond with a strictly valid JSON object. Do not include markdown code blocks like \`\`\`json. The structure MUST be exactly:
+{
+  "reply_text": "ข้อความตอบลูกค้า (สั้น สแกนง่าย ใช้จิตวิทยาการขาย)",
+  "extracted_data": {
+    "brand": "ยี่ห้อรถ (ถ้าอ่านได้จากรูปหรือข้อความ)",
+    "model": "รุ่นรถ (ถ้าอ่านได้)",
+    "year": "ปีรถ (ถ้าอ่านได้)",
+    "expire_date": "วันหมดอายุประกัน (ถ้าอ่านได้)"
+  },
+  "action": "NONE" | "SEND_QUOTE" | "NOTIFY_ADMIN" | "CREATE_INVOICE" | "SEND_MAP"
+}
+`;
             let currentPrompt = SYSTEM_PROMPT;
             try {
               const [promptRows] = await req.db.query("SELECT value FROM master_data WHERE category = 'BotPrompt' LIMIT 1");
               if (promptRows.length > 0 && promptRows[0].value.trim() !== '') {
-                currentPrompt = promptRows[0].value;
+                currentPrompt = promptRows[0].value + '\n\n' + JSON_INSTRUCTION;
               }
             } catch(dbErr) {}
 
