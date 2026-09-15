@@ -5,6 +5,7 @@ const fs = require('fs');
 const path = require('path');
 
 const { GoogleGenerativeAI } = require("@google/generative-ai");
+const { OpenAI } = require("openai");
 
 // In-Memory cache for Webhook Deduplication
 const processedEvents = new Map();
@@ -393,110 +394,147 @@ You must ALWAYS respond with a strictly valid JSON object. Do not include markdo
               [userId]
             );
             
-            let contents = [];
-            for (const row of historyRows) {
-              const msgText = row.message ? row.message.trim() : '';
-              if (!msgText) continue;
+            let rawResponseText = "";
+            let imageBuffer = null;
 
-              if (contents.length > 0 && contents[contents.length - 1].role === row.role) {
-                // Merge consecutive messages from the same role
-                contents[contents.length - 1].parts[0].text += '\n' + msgText;
-              } else {
-                contents.push({ role: row.role, parts: [{ text: msgText }] });
-              }
-            }
-
-            // Gemini API STRICT REQUIREMENT: First message MUST be 'user'
-            if (contents.length > 0 && contents[0].role === 'model') {
-              contents.shift();
-            }
-
-            // Current message part
-            let currentParts = [];
             if (event.message.type === 'image') {
-              // FEATURE: Send LINE Loading Animation
               try {
                 await axios.post('https://api.line.me/v2/bot/chat/loading/start', {
-                  chatId: userId,
-                  loadingSeconds: 20
+                  chatId: userId, loadingSeconds: 20
                 }, { headers: { 'Authorization': `Bearer ${LINE_ACCESS_TOKEN}` }});
-              } catch(loadingErr) {
-                console.error('Error starting loading animation:', loadingErr.message);
+              } catch(e) {}
+              imageBuffer = await downloadImage(event.message.id);
+            }
+
+            if (process.env.OPENAI_API_KEY) {
+              // ==========================
+              // OPENAI (CHATGPT) LOGIC
+              // ==========================
+              const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY.trim() });
+              let openAiMessages = [
+                { role: "system", content: currentPrompt }
+              ];
+              
+              for (const row of historyRows) {
+                const msgText = row.message ? row.message.trim() : '';
+                if (!msgText) continue;
+                const role = row.role === 'model' ? 'assistant' : 'user';
+                openAiMessages.push({ role: role, content: msgText });
               }
 
-              let imageBuffer = await downloadImage(event.message.id);
+              let userContent = [];
+              if (imageBuffer) {
+                userContent.push({
+                  type: "image_url",
+                  image_url: { url: `data:image/jpeg;base64,${imageBuffer.toString('base64')}` }
+                });
+                userContent.push({ type: "text", text: "ผู้ใช้ส่งภาพตารางกรมธรรม์มา โปรดสกัดข้อมูล: ยี่ห้อ/รุ่นรถ, ปีจดทะเบียน, ทุนประกันเดิม และวันหมดอายุ แล้วสรุปข้อมูลที่อ่านได้ตอบกลับหาลูกค้าทันทีเพื่อคอนเฟิร์มความถูกต้องก่อนเช็คเบี้ย (ตอบสั้นๆ และชัดเจน)" });
+                imageBuffer = null;
+              } else {
+                userContent.push({ type: "text", text: text });
+              }
+              openAiMessages.push({ role: "user", content: userContent });
+
+              try {
+                const completion = await openai.chat.completions.create({
+                  model: "gpt-4o-mini",
+                  messages: openAiMessages,
+                  response_format: { type: "json_object" },
+                });
+                rawResponseText = completion.choices[0].message.content;
+              } catch (err) {
+                console.error("OpenAI Error:", err);
+                throw err; // Caught by the global try-catch to notify admin
+              }
+
+            } else {
+              // ==========================
+              // GEMINI LOGIC (FALLBACK)
+              // ==========================
+              let contents = [];
+              for (const row of historyRows) {
+                const msgText = row.message ? row.message.trim() : '';
+                if (!msgText) continue;
+
+                if (contents.length > 0 && contents[contents.length - 1].role === row.role) {
+                  contents[contents.length - 1].parts[0].text += '\n' + msgText;
+                } else {
+                  contents.push({ role: row.role, parts: [{ text: msgText }] });
+                }
+              }
+
+              if (contents.length > 0 && contents[0].role === 'model') {
+                contents.shift();
+              }
+
+              let currentParts = [];
               if (imageBuffer) {
                 currentParts.push({
                   inlineData: { data: imageBuffer.toString('base64'), mimeType: 'image/jpeg' }
                 });
                 currentParts.push({ text: 'ผู้ใช้ส่งภาพตารางกรมธรรม์มา โปรดสกัดข้อมูล: ยี่ห้อ/รุ่นรถ, ปีจดทะเบียน, ทุนประกันเดิม และวันหมดอายุ แล้วสรุปข้อมูลที่อ่านได้ตอบกลับหาลูกค้าทันทีเพื่อคอนเฟิร์มความถูกต้องก่อนเช็คเบี้ย (ตอบสั้นๆ และชัดเจน)' });
-                imageBuffer = null; // Free memory explicitly (PDPA & Memory clean up)
+                imageBuffer = null;
+              } else {
+                currentParts.push({ text: text });
               }
-            } else {
-              currentParts.push({ text: text });
-            }
 
-            if (contents.length > 0 && contents[contents.length - 1].role === 'user') {
-              contents[contents.length - 1].parts.push(...currentParts);
-            } else {
-              contents.push({ role: 'user', parts: currentParts });
-            }
+              if (contents.length > 0 && contents[contents.length - 1].role === 'user') {
+                contents[contents.length - 1].parts.push(...currentParts);
+              } else {
+                contents.push({ role: 'user', parts: currentParts });
+              }
 
-            // Initialize Gemini Chat
-            const generationConfig = { responseMimeType: "application/json" };
-            
-            // Build a list of models to try, starting with the selected one, then robust fallbacks
-            const fallbackModels = [
-               generativeModel.model,
-               'gemini-1.5-flash',
-               'gemini-1.5-flash-8b',
-               'gemini-1.5-pro',
-               'gemini-flash-latest'
-            ];
-            const uniqueModels = [...new Set(fallbackModels)];
+              const generationConfig = { responseMimeType: "application/json" };
+              const fallbackModels = [
+                 generativeModel ? generativeModel.model : 'gemini-1.5-flash',
+                 'gemini-1.5-flash',
+                 'gemini-1.5-flash-8b',
+                 'gemini-1.5-pro',
+                 'gemini-flash-latest'
+              ];
+              const uniqueModels = [...new Set(fallbackModels)];
+              const MAX_RETRIES = 2; // Retries per model
+              const delay = ms => new Promise(res => setTimeout(res, ms));
+              
+              async function generateWithRetry(modelConfig, reqContents) {
+                 for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
+                    try {
+                       return await modelConfig.generateContent({ contents: reqContents });
+                    } catch (err) {
+                       if (attempt < MAX_RETRIES && (err.status === 429 || err.status === 503 || err.message.includes('429') || err.message.includes('503'))) {
+                          console.warn(`[Attempt ${attempt}] API limit reached (${err.status || 503}). Retrying in ${attempt * 2}s...`);
+                          await delay(attempt * 2000);
+                       } else {
+                          throw err;
+                       }
+                    }
+                 }
+              }
 
-            const MAX_RETRIES = 2; // Retries per model
-            const delay = ms => new Promise(res => setTimeout(res, ms));
-            
-            async function generateWithRetry(modelConfig, reqContents) {
-               for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
-                  try {
-                     return await modelConfig.generateContent({ contents: reqContents });
-                  } catch (err) {
-                     if (attempt < MAX_RETRIES && (err.status === 429 || err.status === 503 || err.message.includes('429') || err.message.includes('503'))) {
-                        console.warn(`[Attempt ${attempt}] API limit reached (${err.status || 503}). Retrying in ${attempt * 2}s...`);
-                        await delay(attempt * 2000);
-                     } else {
-                        throw err;
-                     }
-                  }
-               }
+              let result;
+              let lastAiError;
+              
+              for (const modelName of uniqueModels) {
+                 try {
+                    const modelConfig = genAI.getGenerativeModel({
+                       model: modelName,
+                       systemInstruction: currentPrompt,
+                       generationConfig
+                    });
+                    result = await generateWithRetry(modelConfig, contents);
+                    console.log(`Successfully generated content using model: ${modelName}`);
+                    break; // Success, break the loop
+                 } catch (err) {
+                    console.warn(`Model ${modelName} failed: ${err.message}. Trying next fallback...`);
+                    lastAiError = err;
+                 }
+              }
+              
+              if (!result) {
+                 throw lastAiError; // If all fallbacks fail, throw the last error
+              }
+              rawResponseText = result.response.text();
             }
-
-            let result;
-            let lastAiError;
-            
-            for (const modelName of uniqueModels) {
-               try {
-                  const modelConfig = genAI.getGenerativeModel({
-                     model: modelName,
-                     systemInstruction: currentPrompt,
-                     generationConfig
-                  });
-                  result = await generateWithRetry(modelConfig, contents);
-                  console.log(`Successfully generated content using model: ${modelName}`);
-                  break; // Success, break the loop
-               } catch (err) {
-                  console.warn(`Model ${modelName} failed: ${err.message}. Trying next fallback...`);
-                  lastAiError = err;
-               }
-            }
-            
-            if (!result) {
-               throw lastAiError; // If all fallbacks fail, throw the last error
-            }
-            
-            const rawResponseText = result.response.text();
             let responseData;
             try {
               responseData = JSON.parse(rawResponseText);
