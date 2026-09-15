@@ -57,12 +57,12 @@ if (process.env.GEMINI_API_KEY) {
         .map(m => m.name.replace('models/', ''));
       
       const preferredModels = [
+        'gemini-3.5-flash',
+        'gemini-2.5-flash',
         'gemini-flash-latest',
         'gemini-3.8-flash',
         'gemini-3.7-flash',
         'gemini-3.6-flash',
-        'gemini-3.5-flash',
-        'gemini-1.5-flash',
       ];
       
       const bestModel = preferredModels.find(m => models.includes(m)) || 'gemini-3.6-flash';
@@ -427,13 +427,31 @@ router.post('/', async (req, res) => {
                systemInstruction: currentPrompt
             });
 
+            const MAX_RETRIES = 3;
+            const delay = ms => new Promise(res => setTimeout(res, ms));
+            
+            async function generateWithRetry(modelConfig, reqContents) {
+               for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
+                  try {
+                     return await modelConfig.generateContent({ contents: reqContents });
+                  } catch (err) {
+                     if (attempt < MAX_RETRIES && (err.status === 429 || err.status === 503 || err.message.includes('429') || err.message.includes('503'))) {
+                        console.warn(`[Attempt ${attempt}] API limit reached (${err.status || 503}). Retrying in ${attempt * 2}s...`);
+                        await delay(attempt * 2000);
+                     } else {
+                        throw err;
+                     }
+                  }
+               }
+            }
+
             let result;
             try {
-              result = await primaryModelConfig.generateContent({ contents: contents });
+              result = await generateWithRetry(primaryModelConfig, contents);
             } catch (primaryErr) {
               console.warn(`Primary model (${generativeModel.model}) failed: ${primaryErr.message}. Trying fallback model...`);
               try {
-                result = await fallbackModelConfig.generateContent({ contents: contents });
+                result = await generateWithRetry(fallbackModelConfig, contents);
               } catch (fallbackErr) {
                 throw fallbackErr; // If fallback also fails, throw to the main catch block
               }
