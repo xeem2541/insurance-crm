@@ -57,11 +57,11 @@ if (process.env.GEMINI_API_KEY) {
         .map(m => m.name.replace('models/', ''));
       
       const preferredModels = [
+        'gemini-flash-latest',
+        'gemini-3.8-flash',
+        'gemini-3.7-flash',
         'gemini-3.6-flash',
-        'gemini-3.6-pro',
-        'gemini-3.5-pro',
-        'gemini-3.0-flash',
-        'gemini-2.0-flash',
+        'gemini-3.5-flash',
         'gemini-1.5-flash',
       ];
       
@@ -423,7 +423,7 @@ router.post('/', async (req, res) => {
                systemInstruction: currentPrompt
             });
             const fallbackModelConfig = genAI.getGenerativeModel({
-               model: 'gemini-3.6-flash',
+               model: 'gemini-flash-latest',
                systemInstruction: currentPrompt
             });
 
@@ -488,7 +488,14 @@ router.post('/', async (req, res) => {
           } catch (aiError) {
             console.error('Gemini API Error:', aiError);
             replyMessages.push({ type: 'text', text: `ขออภัยค่ะ ตอนนี้ระบบขัดข้องชั่วคราว รบกวนคุณลูกค้าพิมพ์ข้อความทิ้งไว้อีกครั้ง แล้วเจ้าหน้าที่จะรีบติดต่อกลับนะคะ 🙏` });
-            notifyAdminGroup(req.db, `⚠️ AI เกิดข้อผิดพลาดกับผู้ใช้ (ID: ${userId})\nError: ${aiError.message}\nข้อความ: ${text}`);
+            
+            // Note: Admins testing the bot in their own chat will see both messages, 
+            // but real customers will only see the apology above.
+            if (aiError.status === 429 || (aiError.message && (aiError.message.includes('429') || aiError.message.includes('quota') || aiError.message.includes('Quota')))) {
+                notifyAdminGroup(req.db, `⚠️ ระบบ AI ทำงานถึงขีดจำกัดโควต้าชั่วคราว (Quota Limit 429)\nสำหรับผู้ใช้ (ID: ${userId})\n\n💡 หมายเหตุ: ลูกค้าจะไม่เห็นข้อความแจ้งเตือนนี้ (ระบบส่งแจ้งเตือนให้แอดมินเท่านั้น)`);
+            } else {
+                notifyAdminGroup(req.db, `⚠️ AI เกิดข้อผิดพลาดกับผู้ใช้ (ID: ${userId})\nError: ${aiError.message}\nข้อความ: ${text}\n\n💡 หมายเหตุ: ลูกค้าจะไม่เห็นข้อความแจ้งเตือนนี้ (ระบบส่งแจ้งเตือนให้แอดมินเท่านั้น)`);
+            }
           }
         } else {
           replyMessages.push({ type: 'text', text: 'ขออภัยค่ะ ยังไม่ได้ตั้งค่า API Key สำหรับ AI' });
