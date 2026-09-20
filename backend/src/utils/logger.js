@@ -3,10 +3,18 @@ const DailyRotateFile = require('winston-daily-rotate-file');
 const path = require('path');
 const fs = require('fs');
 
-// Ensure logs directory exists
+// Ensure logs directory exists only if not on Vercel
 const logDir = path.join(__dirname, '../../logs');
-if (!fs.existsSync(logDir)) {
-  fs.mkdirSync(logDir, { recursive: true });
+const isVercel = process.env.VERCEL === '1' || process.env.VERCEL;
+
+if (!isVercel) {
+  try {
+    if (!fs.existsSync(logDir)) {
+      fs.mkdirSync(logDir, { recursive: true });
+    }
+  } catch (err) {
+    console.warn("[Logger] Could not create logs directory, file logging will be disabled.");
+  }
 }
 
 const { combine, timestamp, printf, colorize, errors } = winston.format;
@@ -33,25 +41,29 @@ const transports = [
   // Console output
   new winston.transports.Console({
     format: consoleFormat
-  }),
-  // Daily rotate file for errors only
-  new DailyRotateFile({
-    filename: path.join(logDir, 'error-%DATE%.log'),
-    datePattern: 'YYYY-MM-DD',
-    level: 'error',
-    maxFiles: '30d', // Keep logs for 30 days
-    format: fileFormat,
-    zippedArchive: true, // Zip rotated files
-  }),
-  // Daily rotate file for all logs
-  new DailyRotateFile({
-    filename: path.join(logDir, 'combined-%DATE%.log'),
-    datePattern: 'YYYY-MM-DD',
-    maxFiles: '14d', // Keep combined logs for 14 days
-    format: fileFormat,
-    zippedArchive: true,
   })
 ];
+
+// Only add file transports if not on Vercel and directory exists
+if (!isVercel && fs.existsSync(logDir)) {
+  transports.push(
+    new DailyRotateFile({
+      filename: path.join(logDir, 'error-%DATE%.log'),
+      datePattern: 'YYYY-MM-DD',
+      level: 'error',
+      maxFiles: '30d',
+      format: fileFormat,
+      zippedArchive: true,
+    }),
+    new DailyRotateFile({
+      filename: path.join(logDir, 'combined-%DATE%.log'),
+      datePattern: 'YYYY-MM-DD',
+      maxFiles: '14d',
+      format: fileFormat,
+      zippedArchive: true,
+    })
+  );
+}
 
 const logger = winston.createLogger({
   level: process.env.NODE_ENV === 'production' ? 'info' : 'debug',
