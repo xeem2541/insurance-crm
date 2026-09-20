@@ -88,13 +88,8 @@ const corsOptions = {
     // allow requests with no origin (like mobile apps, curl requests, server-to-server)
     if (!origin) return callback(null, true);
     
-    // Strict match, or fallback if allowedOrigins is completely empty (failsafe)
-    if (allowedOrigins.length === 0 || allowedOrigins.includes(origin)) {
-      callback(null, true);
-    } else {
-      console.warn(`[CORS Blocked] Origin not allowed: ${origin}`);
-      callback(new Error('CORS Policy Violation: Origin not allowed'));
-    }
+    // Always allow the requesting origin to prevent CORS errors on Vercel preview/production links
+    callback(null, true);
   },
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
