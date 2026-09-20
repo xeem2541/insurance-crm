@@ -109,6 +109,20 @@ router.get('/daily-notify', verifyCronSecret, async (req, res) => {
       JOIN customers c ON np.customer_id = c.id
       WHERE np.status IN ('สำเร็จ', 'ชำระครบแล้ว')
         AND DATEDIFF(np.expiry_date, CURDATE()) IN (30, 15, 7, 3, 1, 0)
+      UNION ALL
+      SELECT '-' as policy_no, c.first_name, c.last_name, v.plate_no, v.tax_expiry as expiry_date,
+             DATEDIFF(v.tax_expiry, CURDATE()) as days_left, 'Tax' as policy_type
+      FROM vehicles v
+      JOIN customers c ON v.customer_id = c.id
+      WHERE v.tax_expiry IS NOT NULL
+        AND DATEDIFF(v.tax_expiry, CURDATE()) IN (30, 15, 7, 3, 1, 0)
+      UNION ALL
+      SELECT '-' as policy_no, c.first_name, c.last_name, v.plate_no, v.act_expiry as expiry_date,
+             DATEDIFF(v.act_expiry, CURDATE()) as days_left, 'Act' as policy_type
+      FROM vehicles v
+      JOIN customers c ON v.customer_id = c.id
+      WHERE v.act_expiry IS NOT NULL
+        AND DATEDIFF(v.act_expiry, CURDATE()) IN (30, 15, 7, 3, 1, 0)
       ORDER BY days_left ASC
     `);
 
@@ -120,9 +134,24 @@ router.get('/daily-notify', verifyCronSecret, async (req, res) => {
           flexContents.push({ type: "separator", margin: "md" });
         }
         
-        const typeColor = p.policy_type === 'Motor' ? '#4CAF50' : '#FF9800';
-        const typeLabel = p.policy_type === 'Motor' ? 'รถยนต์' : 'Non-Motor';
-        const plateInfo = p.policy_type === 'Motor' ? (p.plate_no || 'ไม่ระบุ') : '-';
+        let typeColor, typeLabel, plateInfo;
+        if (p.policy_type === 'Motor') {
+          typeColor = '#4CAF50'; // Green
+          typeLabel = 'รถยนต์';
+          plateInfo = p.plate_no || 'ไม่ระบุ';
+        } else if (p.policy_type === 'Non-Motor') {
+          typeColor = '#FF9800'; // Orange
+          typeLabel = 'Non-Motor';
+          plateInfo = '-';
+        } else if (p.policy_type === 'Tax') {
+          typeColor = '#2196F3'; // Blue
+          typeLabel = 'ภาษีรถยนต์';
+          plateInfo = p.plate_no || 'ไม่ระบุ';
+        } else if (p.policy_type === 'Act') {
+          typeColor = '#9C27B0'; // Purple
+          typeLabel = 'พ.ร.บ.';
+          plateInfo = p.plate_no || 'ไม่ระบุ';
+        }
         
         flexContents.push({
           type: "box",
@@ -183,7 +212,7 @@ router.get('/daily-notify', verifyCronSecret, async (req, res) => {
 
       const flexMessage = {
         type: "flex",
-        altText: `⏰ แจ้งเตือนกรมธรรม์ใกล้หมดอายุ! (ติดตาม ${policies.length} ราย)`,
+        altText: `⏰ แจ้งเตือนกรมธรรม์และภาษีใกล้หมดอายุ! (ติดตาม ${policies.length} ราย)`,
         contents: {
           type: "bubble",
           size: "giga",
@@ -193,7 +222,7 @@ router.get('/daily-notify', verifyCronSecret, async (req, res) => {
             backgroundColor: "#ff5252",
             paddingAll: "20px",
             contents: [
-              { type: "text", text: "⏰ แจ้งเตือนต่ออายุประกัน", weight: "bold", color: "#ffffff", size: "xl" },
+              { type: "text", text: "⏰ แจ้งเตือนต่ออายุ/ภาษี", weight: "bold", color: "#ffffff", size: "xl" },
               { type: "text", text: `วันนี้มีลูกค้าต้องติดตาม ${policies.length} ราย`, color: "#ffffffcc", size: "sm", margin: "md" }
             ]
           },
