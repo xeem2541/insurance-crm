@@ -184,7 +184,19 @@ router.get('/stats', authenticateToken, async (req, res) => {
       `, q_aiCorrections.params),
 
       safeQuery(`SELECT job_type, SUM(total_premium) as total FROM policies WHERE status IN ('สำเร็จ', 'ชำระครบแล้ว') AND start_date >= ? AND start_date <= ? GROUP BY job_type`, [`${targetYear}-01-01`, `${targetYear}-12-31`]),
-      safeQuery(`SELECT job_type, SUM(total_premium) as total FROM non_motor_policies WHERE status IN ('สำเร็จ', 'ชำระครบแล้ว') AND start_date >= ? AND start_date <= ? GROUP BY job_type`, [`${targetYear}-01-01`, `${targetYear}-12-31`])
+      safeQuery(`SELECT job_type, SUM(total_premium) as total FROM non_motor_policies WHERE status IN ('สำเร็จ', 'ชำระครบแล้ว') AND start_date >= ? AND start_date <= ? GROUP BY job_type`, [`${targetYear}-01-01`, `${targetYear}-12-31`]),
+      safeQuery(`
+        SELECT v.id as vehicle_id, '-' as policy_no, c.first_name, c.last_name, v.plate_no, DATEDIFF(v.tax_expiry, CURRENT_DATE()) as days_left, 'Tax' as category
+        FROM vehicles v 
+        JOIN customers c ON v.customer_id = c.id
+        WHERE v.tax_expiry IS NOT NULL AND v.tax_expiry BETWEEN CURRENT_DATE() AND DATE_ADD(CURRENT_DATE(), INTERVAL 90 DAY)
+      `),
+      safeQuery(`
+        SELECT v.id as vehicle_id, '-' as policy_no, c.first_name, c.last_name, v.plate_no, DATEDIFF(v.act_expiry, CURRENT_DATE()) as days_left, 'Act' as category
+        FROM vehicles v 
+        JOIN customers c ON v.customer_id = c.id
+        WHERE v.act_expiry IS NOT NULL AND v.act_expiry BETWEEN CURRENT_DATE() AND DATE_ADD(CURRENT_DATE(), INTERVAL 90 DAY)
+      `)
     ];
 
     const [
@@ -194,7 +206,8 @@ router.get('/stats', authenticateToken, async (req, res) => {
       cashRes, instRes, unpaidRes, collectedRes, overdueCustRes, upcomingInstallments,
       monthlyCustomers, topCompanies, topSales,
       aiStatsRes, aiDocTypesRes, aiCorrectionsRes,
-      mSalesByJobType, nmSalesByJobType
+      mSalesByJobType, nmSalesByJobType,
+      taxExpiringPolicies, actExpiringPolicies
     ] = await Promise.all(queries);
 
     let cashSalesTotal = parseFloat(cashRes?.[0]?.total) || 0;
@@ -204,7 +217,7 @@ router.get('/stats', authenticateToken, async (req, res) => {
     let overdueCustomersCount = overdueCustRes?.[0]?.count || 0;
 
     // Merge and sort expiring policies
-    const allExpiring = [...mExpiringPolicies, ...nmExpiringPolicies].sort((a, b) => a.days_left - b.days_left);
+    const allExpiring = [...mExpiringPolicies, ...nmExpiringPolicies, ...taxExpiringPolicies, ...actExpiringPolicies].sort((a, b) => a.days_left - b.days_left);
 
     const mergedMonthlySalesMap = {};
     for (let i = 1; i <= 12; i++) {

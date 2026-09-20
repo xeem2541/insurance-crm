@@ -420,15 +420,27 @@ const Dashboard = () => {
             </div>
             <div className="card-body p-0">
               <ul className="list-group list-group-flush">
-                {stats.expiringPolicies && stats.expiringPolicies.length > 0 ? stats.expiringPolicies.slice(0, 8).map(p => (
-                  <li className="list-group-item d-flex justify-content-between align-items-center py-3 px-4" key={p.id}>
-                    <div>
-                      <div className="fw-bold text-dark">{p.first_name} {p.last_name}</div>
-                      <div className="text-muted small">ทะเบียน: {p.plate_no || '-'} | กรมธรรม์: {p.policy_no}</div>
-                    </div>
-                    <span className="badge bg-danger rounded-pill px-3 py-2">เหลือ {p.days_left} วัน</span>
-                  </li>
-                )) : (
+                {stats.expiringPolicies && stats.expiringPolicies.length > 0 ? stats.expiringPolicies.slice(0, 8).map((p, idx) => {
+                  let badgeClass = 'bg-secondary';
+                  let label = p.category;
+                  if (p.category === 'Motor') { badgeClass = 'bg-primary'; label = 'รถยนต์'; }
+                  else if (p.category === 'Non-Motor') { badgeClass = 'bg-info text-dark'; label = 'Non-Motor'; }
+                  else if (p.category === 'Tax') { badgeClass = 'bg-primary'; label = 'ภาษีรถยนต์'; }
+                  else if (p.category === 'Act') { badgeClass = 'bg-purple'; label = 'พ.ร.บ.'; }
+
+                  return (
+                    <li className="list-group-item d-flex justify-content-between align-items-center py-3 px-4" key={p.id || `exp-${idx}`}>
+                      <div>
+                        <div className="fw-bold text-dark d-flex align-items-center gap-2">
+                          {p.first_name} {p.last_name}
+                          <span className={`badge ${badgeClass} rounded-pill`} style={p.category === 'Act' ? {backgroundColor: '#9C27B0'} : {}}>{label}</span>
+                        </div>
+                        <div className="text-muted small">ทะเบียน: {p.plate_no || '-'} | กรมธรรม์: {p.policy_no || '-'}</div>
+                      </div>
+                      <span className="badge bg-danger rounded-pill px-3 py-2">เหลือ {p.days_left} วัน</span>
+                    </li>
+                  );
+                }) : (
                   <li className="list-group-item text-center text-muted py-5">ไม่มีรายการแจ้งเตือน</li>
                 )}
               </ul>
