@@ -4,8 +4,7 @@ import api from '../services/api';
 import { TableSkeleton, tableContainerVariants, tableRowVariants } from '../components/TableSkeleton';
 import { motion } from 'framer-motion';
 import PolicyFormModal from '../components/PolicyFormModal';
-
-import * as XLSX from 'xlsx';
+import { exportToExcel } from '../utils/exportUtils';
 
 const formatThaiDate = (dateString) => {
   if (!dateString) return '-';
@@ -131,7 +130,7 @@ const Policies = () => {
     setSortConfig({ key, direction });
   };
 
-  const exportToExcel = () => {
+  const handleExport = () => {
     const dataToExport = policies.map(p => ({
       'เลขกรมธรรม์': p.policy_no,
       'ลูกค้า': `${p.first_name} ${p.last_name}`,
@@ -146,10 +145,7 @@ const Policies = () => {
       'สถานะ': p.status
     }));
 
-    const ws = XLSX.utils.json_to_sheet(dataToExport);
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, "Policies");
-    XLSX.writeFile(wb, "policies_export.xlsx");
+    exportToExcel(dataToExport, 'Policies', 'policies_export.xlsx');
   };
 
   const saveMutation = useMutation({
@@ -272,7 +268,7 @@ const Policies = () => {
       <div className="d-flex justify-content-between align-items-center mb-4">
         <h2 className="fw-bold">จัดการข้อมูลกรมธรรม์</h2>
         <div>
-          <button className="btn btn-outline-success fw-bold me-2" onClick={exportToExcel}>
+          <button className="btn btn-outline-success fw-bold me-2" onClick={handleExport}>
             <i className="bi bi-file-earmark-excel"></i> Export Excel
           </button>
           <button className="btn btn-primary fw-bold" onClick={() => handleOpenModal()}>

@@ -1,9 +1,7 @@
 import React, { useState, useContext } from 'react';
 import api from '../services/api';
 import { AuthContext } from '../contexts/AuthContext';
-import * as XLSX from 'xlsx';
-import jsPDF from 'jspdf';
-import 'jspdf-autotable';
+import { exportToExcel, exportToPDF } from '../utils/exportUtils';
 import { BarChart, Bar, LineChart, Line, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import { TableSkeleton, tableContainerVariants, tableRowVariants } from '../components/TableSkeleton';
 import { motion } from 'framer-motion';
@@ -49,29 +47,19 @@ const Reports = () => {
   };
 
   const exportExcel = () => {
-    const ws = XLSX.utils.json_to_sheet(reportData);
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, "Report");
-    XLSX.writeFile(wb, `Report_${reportType}_${startDate}_to_${endDate}.xlsx`);
+    exportToExcel(reportData, 'Report', `Report_${reportType}_${startDate}_to_${endDate}.xlsx`);
   };
 
   const exportPDF = () => {
-    const doc = new jsPDF();
-    doc.text(`Report: ${reportType}`, 14, 15);
-    doc.text(`Period: ${startDate} to ${endDate}`, 14, 25);
+    const docTitle = `Report: ${reportType}\nPeriod: ${startDate} to ${endDate}`;
     
     if (reportData.length > 0) {
       const keys = Object.keys(reportData[0]);
       const data = reportData.map(item => keys.map(k => String(item[k] || '')));
-      doc.autoTable({
-        startY: 35,
-        head: [keys],
-        body: data,
-        styles: { font: 'helvetica' } // Thai might not render well without a custom font, but basic PDF works.
-      });
+      exportToPDF(docTitle, keys, data, `Report_${reportType}.pdf`);
+    } else {
+      exportToPDF(docTitle, [], [], `Report_${reportType}.pdf`);
     }
-    
-    doc.save(`Report_${reportType}.pdf`);
   };
 
   if (!['Admin', 'Manager', 'Sales'].includes(user?.role)) {

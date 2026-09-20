@@ -2,10 +2,30 @@ const express = require('express');
 const router = express.Router();
 const { authenticateToken } = require('../middlewares/auth');
 
+// W-07: Server-side cache for dashboard stats (30 second TTL)
+// Prevents 20+ parallel queries on every dashboard refresh/poll
+const statsCache = new Map(); // key: 'month:year' -> { data, expiresAt }
+const STATS_CACHE_TTL_MS = 30 * 1000; // 30 seconds
+
+// Expose cache-busting for admin use (called after bulk data changes)
+function clearStatsCache() {
+  statsCache.clear();
+}
+module.exports.clearStatsCache = clearStatsCache;
+
 router.get('/stats', authenticateToken, async (req, res) => {
   try {
     const targetMonth = req.query.month === 'all' ? 'all' : (req.query.month ? parseInt(req.query.month) : new Date().getMonth() + 1);
     const targetYear = req.query.year ? parseInt(req.query.year) : new Date().getFullYear();
+
+    // W-07: Check cache first (skip cache when ?force=1 is passed, e.g. after save)
+    const cacheKey = `${targetMonth}:${targetYear}`;
+    const cached = statsCache.get(cacheKey);
+    if (cached && cached.expiresAt > Date.now() && !req.query.force) {
+      res.set('X-Cache', 'HIT');
+      return res.json(cached.data);
+    }
+    res.set('X-Cache', 'MISS');
 
     const safeQuery = async (query, params = []) => {
       try {
@@ -18,9 +38,17 @@ router.get('/stats', authenticateToken, async (req, res) => {
 
     const monthFilter = (col) => {
       if (targetMonth === 'all') {
-        return { sql: `YEAR(${col}) = ?`, params: [targetYear] };
+        return { sql: `${col} >= ? AND ${col} <= ?`, params: [`${targetYear}-01-01`, `${targetYear}-12-31`] };
       } else {
-        return { sql: `MONTH(${col}) = ? AND YEAR(${col}) = ?`, params: [targetMonth, targetYear] };
+        const padMonth = String(targetMonth).padStart(2, '0');
+        let nextMonth = targetMonth + 1;
+        let nextYear = targetYear;
+        if (nextMonth > 12) {
+          nextMonth = 1;
+          nextYear++;
+        }
+        const padNextMonth = String(nextMonth).padStart(2, '0');
+        return { sql: `${col} >= ? AND ${col} < ?`, params: [`${targetYear}-${padMonth}-01`, `${nextYear}-${padNextMonth}-01`] };
       }
     };
 
@@ -40,7 +68,7 @@ router.get('/stats', authenticateToken, async (req, res) => {
       safeQuery('SELECT COUNT(*) as count FROM customers'),
       safeQuery('SELECT COUNT(*) as count FROM policies'),
       safeQuery(`SELECT SUM(total_premium) as total FROM policies WHERE status IN ('สำเร็จ', 'ชำระครบแล้ว') AND ${q_motorSales.sql}`, q_motorSales.params),
-      safeQuery(`SELECT SUM(total_premium) as total FROM policies WHERE status IN ('สำเร็จ', 'ชำระครบแล้ว') AND YEAR(start_date) = ?`, [targetYear]),
+      safeQuery(`SELECT SUM(total_premium) as total FROM policies WHERE status IN ('สำเร็จ', 'ชำระครบแล้ว') AND start_date >= ? AND start_date <= ?`, [`${targetYear}-01-01`, `${targetYear}-12-31`]),
       safeQuery(`SELECT SUM(commission_baht) as total FROM policies WHERE status IN ('สำเร็จ', 'ชำระครบแล้ว') AND ${q_motorComm.sql}`, q_motorComm.params),
       safeQuery(`
         SELECT p.*, c.first_name, c.last_name, v.plate_no, DATEDIFF(p.expiry_date, CURRENT_DATE()) as days_left, 'Motor' as category
@@ -49,12 +77,12 @@ router.get('/stats', authenticateToken, async (req, res) => {
         LEFT JOIN vehicles v ON p.vehicle_id = v.id
         WHERE p.status IN ('สำเร็จ', 'ชำระครบแล้ว') AND p.expiry_date BETWEEN CURRENT_DATE() AND DATE_ADD(CURRENT_DATE(), INTERVAL 90 DAY)
       `),
-      safeQuery(`SELECT MONTH(start_date) as month, SUM(total_premium) as total_sales FROM policies WHERE status IN ('สำเร็จ', 'ชำระครบแล้ว') AND YEAR(start_date) = ? GROUP BY MONTH(start_date)`, [targetYear]),
+      safeQuery(`SELECT MONTH(start_date) as month, SUM(total_premium) as total_sales FROM policies WHERE status IN ('สำเร็จ', 'ชำระครบแล้ว') AND start_date >= ? AND start_date <= ? GROUP BY MONTH(start_date)`, [`${targetYear}-01-01`, `${targetYear}-12-31`]),
       
       // non-motor
       safeQuery('SELECT COUNT(*) as count FROM non_motor_policies'),
       safeQuery(`SELECT SUM(total_premium) as total FROM non_motor_policies WHERE status IN ('สำเร็จ', 'ชำระครบแล้ว') AND ${q_nonMotorSales.sql}`, q_nonMotorSales.params),
-      safeQuery(`SELECT SUM(total_premium) as total FROM non_motor_policies WHERE status IN ('สำเร็จ', 'ชำระครบแล้ว') AND YEAR(start_date) = ?`, [targetYear]),
+      safeQuery(`SELECT SUM(total_premium) as total FROM non_motor_policies WHERE status IN ('สำเร็จ', 'ชำระครบแล้ว') AND start_date >= ? AND start_date <= ?`, [`${targetYear}-01-01`, `${targetYear}-12-31`]),
       safeQuery(`SELECT SUM(commission_baht) as total FROM non_motor_policies WHERE status IN ('สำเร็จ', 'ชำระครบแล้ว') AND ${q_nonMotorComm.sql}`, q_nonMotorComm.params),
       safeQuery(`
         SELECT p.*, c.first_name, c.last_name, NULL as plate_no, DATEDIFF(p.expiry_date, CURRENT_DATE()) as days_left, 'Non-Motor' as category, t.name as type_name
@@ -63,7 +91,7 @@ router.get('/stats', authenticateToken, async (req, res) => {
         LEFT JOIN non_motor_types t ON p.non_motor_type_id = t.id
         WHERE p.status IN ('สำเร็จ', 'ชำระครบแล้ว') AND p.expiry_date BETWEEN CURRENT_DATE() AND DATE_ADD(CURRENT_DATE(), INTERVAL 90 DAY)
       `),
-      safeQuery(`SELECT MONTH(start_date) as month, SUM(total_premium) as total_sales FROM non_motor_policies WHERE status IN ('สำเร็จ', 'ชำระครบแล้ว') AND YEAR(start_date) = ? GROUP BY MONTH(start_date)`, [targetYear]),
+      safeQuery(`SELECT MONTH(start_date) as month, SUM(total_premium) as total_sales FROM non_motor_policies WHERE status IN ('สำเร็จ', 'ชำระครบแล้ว') AND start_date >= ? AND start_date <= ? GROUP BY MONTH(start_date)`, [`${targetYear}-01-01`, `${targetYear}-12-31`]),
       
       // other
       safeQuery('SELECT COUNT(*) as count FROM documents WHERE deleted_at IS NULL'),
@@ -116,21 +144,21 @@ router.get('/stats', authenticateToken, async (req, res) => {
       safeQuery(`
         SELECT company, SUM(total_premium) as total_sales, COUNT(*) as policy_count 
         FROM policies 
-        WHERE status IN ('สำเร็จ', 'ชำระครบแล้ว') AND YEAR(start_date) = ?
+        WHERE status IN ('สำเร็จ', 'ชำระครบแล้ว') AND start_date >= ? AND start_date <= ?
         GROUP BY company 
         ORDER BY total_sales DESC 
         LIMIT 10
-      `, [targetYear]),
+      `, [`${targetYear}-01-01`, `${targetYear}-12-31`]),
       
       safeQuery(`
         SELECT u.name, SUM(p.total_premium) as total_sales, COUNT(p.id) as policy_count 
         FROM policies p
         JOIN users u ON p.sales_person_id = u.id
-        WHERE p.status IN ('สำเร็จ', 'ชำระครบแล้ว') AND YEAR(p.start_date) = ?
+        WHERE p.status IN ('สำเร็จ', 'ชำระครบแล้ว') AND p.start_date >= ? AND p.start_date <= ?
         GROUP BY u.id, u.name 
         ORDER BY total_sales DESC 
         LIMIT 10
-      `, [targetYear]),
+      `, [`${targetYear}-01-01`, `${targetYear}-12-31`]),
       
       safeQuery(`
         SELECT 
@@ -155,8 +183,8 @@ router.get('/stats', authenticateToken, async (req, res) => {
         WHERE ${q_aiCorrections.sql}
       `, q_aiCorrections.params),
 
-      safeQuery(`SELECT job_type, SUM(total_premium) as total FROM policies WHERE status IN ('สำเร็จ', 'ชำระครบแล้ว') AND YEAR(start_date) = ? GROUP BY job_type`, [targetYear]),
-      safeQuery(`SELECT job_type, SUM(total_premium) as total FROM non_motor_policies WHERE status IN ('สำเร็จ', 'ชำระครบแล้ว') AND YEAR(start_date) = ? GROUP BY job_type`, [targetYear])
+      safeQuery(`SELECT job_type, SUM(total_premium) as total FROM policies WHERE status IN ('สำเร็จ', 'ชำระครบแล้ว') AND start_date >= ? AND start_date <= ? GROUP BY job_type`, [`${targetYear}-01-01`, `${targetYear}-12-31`]),
+      safeQuery(`SELECT job_type, SUM(total_premium) as total FROM non_motor_policies WHERE status IN ('สำเร็จ', 'ชำระครบแล้ว') AND start_date >= ? AND start_date <= ? GROUP BY job_type`, [`${targetYear}-01-01`, `${targetYear}-12-31`])
     ];
 
     const [
@@ -186,7 +214,7 @@ router.get('/stats', authenticateToken, async (req, res) => {
     nmMonthlySales.forEach(row => { mergedMonthlySalesMap[row.month].non_motor_sales = row.total_sales; });
     const mergedMonthlySales = Object.values(mergedMonthlySalesMap).sort((a, b) => a.month - b.month);
 
-    res.json({
+    const responseData = {
       totalCustomers: customers[0].count,
       totalPolicies: mPolicies[0].count,
       totalNonMotorPolicies: nmPolicies[0].count,
@@ -244,7 +272,11 @@ router.get('/stats', authenticateToken, async (req, res) => {
       })(),
       mSalesByJobType: mSalesByJobType || [],
       nmSalesByJobType: nmSalesByJobType || []
-    });
+    };
+
+    // W-07: Store in cache before sending
+    statsCache.set(cacheKey, { data: responseData, expiresAt: Date.now() + STATS_CACHE_TTL_MS });
+    res.json(responseData);
   } catch (error) {
     console.error('Dashboard Stats Error:', error);
     res.status(500).json({ error: 'Server error' });

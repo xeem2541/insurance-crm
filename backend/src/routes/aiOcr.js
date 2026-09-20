@@ -9,8 +9,8 @@ const { testGeminiKey, extractDocumentData } = require('../services/geminiServic
 // Use memory storage for quick processing without saving to disk permanently
 const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 15 * 1024 * 1024 } }); // 15MB max
 
-// Endpoint to test Gemini API Key connectivity and latency
-router.post('/test-key', async (req, res) => {
+// Endpoint to test Gemini API Key connectivity and latency — requires login
+router.post('/test-key', authenticateToken, async (req, res) => {
   const apiKey = (req.body?.apiKey || req.headers['x-gemini-api-key'] || process.env.GEMINI_API_KEY || '').trim();
   
   if (!apiKey) {

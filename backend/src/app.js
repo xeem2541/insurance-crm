@@ -8,9 +8,15 @@ require('dotenv').config();
 const helmet = require('helmet');
 const { xss } = require('express-xss-sanitizer');
 const hpp = require('hpp');
-const rateLimit = require('express-rate-limit');
+const { globalLimiter } = require('./middlewares/rateLimiter');
 const { startCronJobs } = require('./cron');
 const cron = require('node-cron');
+const { authenticateToken, authorizeRole } = require('./middlewares/auth');
+const morgan = require('morgan');
+const { logger, captureConsole } = require('./utils/logger');
+
+// Capture all console.log/error/warn globally
+captureConsole();
 // Vercel doesn't run backups
 let runBackup;
 if (require.main === module) {
@@ -63,30 +69,33 @@ app.use(helmet({
   xFrameOptions: { action: 'deny' },
 }));
 
-// CORS: Allow frontend Vercel URLs + localhost for dev
-const allowedOrigins = [
-  // Production URLs (set in Vercel env vars)
-  process.env.FRONTEND_URL,
-  // Known Vercel deployment URLs
-  'https://insurance-crm-five-wine.vercel.app',
-  'https://insurance-crm-frontend.vercel.app',
-  // Localhost for local development
-  'http://localhost:5173',
-  'http://localhost:3000',
-  'http://127.0.0.1:5173',
-  'http://127.0.0.1:3000',
-].filter(Boolean);
-
-const corsOptions = {
-  origin: [
-    'https://insurance-crm-five-wine.vercel.app',
-    'https://insurance-crm-frontend.vercel.app',
+// CORS: Restrict to configured FRONTEND_URL and local dev if not in production
+const allowedOrigins = [];
+if (process.env.FRONTEND_URL) {
+  allowedOrigins.push(process.env.FRONTEND_URL);
+}
+if (process.env.NODE_ENV !== 'production') {
+  allowedOrigins.push(
     'http://localhost:5173',
     'http://localhost:3000',
     'http://127.0.0.1:5173',
-    'http://127.0.0.1:3000',
-    process.env.FRONTEND_URL
-  ].filter(Boolean),
+    'http://127.0.0.1:3000'
+  );
+}
+
+const corsOptions = {
+  origin: (origin, callback) => {
+    // allow requests with no origin (like mobile apps, curl requests, server-to-server)
+    if (!origin) return callback(null, true);
+    
+    // Strict match, or fallback if allowedOrigins is completely empty (failsafe)
+    if (allowedOrigins.length === 0 || allowedOrigins.includes(origin)) {
+      callback(null, true);
+    } else {
+      console.warn(`[CORS Blocked] Origin not allowed: ${origin}`);
+      callback(new Error('CORS Policy Violation: Origin not allowed'));
+    }
+  },
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept', 'Origin'],
@@ -112,14 +121,10 @@ app.use(xss());
 app.use(hpp());
 
 // Global Rate Limiting
-const globalLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 300, // Limit each IP to 300 requests per `window` (here, per 15 minutes)
-  message: { error: 'Too many requests from this IP, please try again after 15 minutes' },
-  standardHeaders: true,
-  legacyHeaders: false,
-});
 app.use('/api', globalLimiter);
+
+// Request Logging via Morgan (stream to Winston)
+app.use(morgan('combined', { stream: { write: message => logger.info(message.trim()) } }));
 
 app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
 
@@ -181,16 +186,16 @@ app.get('/api/health', async (req, res) => {
   });
 });
 
-// Detailed real-time DB status endpoint
-app.get('/api/db-status', (req, res) => {
+// Detailed real-time DB status endpoint — Admin only
+app.get('/api/db-status', authenticateToken, authorizeRole(['Admin']), (req, res) => {
   res.json({
     ...getDbStatus(),
     serverTime: new Date().toISOString()
   });
 });
 
-// Force manual DB ping & refresh
-app.post('/api/db-ping', async (req, res) => {
+// Force manual DB ping & refresh — Admin only
+app.post('/api/db-ping', authenticateToken, authorizeRole(['Admin']), async (req, res) => {
   const result = await pingDatabase();
   res.json(result);
 });
@@ -204,53 +209,6 @@ app.get('/api', async (req, res) => {
   });
 });
 
-// Fix DB route (Manual trigger)
-app.get('/api/fix-db', async (req, res) => {
-  let connection;
-  try {
-    connection = await pool.getConnection();
-    let results = [];
-    
-    // Keep id_card_no, just drop unique index and ensure it exists
-    try {
-      await connection.query(`ALTER TABLE customers DROP INDEX id_card_no`);
-      results.push(`Dropped index id_card_no`);
-    } catch (e) {
-      results.push(`Index id_card_no error: ${e.message}`);
-    }
-    try {
-      await connection.query(`ALTER TABLE customers ADD COLUMN id_card_no VARCHAR(20) NULL`);
-      results.push(`Added column id_card_no`);
-    } catch (e) {
-      results.push(`Column id_card_no exists or error: ${e.message}`);
-    }
-
-    const dropColumns = ['email', 'occupation'];
-    for (const col of dropColumns) {
-      try {
-        await connection.query(`ALTER TABLE customers DROP INDEX ${col}`);
-        results.push(`Dropped index ${col}`);
-      } catch (e) {
-        results.push(`Index ${col} error: ${e.message}`);
-      }
-      try {
-        await connection.query(`ALTER TABLE customers DROP COLUMN ${col}`);
-        results.push(`Dropped column ${col}`);
-      } catch (e) {
-        results.push(`Column ${col} error: ${e.message}`);
-      }
-    }
-    
-    // Also drop from update query if exists? No, just the schema is enough.
-    res.json({ message: 'Database fix executed!', details: results });
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  } finally {
-    if (connection) {
-      connection.release();
-    }
-  }
-});
 
 // Safe route loader to prevent crashes if files are missing
 app.use('/api/auth', require('./routes/auth'));
@@ -322,6 +280,18 @@ if (require.main === module) {
       startAutoSync(pool);
     } catch (err) {
       console.error('Failed to start auto sync:', err);
+    }
+
+    // Schedule Automated Backup daily at 00:00 (Midnight)
+    try {
+      const performDatabaseBackup = require('./utils/backup');
+      cron.schedule('0 0 * * *', () => {
+        console.log('[Cron] Running scheduled database backup...');
+        performDatabaseBackup();
+      });
+      console.log('[Cron] Daily database backup scheduled at 00:00');
+    } catch (err) {
+      console.error('Failed to schedule backup cron:', err);
     }
   });
 }

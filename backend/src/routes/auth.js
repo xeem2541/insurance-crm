@@ -1,9 +1,10 @@
 const express = require('express');
-const router = express.Router();
+const router = require('express').Router();
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const { authenticateToken, authorizeRole } = require('../middlewares/auth');
 const rateLimit = require('express-rate-limit');
+const { generateAccessToken, generateRefreshToken, verifyRefreshToken, revokeRefreshToken } = require('../utils/jwt');
 
 const loginLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
@@ -27,23 +28,8 @@ router.post('/login', loginLimiter, async (req, res) => {
       return res.status(400).json({ error: 'Invalid username or password' });
     }
 
-    const secret = process.env.JWT_SECRET;
-    if (!secret) {
-      console.error('[SECURITY FATAL] JWT_SECRET is not set in environment variables! Cannot sign token.');
-      return res.status(500).json({ error: 'Server error: Missing security configuration' });
-    }
-
-    const token = jwt.sign(
-      { id: user.id, username: user.username, role: user.role, name: user.name },
-      secret,
-      { expiresIn: '15m' }
-    );
-
-    const refreshToken = jwt.sign(
-      { id: user.id, username: user.username },
-      secret, // In a larger system, you'd use a separate JWT_REFRESH_SECRET
-      { expiresIn: '7d' }
-    );
+    const token = generateAccessToken(user);
+    const { token: refreshToken } = generateRefreshToken(user);
 
     res.cookie('refreshToken', refreshToken, {
       httpOnly: true,
@@ -78,6 +64,14 @@ router.post('/register', authenticateToken, authorizeRole(['Admin']), async (req
   const { username, password, name, role, email, phone } = req.body;
   if (!username || !password || !name) {
     return res.status(400).json({ error: 'กรุณากรอกข้อมูลที่จำเป็นให้ครบถ้วน (ชื่อ-นามสกุล, ชื่อผู้ใช้, รหัสผ่าน)' });
+  }
+
+  // W-03: Password strength validation
+  if (password.length < 8) {
+    return res.status(400).json({ error: 'รหัสผ่านต้องมีความยาวอย่างน้อย 8 ตัวอักษร' });
+  }
+  if (!/[a-zA-Z]/.test(password) || !/[0-9]/.test(password)) {
+    return res.status(400).json({ error: 'รหัสผ่านต้องประกอบด้วยตัวอักษรและตัวเลขอย่างน้อย 1 ตัว' });
   }
 
   try {
@@ -143,6 +137,14 @@ router.put('/change-password', authenticateToken, async (req, res) => {
       return res.status(400).json({ error: 'รหัสผ่านปัจจุบันไม่ถูกต้อง' });
     }
     
+  // W-03: Password strength validation
+    if (!newPassword || newPassword.length < 8) {
+      return res.status(400).json({ error: 'รหัสผ่านใหม่ต้องมีความยาวอย่างน้อย 8 ตัวอักษร' });
+    }
+    if (!/[a-zA-Z]/.test(newPassword) || !/[0-9]/.test(newPassword)) {
+      return res.status(400).json({ error: 'รหัสผ่านใหม่ต้องประกอบด้วยตัวอักษรและตัวเลขอย่างน้อย 1 ตัว' });
+    }
+
     const hash = await bcrypt.hash(newPassword, 10);
     await req.db.query('UPDATE users SET password = ? WHERE id = ?', [hash, req.user.id]);
     res.json({ message: 'เปลี่ยนรหัสผ่านสำเร็จ' });
@@ -158,16 +160,13 @@ router.post('/refresh', async (req, res) => {
     return res.status(401).json({ error: 'Refresh token not found' });
   }
 
-  const secret = process.env.JWT_SECRET;
-  if (!secret) {
-    return res.status(500).json({ error: 'Server error' });
-  }
-
   try {
-    const decoded = jwt.verify(refreshToken, secret);
-    
-    // In a real app, you might check if the user is still active in DB
-    const [users] = await req.db.query('SELECT * FROM users WHERE id = ?', [decoded.id]);
+    const decoded = verifyRefreshToken(refreshToken);
+    if (!decoded) {
+      return res.status(403).json({ error: 'Token has been revoked or is invalid. Please login again.' });
+    }
+
+    const [users] = await req.db.query('SELECT id, username, name, role FROM users WHERE id = ?', [decoded.id]);
     if (users.length === 0) {
       return res.status(403).json({ error: 'User no longer exists' });
     }
@@ -175,11 +174,7 @@ router.post('/refresh', async (req, res) => {
     const user = users[0];
     
     // Sign new access token
-    const token = jwt.sign(
-      { id: user.id, username: user.username, role: user.role, name: user.name },
-      secret,
-      { expiresIn: '15m' }
-    );
+    const token = generateAccessToken(user);
     
     res.json({ token, user: { id: user.id, username: user.username, role: user.role, name: user.name } });
   } catch (error) {
@@ -189,6 +184,19 @@ router.post('/refresh', async (req, res) => {
 });
 
 router.post('/logout', (req, res) => {
+  // C-09: Blacklist the refresh token's jti so it can't be reused even if stolen
+  const refreshToken = req.cookies.refreshToken;
+  if (refreshToken) {
+    try {
+      const decoded = jwt.decode(refreshToken); // decode without verify (we're revoking it anyway)
+      if (decoded?.jti) {
+        revokeRefreshToken(decoded.jti, decoded.exp);
+      }
+    } catch (e) {
+      // Malformed token — ignore
+    }
+  }
+
   res.clearCookie('refreshToken', {
     httpOnly: true,
     secure: process.env.NODE_ENV === 'production',

@@ -3,17 +3,54 @@ const router = express.Router();
 const axios = require('axios');
 const fs = require('fs');
 const path = require('path');
+const crypto = require('crypto');
 
 const { GoogleGenerativeAI } = require("@google/generative-ai");
 const { OpenAI } = require("openai");
 
-// In-Memory cache for Webhook Deduplication
+// LINE Signature Verification Middleware (C-07 fix)
+// Prevents fake webhook events from non-LINE sources
+const verifyLineSignature = (req, res, next) => {
+  const channelSecret = process.env.LINE_CHANNEL_SECRET;
+  if (!channelSecret) {
+    console.error('[SECURITY] LINE_CHANNEL_SECRET is not set! Webhook verification skipped.');
+    // Allow in dev if secret not set, but warn loudly
+    return next();
+  }
+
+  const signature = req.headers['x-line-signature'];
+  if (!signature) {
+    console.warn('[SECURITY] Missing x-line-signature header — rejecting request from IP:', req.ip);
+    return res.status(403).json({ error: 'Forbidden: Missing LINE signature' });
+  }
+
+  // Compute expected HMAC-SHA256
+  const body = JSON.stringify(req.body);
+  const expectedSignature = crypto
+    .createHmac('SHA256', channelSecret)
+    .update(body)
+    .digest('base64');
+
+  if (expectedSignature !== signature) {
+    console.warn('[SECURITY] Invalid LINE signature — possible fake webhook from IP:', req.ip);
+    return res.status(403).json({ error: 'Forbidden: Invalid LINE signature' });
+  }
+
+  next();
+};
+
+// In-Memory cache for Webhook Deduplication (TTL-based, I-04 fix)
+// Each entry: { timestamp } — entries older than 15 min are pruned
+const DEDUP_TTL_MS = 15 * 60 * 1000; // 15 minutes
 const processedEvents = new Map();
 
-// Clear old cached events periodically (every 10 minutes)
+// Prune stale dedup entries every 5 minutes instead of clearing all
 setInterval(() => {
-  processedEvents.clear();
-}, 10 * 60 * 1000);
+  const cutoff = Date.now() - DEDUP_TTL_MS;
+  for (const [id, ts] of processedEvents.entries()) {
+    if (ts < cutoff) processedEvents.delete(id);
+  }
+}, 5 * 60 * 1000);
 
 // Helper for PDPA Masking (mask 9 first digits of 13-digit Thai ID)
 function maskThaiIDCard(text) {
@@ -153,20 +190,20 @@ async function downloadImage(messageId) {
   }
 }
 
-router.post('/', async (req, res) => {
+router.post('/', verifyLineSignature, async (req, res) => {
   const events = req.body.events;
   if (!events || events.length === 0) {
     return res.status(200).send('OK');
   }
 
   for (const event of events) {
-    // Deduplication Check (LINE Redelivery)
+    // Deduplication Check (LINE Redelivery) — TTL-based
     if (event.webhookEventId) {
       if (processedEvents.has(event.webhookEventId)) {
         console.log(`♻️ Ignored duplicated webhook event: ${event.webhookEventId}`);
         continue;
       }
-      processedEvents.set(event.webhookEventId, true);
+      processedEvents.set(event.webhookEventId, Date.now()); // store timestamp for TTL
     }
     
     console.log('Received LINE event:', event.type);

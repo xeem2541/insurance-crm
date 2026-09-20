@@ -2,9 +2,11 @@ const express = require('express');
 const router = express.Router();
 const { authenticateToken } = require('../middlewares/auth');
 const { validateFileType } = require('../middlewares/fileValidator');
+const { policyActionLimiter } = require('../middlewares/rateLimiter');
 const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
+const { isS3Configured, uploadFileToS3 } = require('../utils/s3');
 
 // Ensure uploads directory exists
 const uploadDir = path.join(__dirname, '../../uploads/issues');
@@ -23,7 +25,8 @@ const upload = multer({
   limits: { fileSize: 15 * 1024 * 1024 } // 15MB limit to prevent DoS
 });
 
-router.post('/', authenticateToken, upload.array('files'), validateFileType, async (req, res) => {
+// Issue a new policy and optionally upload documents
+router.post('/', authenticateToken, policyActionLimiter, upload.array('files'), validateFileType, async (req, res) => {
   const connection = await req.db.getConnection();
   await connection.beginTransaction();
 
@@ -217,7 +220,7 @@ router.post('/', authenticateToken, upload.array('files'), validateFileType, asy
       let filePath = '';
       let fileType = 'image/jpeg';
       let fileSize = 0;
-      let base64Data = null;
+      let fileBuffer = null;
       
       if (fData.file_path && fData.file_path.startsWith('http')) {
         // Already uploaded to Cloudinary
@@ -230,7 +233,7 @@ router.post('/', authenticateToken, upload.array('files'), validateFileType, asy
         if (!file) continue;
         fileType = file.mimetype;
         fileSize = file.size;
-        base64Data = file.buffer.toString('base64');
+        fileBuffer = file.buffer; // keep buffer to write to disk
         localFileIdx++;
       }
       
@@ -239,24 +242,65 @@ router.post('/', authenticateToken, upload.array('files'), validateFileType, asy
       if (isMotor) {
         const [docResult] = await connection.query(
           `INSERT INTO documents (customer_id, policy_id, document_type_id, name, file_path, file_type, file_size, note, uploaded_by, file_data) 
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-          [customerId, policyId, fData.type_id, fileName, filePath, fileType, fileSize, fData.note || '', req.user.id, base64Data]
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, NULL)`,
+          [customerId, policyId, fData.type_id, fileName, filePath, fileType, fileSize, fData.note || '', req.user.id]
         );
         
-        if (base64Data) {
+        if (fileBuffer) {
           const newDocId = docResult.insertId;
+          const s3Key = `documents/motor_${newDocId}`;
+          
+          if (isS3Configured) {
+            try {
+              await uploadFileToS3(fileBuffer, s3Key, fileType);
+            } catch (e) {
+              console.error('S3 upload error:', e);
+              const b64 = fileBuffer.toString('base64');
+              await connection.query('UPDATE documents SET file_data = ? WHERE id = ?', [b64, newDocId]);
+            }
+          } else {
+            const diskPath = path.join(__dirname, '../../uploads/documents', `motor_${newDocId}`);
+            try {
+              fs.writeFileSync(diskPath, fileBuffer);
+            } catch(e) {
+              console.error('File write error:', e);
+              // fallback to DB if disk fails
+              const b64 = fileBuffer.toString('base64');
+              await connection.query('UPDATE documents SET file_data = ? WHERE id = ?', [b64, newDocId]);
+            }
+          }
           filePath = `/api/documents/file/${newDocId}`;
           await connection.query('UPDATE documents SET file_path = ? WHERE id = ?', [filePath, newDocId]);
         }
       } else {
         const [docResult] = await connection.query(
           `INSERT INTO non_motor_documents (non_motor_policy_id, document_type_id, name, file_path, file_type, file_size, note, uploaded_by, file_data) 
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-          [nonMotorPolicyId, fData.type_id, fileName, filePath, fileType, fileSize, fData.note || '', req.user.id, base64Data]
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, NULL)`,
+          [nonMotorPolicyId, fData.type_id, fileName, filePath, fileType, fileSize, fData.note || '', req.user.id]
         );
         
-        if (base64Data) {
+        if (fileBuffer) {
           const newDocId = docResult.insertId;
+          const s3Key = `documents/non_motor_${newDocId}`;
+          
+          if (isS3Configured) {
+            try {
+              await uploadFileToS3(fileBuffer, s3Key, fileType);
+            } catch (e) {
+              console.error('S3 upload error:', e);
+              const b64 = fileBuffer.toString('base64');
+              await connection.query('UPDATE non_motor_documents SET file_data = ? WHERE id = ?', [b64, newDocId]);
+            }
+          } else {
+            const diskPath = path.join(__dirname, '../../uploads/documents', `non_motor_${newDocId}`);
+            try {
+              fs.writeFileSync(diskPath, fileBuffer);
+            } catch(e) {
+              console.error('File write error:', e);
+              const b64 = fileBuffer.toString('base64');
+              await connection.query('UPDATE non_motor_documents SET file_data = ? WHERE id = ?', [b64, newDocId]);
+            }
+          }
           filePath = `/api/non-motor-policies/documents/file/${newDocId}`;
           await connection.query('UPDATE non_motor_documents SET file_path = ? WHERE id = ?', [filePath, newDocId]);
         }

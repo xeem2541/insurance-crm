@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import api from '../services/api';
-import * as XLSX from 'xlsx';
 import { TableSkeleton, tableContainerVariants, tableRowVariants } from '../components/TableSkeleton';
+import { exportToExcel } from '../utils/exportUtils';
 import { motion } from 'framer-motion';
 import NonMotorPolicyFormModal from '../components/NonMotorPolicyFormModal';
 
@@ -108,7 +108,7 @@ const NonMotorPolicies = () => {
     setSortConfig({ key, direction });
   };
 
-  const exportToExcel = () => {
+  const handleExport = () => {
     const dataToExport = policies.map(p => ({
       'เลขกรมธรรม์': p.policy_no,
       'ลูกค้า': `${p.first_name} ${p.last_name}`,
@@ -122,10 +122,7 @@ const NonMotorPolicies = () => {
       'สถานะ': p.status
     }));
 
-    const ws = XLSX.utils.json_to_sheet(dataToExport);
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, "NonMotorPolicies");
-    XLSX.writeFile(wb, "non_motor_policies.xlsx");
+    exportToExcel(dataToExport, 'NonMotorPolicies', 'non_motor_policies.xlsx');
   };
 
   const handleOpenModal = (p = null) => {
@@ -167,7 +164,7 @@ const NonMotorPolicies = () => {
       <div className="d-flex justify-content-between align-items-center mb-4">
         <h2 className="fw-bold">จัดการกรมธรรม์ Non-Motor (ประกันวินาศภัยอื่น)</h2>
         <div>
-          <button className="btn btn-outline-success fw-bold me-2" onClick={exportToExcel}>
+          <button className="btn btn-outline-success fw-bold me-2" onClick={handleExport}>
             <i className="bi bi-file-earmark-excel"></i> Export Excel
           </button>
           <button className="btn btn-primary fw-bold" onClick={() => handleOpenModal()}>

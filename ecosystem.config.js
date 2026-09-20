@@ -4,6 +4,7 @@ module.exports = {
       name: "insurance-backend",
       script: "./backend/src/app.js",
       instances: 1,
+      exec_mode: "fork",
       autorestart: true,
       watch: false,
       max_memory_restart: "1G",
@@ -12,9 +13,13 @@ module.exports = {
       }
     },
     {
+      // W-10: Use 'serve' (static file server) instead of 'vite preview' in production.
+      // 'vite preview' is intended for local testing only.
+      // Run 'npm install -g serve' once to make this available.
+      // Build first: cd frontend && npm run build
       name: "insurance-frontend",
-      script: "npm",
-      args: "run preview", // or "run dev" if not built, but usually in PM2 you run built static files or a simple server
+      script: "serve",
+      args: "-s dist -l 5173",
       cwd: "./frontend",
       instances: 1,
       autorestart: true,

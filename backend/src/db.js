@@ -11,7 +11,7 @@ const poolConfig = {
   port: process.env.DB_URI ? undefined : (process.env.DB_PORT || 3306),
   charset: 'utf8mb4',
   waitForConnections: true,
-  connectionLimit: 10,
+  connectionLimit: parseInt(process.env.DB_POOL_LIMIT || '20', 10),  // I-08: 20 connections (was 10)
   maxIdle: 10,
   idleTimeout: 60000,
   queueLimit: 0,
@@ -72,13 +72,14 @@ async function pingDatabase() {
   }
 }
 
-// Active Heartbeat: Ping every 25 seconds to keep TCP connection & TiDB Cloud active 24/7
-const HEARTBEAT_INTERVAL_MS = 25000;
+// Active Heartbeat: Ping every 60 seconds to keep TCP connection & TiDB Cloud active 24/7
+// I-09: Changed from 25s to 60s to reduce unnecessary DB queries (~1,440/day vs 3,456/day)
+const HEARTBEAT_INTERVAL_MS = parseInt(process.env.DB_HEARTBEAT_MS || '60000', 10);
 let heartbeatTimer = null;
 
 function startHeartbeat() {
   if (heartbeatTimer) return;
-  console.log('[DB Keep-Alive] ระบบรักษาการเชื่อมต่อฐานข้อมูลตลอดเวลา (Heartbeat Ping ทุก 25 วินาที) เริ่มทำงานแล้ว...');
+  console.log(`[DB Keep-Alive] Heartbeat Ping ทุก ${HEARTBEAT_INTERVAL_MS / 1000} วินาที เริ่มทำงานแล้ว...`);
   // Initial ping
   pingDatabase();
   heartbeatTimer = setInterval(async () => {
@@ -87,11 +88,12 @@ function startHeartbeat() {
 }
 
 // Query helper with automatic retry on transient connection drops
+// I-02: Always reads current `pool` variable (which may have been recreated by reconnect)
 async function queryWithRetry(sql, params = [], maxRetries = 2) {
   let attempts = 0;
   while (attempts <= maxRetries) {
     try {
-      return await pool.query(sql, params);
+      return await pool.query(sql, params); // pool is module-scoped, always current after reconnect
     } catch (error) {
       attempts++;
       const isTransient = [
@@ -128,8 +130,9 @@ if (require.main === module) {
 }
 
 module.exports = {
-  pool,
-  get poolInstance() { return pool; },
+  // I-02: Export a getter so all consumers always get the most recent pool instance
+  // (even after a reconnect that reassigns the module-level `pool` variable)
+  get pool() { return pool; },
   pingDatabase,
   queryWithRetry,
   getDbStatus,

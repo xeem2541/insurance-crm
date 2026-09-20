@@ -1,22 +1,19 @@
-const jwt = require('jsonwebtoken');
+const { verifyAccessToken } = require('../utils/jwt');
 
 const authenticateToken = (req, res, next) => {
   const authHeader = req.headers['authorization'];
-  const token = (authHeader && authHeader.split(' ')[1]) || req.query.token;
+  // W-01 fix: Do NOT accept token from query string (logs/history exposure)
+  const token = authHeader && authHeader.split(' ')[1];
 
   if (!token) return res.status(401).json({ error: 'Access denied. No token provided.' });
 
-  const secret = process.env.JWT_SECRET;
-  if (!secret) {
-    console.error('[SECURITY FATAL] JWT_SECRET is missing!');
-    return res.status(500).json({ error: 'Server error: Missing security configuration' });
+  const user = verifyAccessToken(token);
+  if (!user) {
+    return res.status(401).json({ error: 'Invalid or expired token.' });
   }
 
-  jwt.verify(token, secret, (err, user) => {
-    if (err) return res.status(401).json({ error: 'Invalid or expired token.' });
-    req.user = user;
-    next();
-  });
+  req.user = user;
+  next();
 };
 
 const authorizeRole = (roles) => {

@@ -2,8 +2,8 @@ import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import api from '../services/api';
 import { Button, Form, Badge, Row, Col } from 'react-bootstrap';
-import * as XLSX from 'xlsx';
 import { TableSkeleton, tableContainerVariants, tableRowVariants } from '../components/TableSkeleton';
+import { exportToExcel } from '../utils/exportUtils';
 import { motion } from 'framer-motion';
 import { InstallmentScheduleModal, PayInstallmentModal } from '../components/PaymentModals';
 
@@ -127,10 +127,7 @@ const Payments = () => {
   };
 
   const handleExport = () => {
-    const ws = XLSX.utils.json_to_sheet(payments);
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, "Payments");
-    XLSX.writeFile(wb, `Payments_Export_${new Date().toISOString().split('T')[0]}.xlsx`);
+    exportToExcel(payments, 'Payments', `Payments_Export_${new Date().toISOString().split('T')[0]}.xlsx`);
   };
 
   const filteredData = payments.filter(p => {

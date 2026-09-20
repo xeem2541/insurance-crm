@@ -148,3 +148,44 @@ INSERT INTO `master_data` (`category`, `value`) VALUES
 ('JobStatus', 'สำเร็จ'), ('JobStatus', 'รอดำเนินการ'), ('JobStatus', 'รอถ่ายรูปรถ'), ('JobStatus', 'รอผ่อนชำระ'), ('JobStatus', 'ชำระครบแล้ว'),
 ('PaymentMethod', 'เงินสด'), ('PaymentMethod', 'เงินผ่อน (ตัวแทน)'), ('PaymentMethod', 'เงินผ่อน (เงินติดล้อ)'), ('PaymentMethod', 'เงินผ่อน (ทีโบรคเกอร์)'), ('PaymentMethod', 'เงินผ่อน (ฟิน)'), ('PaymentMethod', 'บัตรเครดิต'),
 ('LeadSource', 'Facebook'), ('LeadSource', 'TikTok'), ('LeadSource', 'Website'), ('LeadSource', 'LINE'), ('LeadSource', 'ลูกค้าเก่าแนะนำ'), ('LeadSource', 'Walk-in');
+
+-- =============================================================================
+-- Performance Indexes (I-01 + W-06)
+-- Added to support common query patterns: search, expiry alerts, filtering, joins
+-- =============================================================================
+
+-- customers: search by name (FULLTEXT for Thai text LIKE queries)
+ALTER TABLE `customers` ADD FULLTEXT INDEX `ft_customer_name` (`first_name`, `last_name`);
+-- customers: search by phone
+ALTER TABLE `customers` ADD INDEX `idx_customer_phone` (`phone`);
+-- customers: filter by status/lead
+ALTER TABLE `customers` ADD INDEX `idx_customer_status` (`customer_status`, `lead_status`);
+-- customers: created_at for activity log queries
+ALTER TABLE `customers` ADD INDEX `idx_customer_created` (`created_at`);
+
+-- policies: expiry date + status (core for cron notifications & dashboard alerts)
+ALTER TABLE `policies` ADD INDEX `idx_policy_expiry_status` (`expiry_date`, `status`);
+-- policies: customer join
+ALTER TABLE `policies` ADD INDEX `idx_policy_customer` (`customer_id`);
+-- policies: sales person reporting
+ALTER TABLE `policies` ADD INDEX `idx_policy_sales` (`sales_person_id`);
+-- policies: created_at for reports
+ALTER TABLE `policies` ADD INDEX `idx_policy_created` (`created_at`);
+
+-- vehicles: customer join
+ALTER TABLE `vehicles` ADD INDEX `idx_vehicle_customer` (`customer_id`);
+-- vehicles: plate search
+ALTER TABLE `vehicles` ADD INDEX `idx_vehicle_plate` (`plate_no`);
+
+-- documents: customer + policy lookups
+ALTER TABLE `documents` ADD INDEX `idx_doc_customer` (`customer_id`);
+ALTER TABLE `documents` ADD INDEX `idx_doc_policy` (`policy_id`);
+ALTER TABLE `documents` ADD INDEX `idx_doc_deleted` (`deleted_at`);
+
+-- activity_logs: user + time range queries
+ALTER TABLE `activity_logs` ADD INDEX `idx_log_user` (`user_id`);
+ALTER TABLE `activity_logs` ADD INDEX `idx_log_created` (`created_at`);
+ALTER TABLE `activity_logs` ADD INDEX `idx_log_target` (`target_table`, `target_id`);
+
+-- master_data: category filter (used on every form load)
+ALTER TABLE `master_data` ADD INDEX `idx_master_category` (`category`);

@@ -6,6 +6,8 @@ dist/
 **/.env
 .env.*
 !.env.example
+!.env.docker.example
+docker-compose.override.yml
 *.log
 backend/test_conn.js
 uploads/
@@ -15,3 +17,6 @@ backups/
 .DS_Store
 
 database/
+logs/
+backend/logs/
+backend/test_script.js

@@ -3,14 +3,26 @@ const router = express.Router();
 const nodemailer = require('nodemailer');
 
 // Verify cron job secret from Vercel to prevent unauthorized access
-const CRON_SECRET = process.env.CRON_SECRET || 'apple-insurance-cron-secret-123';
+// SECURITY: Must set CRON_SECRET env var — no hardcoded fallback allowed
+const CRON_SECRET = process.env.CRON_SECRET;
+if (!CRON_SECRET) {
+  console.error('[SECURITY] CRON_SECRET env var is not set! All cron endpoints will be disabled.');
+}
 
-router.get('/backup', async (req, res) => {
+// Middleware to reject cron requests when secret is not configured
+const verifyCronSecret = (req, res, next) => {
+  if (!CRON_SECRET) {
+    return res.status(503).json({ error: 'Cron endpoint is not configured. Set CRON_SECRET env var.' });
+  }
   const authHeader = req.headers['authorization'];
   if (authHeader !== `Bearer ${CRON_SECRET}`) {
-    console.warn('Unauthorized cron attempt');
+    console.warn('Unauthorized cron attempt from IP:', req.ip);
     return res.status(401).json({ error: 'Unauthorized' });
   }
+  next();
+};
+
+router.get('/backup', verifyCronSecret, async (req, res) => {
 
   console.log('Starting Vercel Serverless Backup...');
   try {
@@ -77,12 +89,7 @@ router.get('/backup', async (req, res) => {
   }
 });
 
-router.get('/daily-notify', async (req, res) => {
-  const authHeader = req.headers['authorization'];
-  if (authHeader !== `Bearer ${CRON_SECRET}`) {
-    console.warn('Unauthorized cron attempt (daily-notify)');
-    return res.status(401).json({ error: 'Unauthorized' });
-  }
+router.get('/daily-notify', verifyCronSecret, async (req, res) => {
 
   console.log('Running daily Vercel cron job for expiring policies...');
   try {

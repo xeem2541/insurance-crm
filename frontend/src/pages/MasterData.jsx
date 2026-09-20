@@ -3,8 +3,8 @@ import { AuthContext } from '../contexts/AuthContext';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import api from '../services/api';
 import { Button, Form } from 'react-bootstrap';
-import * as XLSX from 'xlsx';
 import { MasterDataModal, UserModal } from '../components/MasterDataModals';
+import { exportMultipleToExcel } from '../utils/exportUtils';
 
 const categories = [
   { id: 'PolicyType', label: 'ประเภทประกันภัย' },
@@ -193,19 +193,16 @@ const MasterData = () => {
         api.get('/master-data')
       ]);
 
-      const wb = XLSX.utils.book_new();
+      const sheets = [];
 
       if (custRes.data && custRes.data.length > 0) {
-        const wsCust = XLSX.utils.json_to_sheet(custRes.data);
-        XLSX.utils.book_append_sheet(wb, wsCust, "Customers");
+        sheets.push({ data: custRes.data, sheetName: "Customers" });
       }
       if (vehRes.data && vehRes.data.length > 0) {
-        const wsVeh = XLSX.utils.json_to_sheet(vehRes.data);
-        XLSX.utils.book_append_sheet(wb, wsVeh, "Vehicles");
+        sheets.push({ data: vehRes.data, sheetName: "Vehicles" });
       }
       if (polRes.data && polRes.data.length > 0) {
-        const wsPol = XLSX.utils.json_to_sheet(polRes.data);
-        XLSX.utils.book_append_sheet(wb, wsPol, "MotorPolicies");
+        sheets.push({ data: polRes.data, sheetName: "MotorPolicies" });
       }
       if (nmPolRes.data && nmPolRes.data.length > 0) {
         const nmData = nmPolRes.data.map(p => {
@@ -217,8 +214,7 @@ const MasterData = () => {
           delete rest.additional_data;
           return { ...rest, ...extra };
         });
-        const wsNmPol = XLSX.utils.json_to_sheet(nmData);
-        XLSX.utils.book_append_sheet(wb, wsNmPol, "NonMotorPolicies");
+        sheets.push({ data: nmData, sheetName: "NonMotorPolicies" });
       }
       if (usersRes.data && usersRes.data.length > 0) {
         const safeUsers = usersRes.data.map(u => {
@@ -226,20 +222,14 @@ const MasterData = () => {
           delete safeUser.password;
           return safeUser;
         });
-        const wsUsers = XLSX.utils.json_to_sheet(safeUsers);
-        XLSX.utils.book_append_sheet(wb, wsUsers, "Users");
+        sheets.push({ data: safeUsers, sheetName: "Users" });
       }
       if (mdRes.data && mdRes.data.length > 0) {
-        const wsMD = XLSX.utils.json_to_sheet(mdRes.data);
-        XLSX.utils.book_append_sheet(wb, wsMD, "MasterData");
-      }
-
-      if (wb.SheetNames.length === 0) {
-        XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet([{ "Message": "No Data" }]), "Empty");
+        sheets.push({ data: mdRes.data, sheetName: "MasterData" });
       }
 
       const dateStr = new Date().toISOString().split('T')[0];
-      XLSX.writeFile(wb, `Backup_CRM_${dateStr}.xlsx`);
+      await exportMultipleToExcel(sheets, `Backup_CRM_${dateStr}.xlsx`);
     } catch (error) {
       alert(error.response?.data?.error || 'เกิดข้อผิดพลาดในการสำรองข้อมูล');
     }

@@ -4,9 +4,34 @@ echo ===================================================
 echo   Syncing project to GitHub (xeem2541/insurance-crm)
 echo ===================================================
 echo.
-echo [1/3] Adding changes...
+
+echo [STEP 1/4] Checking for sensitive files...
+git status --short | findstr /i ".env docker-compose.yml" > nul
+if %errorlevel%==0 (
+  echo.
+  echo  WARNING: Found possibly sensitive files in changes:
+  git status --short | findstr /i ".env docker-compose.yml"
+  echo.
+  echo  Please verify these files are safe to commit!
+  echo.
+)
+
+echo [STEP 2/4] Preview of changes (git status):
+echo ---------------------------------------------------
+git status --short
+echo ---------------------------------------------------
+echo.
+set /p "confirm=Proceed with git add . ? (y/N): "
+if /i NOT "%confirm%"=="y" (
+  echo Aborted. No changes were made.
+  pause
+  exit /b 1
+)
+
+echo [STEP 3/4] Adding changes...
 git add .
-echo [2/3] Committing changes...
+
+echo [STEP 4/4] Committing changes...
 set "msg=%~1"
 if "%msg%"=="" (
     set /p "msg=Enter commit message (Press Enter for default): "
@@ -16,7 +41,7 @@ if "%msg%"=="" (
 )
 git commit -m "%msg%"
 echo.
-echo [3/3] Pushing to GitHub (main branch)...
+echo Pushing to GitHub (main branch)...
 git push origin main
 echo.
 echo ===================================================

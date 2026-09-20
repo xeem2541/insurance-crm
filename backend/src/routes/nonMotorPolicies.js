@@ -1,6 +1,9 @@
 const express = require('express');
 const router = express.Router();
+const path = require('path');
+const fs = require('fs');
 const { authenticateToken } = require('../middlewares/auth');
+const { isS3Configured, getPresignedUrl } = require('../utils/s3');
 
 // Get all non-motor policies with pagination
 router.get('/', authenticateToken, async (req, res) => {
@@ -87,18 +90,39 @@ router.get('/types', authenticateToken, async (req, res) => {
   }
 });
 
-// Serve file dynamically from DB (Protected)
+// Serve file dynamically from Disk/DB (Protected)
 router.get('/documents/file/:id', authenticateToken, async (req, res) => {
   try {
     const [docs] = await req.db.query('SELECT file_data, file_type FROM non_motor_documents WHERE id = ?', [req.params.id]);
-    if (docs.length === 0 || !docs[0].file_data) {
+    if (docs.length === 0) {
       return res.status(404).send('File not found');
     }
     const doc = docs[0];
-    const buffer = Buffer.from(doc.file_data, 'base64');
     res.setHeader('Content-Type', doc.file_type || 'application/octet-stream');
-    res.send(buffer);
+
+    const filePath = path.join(__dirname, '../../uploads/documents', `non_motor_${req.params.id}`);
+    const s3Key = `documents/non_motor_${req.params.id}`;
+    
+    if (fs.existsSync(filePath)) {
+      return res.sendFile(filePath);
+    } 
+    else if (isS3Configured) {
+      try {
+        const signedUrl = await getPresignedUrl(s3Key);
+        if (signedUrl) return res.redirect(signedUrl);
+      } catch (s3Err) {
+        console.error('S3 Fetch Error:', s3Err);
+      }
+    }
+    
+    if (doc.file_data) {
+      const buffer = Buffer.from(doc.file_data, 'base64');
+      return res.send(buffer);
+    } else {
+      return res.status(404).send('File not found on disk, S3, or DB');
+    }
   } catch (error) {
+    console.error('Error fetching document file:', error);
     res.status(500).send('Server error');
   }
 });

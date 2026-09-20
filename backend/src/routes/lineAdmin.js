@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const axios = require('axios');
-const { authenticateToken } = require('../middlewares/auth');
+const { authenticateToken, authorizeRole } = require('../middlewares/auth');
 
 const LINE_ACCESS_TOKEN = process.env.LINE_CHANNEL_ACCESS_TOKEN;
 
@@ -77,8 +77,8 @@ router.post('/reply', authenticateToken, async (req, res) => {
   }
 });
 
-// POST /broadcast - Send a message to all users in line_users (or via LINE broadcast endpoint)
-router.post('/broadcast', authenticateToken, async (req, res) => {
+// POST /broadcast - Send a message to all users in line_users (Admin/Manager only)
+router.post('/broadcast', authenticateToken, authorizeRole(['Admin', 'Manager']), async (req, res) => {
   const { message } = req.body;
   if (!message) {
     return res.status(400).json({ error: 'Missing message' });

@@ -5,9 +5,11 @@ const path = require('path');
 const fs = require('fs');
 const { authenticateToken } = require('../middlewares/auth');
 const { validateFileType } = require('../middlewares/fileValidator');
+const { uploadLimiter } = require('../middlewares/rateLimiter');
+const { isS3Configured, uploadFileToS3, getPresignedUrl } = require('../utils/s3');
 
 // Ensure uploads dir exists
-const uploadsDir = path.join(__dirname, '../../uploads');
+const uploadsDir = path.join(__dirname, '../../uploads/documents');
 if (!fs.existsSync(uploadsDir)) {
   try {
     fs.mkdirSync(uploadsDir, { recursive: true });
@@ -33,17 +35,40 @@ const upload = multer({
   }
 });
 
-// Serve file dynamically from DB (Protected)
+// Serve file dynamically from Disk/DB (Protected)
 router.get('/file/:id', authenticateToken, async (req, res) => {
   try {
     const [docs] = await req.db.query('SELECT file_data, file_type FROM documents WHERE id = ?', [req.params.id]);
-    if (docs.length === 0 || !docs[0].file_data) {
+    if (docs.length === 0) {
       return res.status(404).send('File not found');
     }
     const doc = docs[0];
-    const buffer = Buffer.from(doc.file_data, 'base64');
     res.setHeader('Content-Type', doc.file_type || 'application/octet-stream');
-    res.send(buffer);
+
+    const filePath = path.join(__dirname, '../../uploads/documents', `motor_${req.params.id}`);
+    const s3Key = `documents/motor_${req.params.id}`;
+    
+    // Check disk first
+    if (fs.existsSync(filePath)) {
+      return res.sendFile(filePath);
+    } 
+    // Fallback to S3 if configured
+    else if (isS3Configured) {
+      try {
+        const signedUrl = await getPresignedUrl(s3Key);
+        if (signedUrl) return res.redirect(signedUrl);
+      } catch (s3Err) {
+        console.error('S3 Fetch Error:', s3Err);
+      }
+    }
+    
+    // Fallback to DB (for pre-migration or unsynced records)
+    if (doc.file_data) {
+      const buffer = Buffer.from(doc.file_data, 'base64');
+      return res.send(buffer);
+    } else {
+      return res.status(404).send('File not found on disk, S3, or DB');
+    }
   } catch (error) {
     console.error('Error fetching document file:', error);
     res.status(500).send('Server error');
@@ -100,17 +125,17 @@ router.get('/', authenticateToken, async (req, res) => {
   }
 });
 
-// Upload document
-router.post('/upload', authenticateToken, upload.single('file'), validateFileType, async (req, res) => {
+// Upload document for motor policy
+router.post('/upload', authenticateToken, uploadLimiter, upload.single('file'), validateFileType, async (req, res) => {
   if (!req.file) return res.status(400).json({ error: 'No file uploaded' });
 
   const { customer_id, policy_id, document_type_id, name, note } = req.body;
-  const base64Data = req.file.buffer.toString('base64');
   
   try {
+    // 1. Insert into DB (file_data is NULL)
     const [result] = await req.db.query(
       `INSERT INTO documents (customer_id, policy_id, document_type_id, name, file_path, file_type, file_size, version, note, uploaded_by, file_data)
-       VALUES (?, ?, ?, ?, ?, ?, ?, 1, ?, ?, ?)`,
+       VALUES (?, ?, ?, ?, ?, ?, ?, 1, ?, ?, NULL)`,
       [
         customer_id, 
         policy_id || null, 
@@ -120,14 +145,35 @@ router.post('/upload', authenticateToken, upload.single('file'), validateFileTyp
         req.file.mimetype, 
         req.file.size, 
         note, 
-        req.user.id,
-        base64Data
+        req.user.id
       ]
     );
 
     const newId = result.insertId;
     const dynamicFilePath = `/api/documents/file/${newId}`;
+    const s3Key = `documents/motor_${newId}`;
     
+    // 2. Save file to S3 OR local disk
+    if (isS3Configured) {
+      try {
+        await uploadFileToS3(req.file.buffer, s3Key, req.file.mimetype);
+      } catch (s3Err) {
+        console.error('S3 upload error:', s3Err);
+        throw s3Err;
+      }
+    } else {
+      const localFilePath = path.join(__dirname, '../../uploads/documents', `motor_${newId}`);
+      try {
+        fs.writeFileSync(localFilePath, req.file.buffer);
+      } catch (writeErr) {
+        console.error('File write error:', writeErr);
+        // Fallback to storing base64 in DB if disk fails
+        const base64Data = req.file.buffer.toString('base64');
+        await req.db.query('UPDATE documents SET file_data = ? WHERE id = ?', [base64Data, newId]);
+      }
+    }
+
+    // 3. Update file_path in DB
     await req.db.query('UPDATE documents SET file_path = ? WHERE id = ?', [dynamicFilePath, newId]);
 
     await req.db.query('INSERT INTO activity_logs (user_id, action, target_table, target_id, details) VALUES (?, ?, ?, ?, ?)',
@@ -140,9 +186,24 @@ router.post('/upload', authenticateToken, upload.single('file'), validateFileTyp
   }
 });
 
-// Soft Delete document
+// Soft Delete document — with ownership/existence check (W-04 IDOR fix)
 router.delete('/:id', authenticateToken, async (req, res) => {
   try {
+    // Verify document exists and is not already deleted
+    const [docs] = await req.db.query(
+      'SELECT id, uploaded_by FROM documents WHERE id = ? AND deleted_at IS NULL',
+      [req.params.id]
+    );
+    if (docs.length === 0) {
+      return res.status(404).json({ error: 'Document not found' });
+    }
+
+    // Allow Admin/Manager to delete any document; others can only delete their own uploads
+    const isAdminOrManager = ['admin', 'manager'].includes((req.user.role || '').toLowerCase());
+    if (!isAdminOrManager && docs[0].uploaded_by !== req.user.id) {
+      return res.status(403).json({ error: 'Access denied. You can only delete documents you uploaded.' });
+    }
+
     await req.db.query('UPDATE documents SET deleted_at = CURRENT_TIMESTAMP WHERE id = ?', [req.params.id]);
     await req.db.query('INSERT INTO activity_logs (user_id, action, target_table, target_id, details) VALUES (?, ?, ?, ?, ?)',
       [req.user.id, 'DELETE', 'documents', req.params.id, `Deleted document ID ${req.params.id}`]);
@@ -169,8 +230,8 @@ router.put('/:id/restore', authenticateToken, async (req, res) => {
   }
 });
 
-// Save Cloudinary URL
-router.post('/save-url', authenticateToken, async (req, res) => {
+// Save document from remote URL (e.g., from LINE OA)
+router.post('/save-url', authenticateToken, uploadLimiter, async (req, res) => {
   const { customer_id, policy_id, document_type_id, name, file_path, file_type, file_size, note } = req.body;
   
   if (!file_path) return res.status(400).json({ error: 'No file_path provided' });

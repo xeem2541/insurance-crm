@@ -1,5 +1,6 @@
 const { pool } = require('./db');
 const bcrypt = require('bcryptjs');
+const runMigrations = require('./utils/runMigrations');
 
 // Migration flag table — แต่ละ ALTER TABLE รันแค่ครั้งเดียว ไม่ซ้ำทุก cold start
 async function runMigrationOnce(connection, key, sql) {
@@ -393,6 +394,9 @@ async function initDb() {
       UPDATE master_data SET value = 'รถจักรยานยนต์' WHERE category = 'VehicleType' AND value = 'รถมอเตอร์ไซค์'
     `);
     
+    // Run SQL file migrations (I-05)
+    await runMigrations();
+
   } catch (err) {
     console.error('Database connection failed:', err);
   } finally {
