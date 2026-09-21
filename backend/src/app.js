@@ -145,8 +145,9 @@ if (require.main === module) {
   const { initDb } = require('./initDb');
   initDb();
 } else {
-  // For Vercel Serverless, we skip the heavy DB migration checks on every cold start
-  console.log('Skipping initDb() on Vercel serverless environment');
+  // For Vercel Serverless: run DB migrations on cold start (schema changes only, no seeding)
+  const runMigrations = require('./utils/runMigrations');
+  runMigrations().catch(err => console.error('[Vercel] Migration error:', err));
 }
 
 // Root endpoints for uptime monitors & load balancers
