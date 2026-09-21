@@ -43,7 +43,7 @@ const Payments = () => {
     queryKey: ['payments'],
     queryFn: async () => {
       const res = await api.get('/payments');
-      return res.data;
+      return res.data.data || res.data; // Extract array from paginated response
     }
   });
 
