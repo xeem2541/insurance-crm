@@ -96,7 +96,11 @@ const corsOptions = {
     if (!origin) return callback(null, true);
     
     // Strict CORS: Only allow defined origins in production
-    if (allowedOrigins.indexOf(origin) !== -1 || process.env.NODE_ENV !== 'production') {
+    if (
+      allowedOrigins.indexOf(origin) !== -1 || 
+      process.env.NODE_ENV !== 'production' ||
+      origin.endsWith('.vercel.app') // Allow Vercel deployments
+    ) {
       callback(null, true);
     } else {
       callback(new Error('Not allowed by CORS'));
