@@ -90,10 +90,10 @@ router.get('/types', authenticateToken, async (req, res) => {
   }
 });
 
-// Serve file dynamically from Disk/DB (Protected)
+// Serve file dynamically from Disk/S3 (Protected)
 router.get('/documents/file/:id', authenticateToken, async (req, res) => {
   try {
-    const [docs] = await req.db.query('SELECT file_data, file_type FROM non_motor_documents WHERE id = ?', [req.params.id]);
+    const [docs] = await req.db.query('SELECT file_type FROM non_motor_documents WHERE id = ?', [req.params.id]);
     if (docs.length === 0) {
       return res.status(404).send('File not found');
     }
@@ -115,12 +115,7 @@ router.get('/documents/file/:id', authenticateToken, async (req, res) => {
       }
     }
     
-    if (doc.file_data) {
-      const buffer = Buffer.from(doc.file_data, 'base64');
-      return res.send(buffer);
-    } else {
-      return res.status(404).send('File not found on disk, S3, or DB');
-    }
+    return res.status(404).send('File not found on disk or S3');
   } catch (error) {
     console.error('Error fetching document file:', error);
     res.status(500).send('Server error');

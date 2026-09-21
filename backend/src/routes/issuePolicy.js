@@ -241,8 +241,8 @@ router.post('/', authenticateToken, policyActionLimiter, upload.array('files'), 
       
       if (isMotor) {
         const [docResult] = await connection.query(
-          `INSERT INTO documents (customer_id, policy_id, document_type_id, name, file_path, file_type, file_size, note, uploaded_by, file_data) 
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, NULL)`,
+          `INSERT INTO documents (customer_id, policy_id, document_type_id, name, file_path, file_type, file_size, note, uploaded_by) 
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
           [customerId, policyId, fData.type_id, fileName, filePath, fileType, fileSize, fData.note || '', req.user.id]
         );
         
@@ -255,8 +255,7 @@ router.post('/', authenticateToken, policyActionLimiter, upload.array('files'), 
               await uploadFileToS3(fileBuffer, s3Key, fileType);
             } catch (e) {
               console.error('S3 upload error:', e);
-              const b64 = fileBuffer.toString('base64');
-              await connection.query('UPDATE documents SET file_data = ? WHERE id = ?', [b64, newDocId]);
+              throw e; // file_data column removed; propagate error
             }
           } else {
             const diskPath = path.join(__dirname, '../../uploads/documents', `motor_${newDocId}`);
@@ -264,9 +263,7 @@ router.post('/', authenticateToken, policyActionLimiter, upload.array('files'), 
               fs.writeFileSync(diskPath, fileBuffer);
             } catch(e) {
               console.error('File write error:', e);
-              // fallback to DB if disk fails
-              const b64 = fileBuffer.toString('base64');
-              await connection.query('UPDATE documents SET file_data = ? WHERE id = ?', [b64, newDocId]);
+              throw e; // file_data column removed; propagate error
             }
           }
           filePath = `/api/documents/file/${newDocId}`;
@@ -274,8 +271,8 @@ router.post('/', authenticateToken, policyActionLimiter, upload.array('files'), 
         }
       } else {
         const [docResult] = await connection.query(
-          `INSERT INTO non_motor_documents (non_motor_policy_id, document_type_id, name, file_path, file_type, file_size, note, uploaded_by, file_data) 
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?, NULL)`,
+          `INSERT INTO non_motor_documents (non_motor_policy_id, document_type_id, name, file_path, file_type, file_size, note, uploaded_by) 
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
           [nonMotorPolicyId, fData.type_id, fileName, filePath, fileType, fileSize, fData.note || '', req.user.id]
         );
         
@@ -288,8 +285,7 @@ router.post('/', authenticateToken, policyActionLimiter, upload.array('files'), 
               await uploadFileToS3(fileBuffer, s3Key, fileType);
             } catch (e) {
               console.error('S3 upload error:', e);
-              const b64 = fileBuffer.toString('base64');
-              await connection.query('UPDATE non_motor_documents SET file_data = ? WHERE id = ?', [b64, newDocId]);
+              throw e; // file_data column removed; propagate error
             }
           } else {
             const diskPath = path.join(__dirname, '../../uploads/documents', `non_motor_${newDocId}`);
@@ -297,8 +293,7 @@ router.post('/', authenticateToken, policyActionLimiter, upload.array('files'), 
               fs.writeFileSync(diskPath, fileBuffer);
             } catch(e) {
               console.error('File write error:', e);
-              const b64 = fileBuffer.toString('base64');
-              await connection.query('UPDATE non_motor_documents SET file_data = ? WHERE id = ?', [b64, newDocId]);
+              throw e; // file_data column removed; propagate error
             }
           }
           filePath = `/api/non-motor-policies/documents/file/${newDocId}`;

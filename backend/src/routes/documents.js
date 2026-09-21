@@ -35,10 +35,10 @@ const upload = multer({
   }
 });
 
-// Serve file dynamically from Disk/DB (Protected)
+// Serve file dynamically from Disk/S3 (Protected)
 router.get('/file/:id', authenticateToken, async (req, res) => {
   try {
-    const [docs] = await req.db.query('SELECT file_data, file_type FROM documents WHERE id = ?', [req.params.id]);
+    const [docs] = await req.db.query('SELECT file_type FROM documents WHERE id = ?', [req.params.id]);
     if (docs.length === 0) {
       return res.status(404).send('File not found');
     }
@@ -62,13 +62,7 @@ router.get('/file/:id', authenticateToken, async (req, res) => {
       }
     }
     
-    // Fallback to DB (for pre-migration or unsynced records)
-    if (doc.file_data) {
-      const buffer = Buffer.from(doc.file_data, 'base64');
-      return res.send(buffer);
-    } else {
-      return res.status(404).send('File not found on disk, S3, or DB');
-    }
+    return res.status(404).send('File not found on disk or S3');
   } catch (error) {
     console.error('Error fetching document file:', error);
     res.status(500).send('Server error');
@@ -132,10 +126,10 @@ router.post('/upload', authenticateToken, uploadLimiter, upload.single('file'), 
   const { customer_id, policy_id, document_type_id, name, note } = req.body;
   
   try {
-    // 1. Insert into DB (file_data is NULL)
+    // 1. Insert into DB
     const [result] = await req.db.query(
-      `INSERT INTO documents (customer_id, policy_id, document_type_id, name, file_path, file_type, file_size, version, note, uploaded_by, file_data)
-       VALUES (?, ?, ?, ?, ?, ?, ?, 1, ?, ?, NULL)`,
+      `INSERT INTO documents (customer_id, policy_id, document_type_id, name, file_path, file_type, file_size, version, note, uploaded_by)
+       VALUES (?, ?, ?, ?, ?, ?, ?, 1, ?, ?)`,
       [
         customer_id, 
         policy_id || null, 
@@ -166,10 +160,9 @@ router.post('/upload', authenticateToken, uploadLimiter, upload.single('file'), 
       try {
         fs.writeFileSync(localFilePath, req.file.buffer);
       } catch (writeErr) {
-        console.error('File write error:', writeErr);
-        // Fallback to storing base64 in DB if disk fails
-        const base64Data = req.file.buffer.toString('base64');
-        await req.db.query('UPDATE documents SET file_data = ? WHERE id = ?', [base64Data, newId]);
+        console.error('File write error (disk full or read-only FS):', writeErr);
+        // file_data column no longer exists; throw error so user knows upload failed
+        throw new Error('Cannot save file: disk write failed and DB fallback is unavailable');
       }
     }
 
