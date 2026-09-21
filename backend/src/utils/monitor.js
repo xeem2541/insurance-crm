@@ -10,6 +10,15 @@ const MEMORY_THRESHOLD_PERCENT = 90; // Alert if memory usage > 90%
 
 // Get current system health (Disk and Memory)
 async function getSystemHealth() {
+  // Vercel Serverless environment: Disk space is read-only and memory is managed by Lambda.
+  // Health checks for these hardware metrics don't apply.
+  if (process.env.VERCEL === '1') {
+    return {
+      disk: { isHealthy: true, note: 'Skipped on Serverless' },
+      memory: { isHealthy: true, note: 'Skipped on Serverless' }
+    };
+  }
+
   try {
     // Check disk space for the partition containing the uploads folder
     const diskPath = path.resolve(__dirname, '../../uploads');
