@@ -201,6 +201,11 @@ const PREFERRED_MODELS = [
   'gemini-pro'
 ];
 
+/**
+ * Test connectivity and validity of a Gemini API Key
+ * @param {string} apiKey - The Gemini API key to test
+ * @returns {Promise<{success: boolean, durationMs: number, availableModelsCount: number, availableModels: string[], message: string}>}
+ */
 async function testGeminiKey(apiKey) {
   const start = Date.now();
   try {
@@ -245,6 +250,12 @@ async function testGeminiKey(apiKey) {
   }
 }
 
+/**
+ * Extract structured JSON data from document images using Gemini AI
+ * @param {string} apiKey - The Gemini API key
+ * @param {Array<{inlineData: {mimeType: string, data: string}}>} imageParts - Array of base64 encoded images
+ * @returns {Promise<{parsedData: any, usedModelName: string, durationMs: number}>}
+ */
 async function extractDocumentData(apiKey, imageParts) {
   let availableModels = [];
   try {
