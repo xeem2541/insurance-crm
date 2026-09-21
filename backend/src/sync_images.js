@@ -79,6 +79,12 @@ async function syncImages(dbPool = pool) {
       } catch (err) {
         failCount++;
         console.error(`[AutoSync] ดาวน์โหลดล้มเหลว: ${doc.name} -> ${filename}, สาเหตุ: ${err.message}`);
+        
+        // If the server is offline or returns 503, abort the rest of this sync cycle
+        if (err.message.includes('503') || err.message.includes('ECONNREFUSED') || err.message.includes('ETIMEDOUT')) {
+          console.warn('[AutoSync] Server is unavailable (503/Offline). Aborting current sync cycle to prevent log spam. Will retry in the next cycle.');
+          break;
+        }
       }
     }
 

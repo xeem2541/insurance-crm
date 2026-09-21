@@ -4,6 +4,7 @@ const path = require('path');
 const fs = require('fs');
 const { authenticateToken } = require('../middlewares/auth');
 const { isS3Configured, getPresignedUrl } = require('../utils/s3');
+const { calculateTotalPremium, validateAmount, validateDates } = require('../utils/finance');
 
 // Get all non-motor policies with pagination
 router.get('/', authenticateToken, async (req, res) => {
@@ -144,10 +145,19 @@ router.post('/', authenticateToken, async (req, res) => {
     // Convert additional_data to JSON string
     const addDataJson = additional_data ? JSON.stringify(additional_data) : null;
 
+    validateDates(start_date, expiry_date);
+    
+    const safeNet = validateAmount(net_premium || 0, 'Net Premium');
+    const safeStamp = validateAmount(stamp_duty || 0, 'Stamp Duty');
+    const safeVat = validateAmount(vat || 0, 'VAT');
+    const safeTotal = calculateTotalPremium(safeNet, safeStamp, safeVat);
+    const safeCommissionPercent = validateAmount(commission_percent || 0, 'Commission Percent');
+    const safeCommissionBaht = validateAmount(commission_baht || 0, 'Commission Baht');
+
     const [result] = await req.db.query(query, [
       customer_id, policy_no, company, non_motor_type_id, insured_name,
-      sum_insured || 0, net_premium || 0, stamp_duty || 0, vat || 0, total_premium || 0,
-      commission_percent || 0, commission_baht || 0, start_date, expiry_date,
+      sum_insured || 0, safeNet, safeStamp, safeVat, safeTotal,
+      safeCommissionPercent, safeCommissionBaht, start_date, expiry_date,
       status || 'รอดำเนินการ', note, addDataJson, req.user.id, sales_person_id || req.user.id, job_type || 'งานใหม่'
     ]);
 
@@ -183,10 +193,19 @@ router.put('/:id', authenticateToken, async (req, res) => {
 
     const addDataJson = additional_data ? JSON.stringify(additional_data) : null;
 
+    validateDates(start_date, expiry_date);
+    
+    const safeNet = validateAmount(net_premium || 0, 'Net Premium');
+    const safeStamp = validateAmount(stamp_duty || 0, 'Stamp Duty');
+    const safeVat = validateAmount(vat || 0, 'VAT');
+    const safeTotal = calculateTotalPremium(safeNet, safeStamp, safeVat);
+    const safeCommissionPercent = validateAmount(commission_percent || 0, 'Commission Percent');
+    const safeCommissionBaht = validateAmount(commission_baht || 0, 'Commission Baht');
+
     await req.db.query(query, [
       customer_id, policy_no, company, non_motor_type_id, insured_name,
-      sum_insured || 0, net_premium || 0, stamp_duty || 0, vat || 0, total_premium || 0,
-      commission_percent || 0, commission_baht || 0, start_date, expiry_date,
+      sum_insured || 0, safeNet, safeStamp, safeVat, safeTotal,
+      safeCommissionPercent, safeCommissionBaht, start_date, expiry_date,
       status || 'รอดำเนินการ', note, addDataJson, sales_person_id || req.user.id, job_type || 'งานใหม่',
       id
     ]);

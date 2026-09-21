@@ -209,7 +209,9 @@ const MasterData = () => {
           let extra = {};
           try {
             if (p.additional_data) extra = typeof p.additional_data === 'string' ? JSON.parse(p.additional_data) : p.additional_data;
-          } catch(e) {}
+          } catch(e) {
+            console.error("Failed to parse additional_data", e);
+          }
           const rest = { ...p };
           delete rest.additional_data;
           return { ...rest, ...extra };

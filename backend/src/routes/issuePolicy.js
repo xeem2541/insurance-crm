@@ -7,6 +7,8 @@ const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
 const { isS3Configured, uploadFileToS3 } = require('../utils/s3');
+const catchAsync = require('../utils/catchAsync');
+const { calculateTotalPremium, validateAmount, validateDates } = require('../utils/finance');
 
 // Ensure uploads directory exists
 const uploadDir = path.join(__dirname, '../../uploads/issues');
@@ -26,13 +28,20 @@ const upload = multer({
 });
 
 // Issue a new policy and optionally upload documents
-router.post('/', authenticateToken, policyActionLimiter, upload.array('files'), validateFileType, async (req, res) => {
+router.post('/', authenticateToken, policyActionLimiter, upload.array('files'), validateFileType, catchAsync(async (req, res) => {
   const connection = await req.db.getConnection();
   await connection.beginTransaction();
 
   try {
     const data = JSON.parse(req.body.data);
     const { customer, vehicle, policy, payment, followUp, installmentSchedule } = data;
+    
+    // Validate Dates
+    validateDates(policy.start_date, policy.expiry_date);
+    if (policy.prb_start_date || policy.prb_expiry_date) {
+        validateDates(policy.prb_start_date, policy.prb_expiry_date);
+    }
+    
     let customerId = customer.id;
 
     // 1. Handle Customer
@@ -114,10 +123,13 @@ router.post('/', authenticateToken, policyActionLimiter, upload.array('files'), 
         vehicleId = vehResult.insertId;
       }
 
-      // Use Commission from frontend
-      const commissionPercent = parseFloat(policy.commission_percent) || 0;
-      const commissionBaht = parseFloat(policy.commission_baht) || 0;
-      const netPremium = parseFloat(policy.net_premium) || 0;
+      // Recalculate financial values securely
+      const commissionPercent = validateAmount(policy.commission_percent || 0, 'Commission Percent');
+      const commissionBaht = validateAmount(policy.commission_baht || 0, 'Commission Baht');
+      const netPremium = validateAmount(policy.net_premium || 0, 'Net Premium');
+      const stampDuty = validateAmount(policy.stamp_duty || 0, 'Stamp Duty');
+      const vatAmount = validateAmount(policy.vat || 0, 'VAT');
+      const totalPremium = calculateTotalPremium(netPremium, stampDuty, vatAmount);
 
       // Insert Motor Policy (with unique generated policy number to avoid duplicate entry error)
       const policyNo = policy.policy_no || `POL-${new Date().getFullYear()}-${Date.now().toString().slice(-4)}${Math.floor(Math.random() * 10)}`;
@@ -130,7 +142,7 @@ router.post('/', authenticateToken, policyActionLimiter, upload.array('files'), 
         ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
         [
           customerId, vehicleId, policyNo, policy.company, policy.type, policy.sum_insured || null,
-          netPremium, policy.stamp_duty || 0, policy.vat || 0, policy.total_premium || 0,
+          netPremium, stampDuty, vatAmount, totalPremium,
           commissionPercent, commissionBaht,
           policy.prb_start_date || null, policy.prb_expiry_date || null, 
           policy.start_date || null, policy.expiry_date || null, policy.status || 'รอดำเนินการ',
@@ -142,10 +154,13 @@ router.post('/', authenticateToken, policyActionLimiter, upload.array('files'), 
         [req.user.id, 'CREATE', 'policies', policyId, `Created motor policy ${policyNo}`]);
     } else {
       // Non-Motor Policy
-      // Use Commission from frontend
-      const commissionPercent = parseFloat(policy.commission_percent) || 0;
-      const commissionBaht = parseFloat(policy.commission_baht) || 0;
-      const netPremium = parseFloat(policy.net_premium) || 0;
+      // Recalculate financial values securely
+      const commissionPercent = validateAmount(policy.commission_percent || 0, 'Commission Percent');
+      const commissionBaht = validateAmount(policy.commission_baht || 0, 'Commission Baht');
+      const netPremium = validateAmount(policy.net_premium || 0, 'Net Premium');
+      const stampDuty = validateAmount(policy.stamp_duty || 0, 'Stamp Duty');
+      const vatAmount = validateAmount(policy.vat || 0, 'VAT');
+      const totalPremium = calculateTotalPremium(netPremium, stampDuty, vatAmount);
 
       const policyNo = policy.policy_no || `NM-${new Date().getFullYear()}-${Date.now().toString().slice(-4)}${Math.floor(Math.random() * 10)}`;
       const [nmPolResult] = await connection.query(
@@ -156,8 +171,8 @@ router.post('/', authenticateToken, policyActionLimiter, upload.array('files'), 
         ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
         [
           customerId, policyNo, policy.company, policy.non_motor_type_id, policy.insured_name || `${customer.first_name} ${customer.last_name}`,
-          policy.sum_insured || null, netPremium, policy.stamp_duty || 0, policy.vat || 0, policy.total_premium || 0,
-          commissionPercent, commissionBaht, policy.start_date || null, policy.expiry_date || null, 
+          policy.sum_insured || null, netPremium, stampDuty, vatAmount, totalPremium,
+          commissionPercent, commissionBaht, policy.start_date || null, policy.expiry_date || null,
           policy.status || 'รอดำเนินการ', policy.note, JSON.stringify(policy.additional_data || {}), req.user.id, req.user.id
         ]
       );
@@ -427,10 +442,12 @@ router.post('/', authenticateToken, policyActionLimiter, upload.array('files'), 
       }
     }
 
-    res.status(500).json({ error: 'เกิดข้อผิดพลาด: ' + errMsg });
+    const err = new Error('เกิดข้อผิดพลาด: ' + errMsg);
+    err.statusCode = 500;
+    throw err;
   } finally {
     connection.release();
   }
-});
+}));
 
 module.exports = router;

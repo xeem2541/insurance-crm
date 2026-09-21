@@ -1,28 +1,21 @@
-const mysql = require('mysql2/promise');
 require('dotenv').config();
+const mysql = require('mysql2/promise');
 
 async function run() {
-  const conn = await mysql.createConnection(process.env.DB_URI);
   try {
-    await conn.query(`
-      ALTER TABLE customers 
-      ADD COLUMN search_text TEXT GENERATED ALWAYS AS (
-        CONCAT_WS(' ', 
-          IFNULL(prefix, ''), 
-          IFNULL(first_name, ''), 
-          IFNULL(last_name, ''), 
-          IFNULL(phone, ''), 
-          IFNULL(id_card_no, ''), 
-          IFNULL(customer_code, '')
-        )
-      ) VIRTUAL
-    `);
-    console.log("Virtual generated column added successfully.");
-  } catch (e) {
-    console.error("Error:", e.message);
-  } finally {
-    conn.end();
+    const conn = await mysql.createConnection({
+      host: process.env.DB_HOST,
+      user: process.env.DB_USER,
+      password: process.env.DB_PASSWORD,
+      database: process.env.DB_NAME,
+      port: process.env.DB_PORT
+    });
+    const [rows] = await conn.query("SELECT * FROM master_data WHERE category = 'LINE_GROUP'");
+    console.log("LINE_GROUP rows:", rows);
+    process.exit(0);
+  } catch (err) {
+    console.error(err);
+    process.exit(1);
   }
 }
-
 run();

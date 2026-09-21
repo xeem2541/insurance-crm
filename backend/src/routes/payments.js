@@ -2,9 +2,23 @@ const express = require('express');
 const router = express.Router();
 const { authenticateToken } = require('../middlewares/auth');
 
+const catchAsync = require('../utils/catchAsync');
+const { calculateBalance } = require('../utils/finance');
+
 // Get all payments with policy and customer details
-router.get('/', authenticateToken, async (req, res) => {
-  try {
+router.get('/', authenticateToken, catchAsync(async (req, res) => {
+    const { page, limit } = req.query;
+    
+    // Pagination parameters
+    const currentPage = parseInt(page) || 1;
+    const itemsPerPage = parseInt(limit) || 150;
+    const offset = (currentPage - 1) * itemsPerPage;
+
+    const countQuery = `SELECT COUNT(*) as total FROM payments p`;
+    const [countResult] = await req.db.query(countQuery);
+    const total = countResult[0].total;
+    const totalPages = Math.ceil(total / itemsPerPage);
+
     const query = `
       SELECT 
         p.id, p.payment_method, p.installments, p.pay_date, p.status, p.created_at,
@@ -16,32 +30,30 @@ router.get('/', authenticateToken, async (req, res) => {
       LEFT JOIN policies pol ON p.policy_id = pol.id
       LEFT JOIN non_motor_policies npol ON p.non_motor_policy_id = npol.id
       LEFT JOIN customers c ON c.id = pol.customer_id OR c.id = npol.customer_id
-      ORDER BY p.created_at DESC LIMIT 150
+      ORDER BY p.created_at DESC LIMIT ? OFFSET ?
     `;
-    const [rows] = await req.db.query(query);
-    res.json(rows);
-  } catch (error) {
-    console.error(error);
-    res.status(500).json({ error: 'Server error' });
-  }
-});
+    const [rows] = await req.db.query(query, [itemsPerPage, offset]);
+    
+    res.json({
+      data: rows,
+      total,
+      totalPages,
+      currentPage,
+      itemsPerPage
+    });
+}));
 
 // Get installments for a specific payment
-router.get('/:id/installments', authenticateToken, async (req, res) => {
-  try {
+router.get('/:id/installments', authenticateToken, catchAsync(async (req, res) => {
     const [rows] = await req.db.query(
       'SELECT * FROM installments WHERE payment_id = ? ORDER BY installment_no ASC',
       [req.params.id]
     );
     res.json(rows);
-  } catch (error) {
-    res.status(500).json({ error: 'Server error' });
-  }
-});
+}));
 
 // Get specific installment for receipt
-router.get('/installments/:id', authenticateToken, async (req, res) => {
-  try {
+router.get('/installments/:id', authenticateToken, catchAsync(async (req, res) => {
     const query = `
       SELECT i.*, 
              IFNULL(pol.policy_no, npol.policy_no) as policy_no,
@@ -57,15 +69,16 @@ router.get('/installments/:id', authenticateToken, async (req, res) => {
       WHERE i.id = ?
     `;
     const [rows] = await req.db.query(query, [req.params.id]);
-    if (rows.length === 0) return res.status(404).json({ error: 'Not found' });
+    if (rows.length === 0) {
+      const error = new Error('Not found');
+      error.statusCode = 404;
+      throw error;
+    }
     res.json(rows[0]);
-  } catch (error) {
-    res.status(500).json({ error: 'Server error' });
-  }
-});
+}));
 
 // Mark an installment as paid
-router.put('/installments/:id', authenticateToken, async (req, res) => {
+router.put('/installments/:id', authenticateToken, catchAsync(async (req, res) => {
   const connection = await req.db.getConnection();
   await connection.beginTransaction();
   
@@ -77,20 +90,19 @@ router.put('/installments/:id', authenticateToken, async (req, res) => {
     const [insts] = await connection.query('SELECT * FROM installments WHERE id = ?', [installmentId]);
     if (insts.length === 0) {
       await connection.rollback();
-      return res.status(404).json({ error: 'Installment not found' });
+      const error = new Error('Installment not found');
+      error.statusCode = 404;
+      throw error;
     }
     
     const installment = insts[0];
-    const incomingPaidAmount = parseFloat(paid_amount) || 0;
     
-    // Accumulate total paid
-    const currentPaidAmount = parseFloat(installment.paid_amount) || 0;
-    const newTotalPaidAmount = currentPaidAmount + incomingPaidAmount;
-    
-    // Calculate new balance
-    const totalAmount = parseFloat(installment.amount) || 0;
-    let newBalanceAmount = totalAmount - newTotalPaidAmount;
-    if (newBalanceAmount < 0) newBalanceAmount = 0;
+    // Calculate securely using finance utility (prevents floats bugs, negative payments, and overpayments)
+    const { newTotalPaidAmount, newBalanceAmount } = calculateBalance(
+      installment.amount,
+      installment.paid_amount,
+      paid_amount
+    );
     
     // Determine status
     let newStatus = 'ชำระบางส่วน';
@@ -122,38 +134,31 @@ router.put('/installments/:id', authenticateToken, async (req, res) => {
     res.json({ message: 'บันทึกการรับชำระเงินสำเร็จ' });
   } catch (error) {
     await connection.rollback();
-    console.error(error);
-    res.status(500).json({ error: 'Server error' });
+    throw error;
   } finally {
     connection.release();
   }
-});
+}));
 
 // Mark a cash payment as paid
-router.put('/:id', authenticateToken, async (req, res) => {
-  try {
+router.put('/:id', authenticateToken, catchAsync(async (req, res) => {
     const { status, pay_date } = req.body;
     const qStatus = status || 'ชำระครบแล้ว';
     const qDate = pay_date || new Date().toISOString().split('T')[0];
     
     await req.db.query('UPDATE payments SET status = ?, pay_date = ? WHERE id = ?', [qStatus, qDate, req.params.id]);
     res.json({ message: 'อัปเดตสถานะการชำระเงินสดสำเร็จ' });
-  } catch (error) {
-    res.status(500).json({ error: 'Server error' });
-  }
-});
+}));
 
 // Delete a payment
-router.delete('/:id', authenticateToken, async (req, res) => {
+router.delete('/:id', authenticateToken, catchAsync(async (req, res) => {
   if (req.user.role !== 'Admin' && req.user.role !== 'Manager') {
-    return res.status(403).json({ error: 'Forbidden' });
+    const error = new Error('Forbidden');
+    error.statusCode = 403;
+    throw error;
   }
-  try {
     await req.db.query('DELETE FROM payments WHERE id = ?', [req.params.id]);
     res.json({ message: 'ลบรายการชำระเงินสำเร็จ' });
-  } catch (error) {
-    res.status(500).json({ error: 'Server error' });
-  }
-});
+}));
 
 module.exports = router;

@@ -19,13 +19,11 @@ if (!isVercel) {
 
 const { combine, timestamp, printf, colorize, errors } = winston.format;
 
-// Custom log format for file
+// Custom log format for file (Structured Logging)
 const fileFormat = combine(
   errors({ stack: true }), // Include stack trace in errors
   timestamp({ format: 'YYYY-MM-DD HH:mm:ss' }),
-  printf(({ level, message, timestamp, stack }) => {
-    return `${timestamp} [${level.toUpperCase()}]: ${stack || message}`;
-  })
+  winston.format.json()
 );
 
 // Custom log format for console
@@ -40,7 +38,7 @@ const consoleFormat = combine(
 const transports = [
   // Console output
   new winston.transports.Console({
-    format: consoleFormat
+    format: process.env.NODE_ENV === 'production' ? fileFormat : consoleFormat
   })
 ];
 

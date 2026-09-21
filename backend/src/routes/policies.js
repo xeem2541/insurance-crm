@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const { authenticateToken } = require('../middlewares/auth');
 const { sendLineNotify } = require('../services/lineNotify');
+const { calculateTotalPremium, validateAmount, validateDates } = require('../utils/finance');
 
 // Get all policies (with search, filter, and pagination)
 router.get('/', authenticateToken, async (req, res) => {
@@ -144,6 +145,18 @@ router.post('/', authenticateToken, async (req, res) => {
       );
     }
 
+    validateDates(start_date, expiry_date);
+    if (prb_start_date || prb_expiry_date) {
+        validateDates(prb_start_date, prb_expiry_date);
+    }
+    
+    const safeNet = validateAmount(net_premium || 0, 'Net Premium');
+    const safeStamp = validateAmount(stamp_duty || 0, 'Stamp Duty');
+    const safeVat = validateAmount(vat || 0, 'VAT');
+    const safeTotal = calculateTotalPremium(safeNet, safeStamp, safeVat);
+    const safeCommissionPercent = validateAmount(commission_percent || 0, 'Commission Percent');
+    const safeCommissionBaht = validateAmount(commission_baht || 0, 'Commission Baht');
+
     const [result] = await req.db.query(
       `INSERT INTO policies (
         customer_id, vehicle_id, policy_no, company, type, sum_insured, 
@@ -153,7 +166,7 @@ router.post('/', authenticateToken, async (req, res) => {
        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         customer_id, finalVehicleId, policy_no, company, type, sum_insured || null,
-        net_premium || 0, stamp_duty || 0, vat || 0, total_premium || 0, commission_percent || 0, commission_baht || 0,
+        safeNet, safeStamp, safeVat, safeTotal, safeCommissionPercent, safeCommissionBaht,
         payment_method || 'เงินสด', start_date, expiry_date, status || 'รอดำเนินการ', sales_person_id || null, req.user.id,
         prb_start_date || null, prb_expiry_date || null, req.body.repair_type || 'อู่', job_type || 'งานใหม่'
       ]
@@ -214,6 +227,18 @@ router.put('/:id', authenticateToken, async (req, res) => {
       }
     }
 
+    validateDates(start_date, expiry_date);
+    if (prb_start_date || prb_expiry_date) {
+        validateDates(prb_start_date, prb_expiry_date);
+    }
+    
+    const safeNet = validateAmount(net_premium || 0, 'Net Premium');
+    const safeStamp = validateAmount(stamp_duty || 0, 'Stamp Duty');
+    const safeVat = validateAmount(vat || 0, 'VAT');
+    const safeTotal = calculateTotalPremium(safeNet, safeStamp, safeVat);
+    const safeCommissionPercent = validateAmount(commission_percent || 0, 'Commission Percent');
+    const safeCommissionBaht = validateAmount(commission_baht || 0, 'Commission Baht');
+
     await req.db.query(
       `UPDATE policies SET 
         vehicle_id=?, company=?, type=?, sum_insured=?, 
@@ -223,7 +248,7 @@ router.put('/:id', authenticateToken, async (req, res) => {
        WHERE id=?`,
       [
         finalVehicleId, company, type, sum_insured || null,
-        net_premium || 0, stamp_duty || 0, vat || 0, total_premium || 0, commission_percent || 0, commission_baht || 0,
+        safeNet, safeStamp, safeVat, safeTotal, safeCommissionPercent, safeCommissionBaht,
         payment_method || 'เงินสด', start_date, expiry_date, status || 'รอดำเนินการ', sales_person_id || null,
         prb_start_date || null, prb_expiry_date || null, req.body.repair_type || 'อู่', job_type || 'งานใหม่',
         req.params.id

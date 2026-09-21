@@ -3,6 +3,8 @@ const cors = require('cors');
 const multer = require('multer');
 const path = require('path');
 const mysql = require('mysql2/promise');
+const rateLimit = require('express-rate-limit');
+const axios = require('axios');
 const bcrypt = require('bcryptjs');
 require('dotenv').config();
 const helmet = require('helmet');
@@ -27,12 +29,17 @@ if (require.main === module) {
   }
 }
 
-// Process Crash Prevention (Keeps server alive 24/7 even on unexpected edge cases)
+// Process Crash Prevention & Graceful Shutdown
 process.on('uncaughtException', (err) => {
-  console.error('[CRASH PREVENTED] Uncaught Exception:', err);
+  console.error('[FATAL ERROR] Uncaught Exception:', err);
+  if (logger && logger.error) logger.error(`Uncaught Exception: ${err.message}`);
+  // Graceful shutdown after 1s to allow logs to flush
+  setTimeout(() => process.exit(1), 1000);
 });
 process.on('unhandledRejection', (reason, promise) => {
-  console.error('[CRASH PREVENTED] Unhandled Rejection at:', promise, 'reason:', reason);
+  console.error('[FATAL ERROR] Unhandled Rejection at:', promise, 'reason:', reason);
+  if (logger && logger.error) logger.error(`Unhandled Rejection: ${reason}`);
+  setTimeout(() => process.exit(1), 1000);
 });
 
 const app = express();
@@ -88,8 +95,12 @@ const corsOptions = {
     // allow requests with no origin (like mobile apps, curl requests, server-to-server)
     if (!origin) return callback(null, true);
     
-    // Always allow the requesting origin to prevent CORS errors on Vercel preview/production links
-    callback(null, true);
+    // Strict CORS: Only allow defined origins in production
+    if (allowedOrigins.indexOf(origin) !== -1 || process.env.NODE_ENV !== 'production') {
+      callback(null, true);
+    } else {
+      callback(new Error('Not allowed by CORS'));
+    }
   },
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
@@ -118,13 +129,30 @@ app.use(hpp());
 // Global Rate Limiting
 app.use('/api', globalLimiter);
 
+// Request ID injection
+const crypto = require('crypto');
+app.use((req, res, next) => {
+  req.id = crypto.randomUUID();
+  next();
+});
+
 // Request Logging via Morgan (stream to Winston)
-app.use(morgan('combined', { stream: { write: message => logger.info(message.trim()) } }));
+// Includes reqId in structured JSON format
+morgan.token('reqId', (req) => req.id);
+app.use(morgan(':reqId :method :url :status :res[content-length] - :response-time ms', { 
+  stream: { 
+    write: message => {
+      // Winston will parse this as text but structured files will keep JSON structure
+      logger.info(message.trim(), { reqId: message.split(' ')[0] });
+    }
+  } 
+}));
 
 app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
 
 // Database connection pool with 24/7 keepalive & heartbeat
 const { pool, getDbStatus, pingDatabase, queryWithRetry } = require('./db');
+const db = pool;
 
 
 
@@ -159,24 +187,32 @@ app.get('/', async (req, res) => {
     database: getDbStatus().isConnected ? 'connected' : 'connecting'
   });
 });
+// Health Check Endpoint for Auto-Recovery / Load Balancers
 app.get('/health', async (req, res) => {
-  await pingDatabase();
-  const status = getDbStatus();
-  res.status(status.isConnected ? 200 : 503).json({
-    status: status.isConnected ? 'ok' : 'degraded',
-    service: 'insurance-crm-api',
-    database: status.isConnected ? 'connected' : 'disconnected'
-  });
+  try {
+    await db.query('SELECT 1');
+    res.status(200).json({ status: 'UP', database: 'connected', timestamp: new Date().toISOString() });
+  } catch (error) {
+    if (logger && logger.error) logger.error('Health Check Failed:', error);
+    res.status(503).json({ status: 'DOWN', database: 'disconnected', timestamp: new Date().toISOString() });
+  }
 });
 
-// Health check endpoint for external pingers / uptime monitors
+const { getSystemHealth, startSystemMonitor } = require('./utils/monitor');
+
+// Health check endpoint for external pingers / uptime monitors (Comprehensive)
 app.get('/api/health', async (req, res) => {
   await pingDatabase();
-  const status = getDbStatus();
-  res.status(status.isConnected ? 200 : 503).json({
-    status: status.isConnected ? 'ok' : 'degraded',
+  const dbStatus = getDbStatus();
+  const sysHealth = await getSystemHealth();
+  
+  const isHealthy = dbStatus.isConnected && sysHealth && sysHealth.disk.isHealthy && sysHealth.memory.isHealthy;
+  
+  res.status(isHealthy ? 200 : 503).json({
+    status: isHealthy ? 'ok' : 'degraded',
     service: 'insurance-crm-api',
-    database: status.isConnected ? 'connected' : 'disconnected',
+    database: dbStatus.isConnected ? 'connected' : 'disconnected',
+    system: sysHealth,
     timestamp: new Date().toISOString(),
     uptime: process.uptime()
   });
@@ -252,12 +288,34 @@ function startServerKeepAlive() {
   }, 4 * 60 * 1000);
 }
 
+// Handle undefined routes
+app.use('*', (req, res) => {
+  res.status(404).json({ error: 'Endpoint not found' });
+});
+
 // Global Error Handler
 app.use((err, req, res, next) => {
   console.error('[Global Error]', err.stack || err);
-  res.status(500).json({
-    error: 'Internal Server Error',
-    message: err.message || 'เกิดข้อผิดพลาดที่ไม่รู้จักบนเซิร์ฟเวอร์'
+  
+  const statusCode = err.statusCode || 500;
+  
+  // Alert on Critical Errors (Line Notify)
+  if (statusCode === 500 && process.env.LINE_NOTIFY_TOKEN) {
+    axios.post('https://notify-api.line.me/api/notify', `message=\n🚨 [Production Error] 🚨\nURL: ${req.originalUrl}\nMsg: ${err.message}`, {
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded',
+        'Authorization': `Bearer ${process.env.LINE_NOTIFY_TOKEN}`
+      }
+    }).catch(e => console.error('Failed to send Line Notify:', e.message));
+  }
+
+  res.status(statusCode).json({
+    status: 'error',
+    error: statusCode === 500 ? 'Internal Server Error' : err.name || 'Error',
+    message: statusCode === 500 && process.env.NODE_ENV === 'production' 
+      ? 'เกิดข้อผิดพลาดที่ไม่รู้จักบนเซิร์ฟเวอร์' 
+      : err.message,
+    ...(process.env.NODE_ENV !== 'production' && { stack: err.stack })
   });
 });
 
@@ -269,6 +327,13 @@ if (require.main === module) {
     
     // Start server keep-alive
     startServerKeepAlive();
+
+    // Start system resource monitoring (Disk/RAM)
+    try {
+      startSystemMonitor();
+    } catch (err) {
+      console.error('Failed to start system monitor:', err);
+    }
 
     // Start the auto image sync background worker
     try {

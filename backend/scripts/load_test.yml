@@ -1,0 +1,68 @@
+config:
+  # =========================================================================
+  # WARNING: DO NOT RUN THIS ON PRODUCTION!
+  # =========================================================================
+  # This script generates massive traffic that will impact real users,
+  # fill your database with dummy records, and consume cloud credits.
+  # TARGET URL MUST BE STAGING/LOCAL ENVIRONMENT ONLY.
+  target: "http://localhost:5000"
+  
+  phases:
+    # Phase 1: Baseline Test (Normal Traffic)
+    # Tests the system under standard conditions
+    - duration: 60
+      arrivalRate: 10
+      name: "Baseline Test"
+      
+    # Phase 2: Stress Test (Finding Bottlenecks)
+    # Gradually increases traffic to find the breaking point
+    - duration: 120
+      arrivalRate: 10
+      rampTo: 100
+      name: "Stress Test"
+      
+    # Phase 3: Spike Test (Sudden Surge)
+    # Simulates an immediate spike in traffic (e.g. promo launch)
+    - duration: 10
+      arrivalRate: 300
+      name: "Spike Test"
+
+  plugins:
+    # Requires npm install -g artillery-plugin-metrics-by-endpoint
+    metrics-by-endpoint: {}
+
+  # Default headers for all requests
+  defaults:
+    headers:
+      Content-Type: "application/json"
+
+scenarios:
+  - name: "Scenario 1: View Dashboard (High Read DB)"
+    weight: 7
+    flow:
+      # Assuming we don't have a dynamic auth token for hundreds of users, 
+      # this hits a public or test endpoint. In a real load test, 
+      # you would use a test JWT token or CSV with mock credentials.
+      # For safety, let's hit the root or an unprotected health endpoint first,
+      # and a mocked endpoint. 
+      - get:
+          url: "/api/policies"
+          # Mock authorization header for staging environment
+          headers:
+            Authorization: "Bearer STAGING_TEST_TOKEN"
+            
+  - name: "Scenario 2: Login Attack (CPU Intensive)"
+    weight: 3
+    flow:
+      - post:
+          url: "/api/auth/login"
+          json:
+            username: "testuser"
+            password: "testpassword"
+
+# HOW TO RUN THIS TEST (STAGING ONLY):
+# 1. npm install -g artillery
+# 2. npx artillery run scripts/load_test.yml
+# 3. View text output, or generate HTML report:
+#    npx artillery run -o report.json scripts/load_test.yml
+#    npx artillery report report.json

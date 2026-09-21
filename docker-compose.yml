@@ -11,6 +11,11 @@ services:
       MYSQL_DATABASE: ${MYSQL_DATABASE:-insurance_db}
       MYSQL_USER: ${MYSQL_USER:-app_user}
       MYSQL_PASSWORD: ${MYSQL_PASSWORD}
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
     ports:
       - "3306:3306"
     volumes:
@@ -22,6 +27,11 @@ services:
       context: ./backend
     container_name: insurance_backend
     restart: always
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
     ports:
       - "5000:5000"
     environment:
