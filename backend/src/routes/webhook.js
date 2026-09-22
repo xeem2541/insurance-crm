@@ -82,8 +82,8 @@ if (process.env.GEMINI_API_KEY) {
   const apiKey = process.env.GEMINI_API_KEY.trim();
   genAI = new GoogleGenerativeAI(apiKey);
   
-  // Default to 3.6-flash as the safest standard model
-  generativeModel = genAI.getGenerativeModel({ model: "gemini-3.6-flash" });
+  // Default to gemini-1.5-pro for deep analysis and accuracy
+  generativeModel = genAI.getGenerativeModel({ model: "gemini-1.5-pro" });
 
   // Select best model async
   axios.get(`https://generativelanguage.googleapis.com/v1beta/models`, {
@@ -95,13 +95,11 @@ if (process.env.GEMINI_API_KEY) {
         .map(m => m.name.replace('models/', ''));
       
       const preferredModels = [
-        'gemini-3.6-flash',
-        'gemini-3.5-flash',
-        'gemini-2.5-flash',
-        'gemini-flash-latest'
+        'gemini-1.5-pro',
+        'gemini-1.5-flash'
       ];
       
-      const bestModel = preferredModels.find(m => models.includes(m)) || 'gemini-3.6-flash';
+      const bestModel = preferredModels.find(m => models.includes(m)) || 'gemini-1.5-pro';
       generativeModel = genAI.getGenerativeModel({ model: bestModel });
       console.log(`🤖 Line Bot initialized with best available model: ${bestModel}`);
     })
@@ -542,10 +540,9 @@ You must ALWAYS respond with a strictly valid JSON object. Do not include markdo
 
               const generationConfig = hasImage ? undefined : { responseMimeType: "application/json" };
               const fallbackModels = [
-                 generativeModel ? generativeModel.model : 'gemini-1.5-flash',
-                 'gemini-1.5-pro',
-                 'gemini-1.5-flash-8b',
-                 'gemini-flash-latest'
+                 generativeModel ? generativeModel.model : 'gemini-1.5-pro',
+                 'gemini-1.5-flash',
+                 'gemini-1.5-flash-8b'
               ];
               const uniqueModels = [...new Set(fallbackModels)];
               const MAX_RETRIES = 3; // Retry up to 3 times for random 503 errors since 1.5-flash is fast
