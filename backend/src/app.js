@@ -266,6 +266,7 @@ app.use('/api/ai-ocr', require('./routes/aiOcr'));
 app.use('/api/activity-logs', require('./routes/activityLogs'));
 app.use('/api/line-admin', require('./routes/lineAdmin'));
 app.use('/api/cron', require('./routes/cron'));
+app.use('/api/line-proxy', require('./routes/lineProxy'));
 
 // Schedule Automated Backup every 1st day of the month at 01:00 AM (End of month backup)
 // Moved to Vercel Cron

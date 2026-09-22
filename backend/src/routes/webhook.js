@@ -155,15 +155,28 @@ You must ALWAYS respond with a strictly valid JSON object. Do not include markdo
 const LINE_ACCESS_TOKEN = process.env.LINE_CHANNEL_ACCESS_TOKEN;
 
 // Notify Admin Function
-async function notifyAdminGroup(db, messageText) {
+async function notifyAdminGroup(db, messageText, imageMessageId = null) {
   try {
     const adminToken = process.env.ADMIN_LINE_ACCESS_TOKEN || LINE_ACCESS_TOKEN;
     const [rows] = await db.query("SELECT value FROM master_data WHERE category = 'LINE_GROUP'");
     if (rows.length > 0) {
       for (const row of rows) {
+        let messages = [{ type: 'text', text: messageText }];
+        
+        // If an image was sent by the user, forward it to the admin group using our proxy endpoint
+        if (imageMessageId) {
+          const backendUrl = process.env.RENDER_EXTERNAL_URL || 'https://insurance-crm-backend.vercel.app';
+          const imageUrl = `${backendUrl}/api/line-proxy/image/${imageMessageId}`;
+          messages.push({
+            type: 'image',
+            originalContentUrl: imageUrl,
+            previewImageUrl: imageUrl
+          });
+        }
+
         await axios.post('https://api.line.me/v2/bot/message/push', {
           to: row.value,
-          messages: [{ type: 'text', text: messageText }]
+          messages: messages
         }, {
           headers: {
             'Content-Type': 'application/json',
@@ -443,8 +456,8 @@ You must ALWAYS respond with a strictly valid JSON object. Do not include markdo
               } catch(e) {}
               imageBuffer = await downloadImage(event.message.id);
               
-              // แจ้งเตือนแอดมินเมื่อมีการส่งรูปภาพ
-              await notifyAdminGroup(req.db, `📸 ผู้ใช้ (ID: ${userId}) ส่งรูปภาพ/เอกสาร!\nAI กำลังพยายามอ่านข้อมูล... หาก AI ตอบไม่ได้ แอดมินสามารถเข้าไปดูรูปและตอบแทนได้เลยครับ`);
+              // แจ้งเตือนแอดมินเมื่อมีการส่งรูปภาพ (พร้อมแนบรูปภาพไปด้วย)
+              await notifyAdminGroup(req.db, `📸 ผู้ใช้ (ID: ${userId}) ส่งรูปภาพ/เอกสาร!\nAI กำลังพยายามอ่านข้อมูล... หาก AI ตอบไม่ได้ แอดมินสามารถเข้าไปดูรูปและตอบแทนได้เลยครับ`, event.message.id);
             }
 
             if (process.env.OPENAI_API_KEY) {
