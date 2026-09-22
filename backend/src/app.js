@@ -75,7 +75,10 @@ app.use(helmet({
 }));
 
 // CORS: Restrict to configured FRONTEND_URL and local dev if not in production
-const allowedOrigins = [];
+const allowedOrigins = [
+  'https://www.appleinsurance-crm.com',
+  'https://appleinsurance-crm.com'
+];
 if (process.env.FRONTEND_URL) {
   allowedOrigins.push(process.env.FRONTEND_URL);
 }
