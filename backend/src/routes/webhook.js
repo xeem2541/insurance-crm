@@ -535,7 +535,7 @@ You must ALWAYS respond with a strictly valid JSON object. Do not include markdo
                  'gemini-flash-latest'
               ];
               const uniqueModels = [...new Set(fallbackModels)];
-              const MAX_RETRIES = 1; // Reduce retries to prevent Vercel 60s timeout
+              const MAX_RETRIES = 3; // Retry up to 3 times for random 503 errors since 1.5-flash is fast
               const delay = ms => new Promise(res => setTimeout(res, ms));
               
               async function generateWithRetry(modelConfig, reqContents) {
