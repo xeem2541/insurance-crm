@@ -33,13 +33,11 @@ if (require.main === module) {
 process.on('uncaughtException', (err) => {
   console.error('[FATAL ERROR] Uncaught Exception:', err);
   if (logger && logger.error) logger.error(`Uncaught Exception: ${err.message}`);
-  // Graceful shutdown after 1s to allow logs to flush
-  setTimeout(() => process.exit(1), 1000);
+  // Do not exit process in Vercel to allow function to return 500 properly
 });
 process.on('unhandledRejection', (reason, promise) => {
   console.error('[FATAL ERROR] Unhandled Rejection at:', promise, 'reason:', reason);
   if (logger && logger.error) logger.error(`Unhandled Rejection: ${reason}`);
-  setTimeout(() => process.exit(1), 1000);
 });
 
 const app = express();

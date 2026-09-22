@@ -1,4 +1,4 @@
-module.exports = (req, res) => {
+module.exports = async (req, res) => {
   try {
     const app = require('../src/app');
     return app(req, res);
@@ -10,3 +10,10 @@ module.exports = (req, res) => {
     });
   }
 };
+
+process.on('uncaughtException', (err) => {
+  console.error('[Vercel Fatal] Uncaught Exception:', err);
+});
+process.on('unhandledRejection', (reason, promise) => {
+  console.error('[Vercel Fatal] Unhandled Rejection:', reason);
+});
