@@ -529,14 +529,13 @@ You must ALWAYS respond with a strictly valid JSON object. Do not include markdo
 
               const generationConfig = hasImage ? undefined : { responseMimeType: "application/json" };
               const fallbackModels = [
-                 hasImage ? 'gemini-1.5-pro' : (generativeModel ? generativeModel.model : 'gemini-1.5-flash'),
+                 generativeModel ? generativeModel.model : 'gemini-1.5-flash',
                  'gemini-1.5-pro',
-                 'gemini-1.5-flash',
                  'gemini-1.5-flash-8b',
                  'gemini-flash-latest'
               ];
               const uniqueModels = [...new Set(fallbackModels)];
-              const MAX_RETRIES = 2; // Retries per model
+              const MAX_RETRIES = 1; // Reduce retries to prevent Vercel 60s timeout
               const delay = ms => new Promise(res => setTimeout(res, ms));
               
               async function generateWithRetry(modelConfig, reqContents) {
