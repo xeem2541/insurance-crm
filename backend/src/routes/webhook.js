@@ -527,7 +527,7 @@ You must ALWAYS respond with a strictly valid JSON object. Do not include markdo
                 contents.push({ role: 'user', parts: currentParts });
               }
 
-              const generationConfig = { responseMimeType: "application/json" };
+              const generationConfig = hasImage ? undefined : { responseMimeType: "application/json" };
               const fallbackModels = [
                  hasImage ? 'gemini-1.5-pro' : (generativeModel ? generativeModel.model : 'gemini-1.5-flash'),
                  'gemini-1.5-pro',
@@ -580,7 +580,13 @@ You must ALWAYS respond with a strictly valid JSON object. Do not include markdo
             }
             let responseData;
             try {
-              responseData = JSON.parse(rawResponseText);
+              let cleanedText = rawResponseText.trim();
+              if (cleanedText.startsWith('```json')) {
+                cleanedText = cleanedText.replace(/^```json\s*/, '').replace(/\s*```$/, '');
+              } else if (cleanedText.startsWith('```')) {
+                cleanedText = cleanedText.replace(/^```\s*/, '').replace(/\s*```$/, '');
+              }
+              responseData = JSON.parse(cleanedText);
             } catch (parseErr) {
               console.error("JSON Parse Error on Gemini Response:", rawResponseText);
               // Fallback to treat the whole string as reply_text if parse fails
