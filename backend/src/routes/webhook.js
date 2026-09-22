@@ -441,6 +441,9 @@ You must ALWAYS respond with a strictly valid JSON object. Do not include markdo
                 }, { headers: { 'Authorization': `Bearer ${LINE_ACCESS_TOKEN}` }});
               } catch(e) {}
               imageBuffer = await downloadImage(event.message.id);
+              
+              // แจ้งเตือนแอดมินเมื่อมีการส่งรูปภาพ
+              await notifyAdminGroup(req.db, `📸 ผู้ใช้ (ID: ${userId}) ส่งรูปภาพ/เอกสาร!\nAI กำลังพยายามอ่านข้อมูล... หาก AI ตอบไม่ได้ แอดมินสามารถเข้าไปดูรูปและตอบแทนได้เลยครับ`);
             }
 
             if (process.env.OPENAI_API_KEY) {
