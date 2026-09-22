@@ -1,30 +1,25 @@
-const axios = require('axios');
-async function test() {
-  try {
-    const payload = {
-      "destination": "Uxxx",
-      "events": [
-        {
-          "type": "message",
-          "message": {
-            "type": "text",
-            "id": "1234567890",
-            "text": "???????????? Honda City ?? 2020 ????"
-          },
-          "timestamp": 1625665242211,
-          "source": {
-            "type": "user",
-            "userId": "U72b9aeb69c6fdb4bc6283db856abf21f"
-          },
-          "replyToken": "nHuyWiB7yP5Zw52FIkcQobQuGDXCTA",
-          "mode": "active"
-        }
-      ]
-    };
-    const res = await axios.post('https://insurance-crm-kpff.onrender.com/api/webhook', payload);
-    console.log(res.status, res.data);
-  } catch (err) {
-    console.error(err.message);
-  }
+require('dotenv').config({ path: '../.env' });
+const mysql = require('mysql2/promise');
+
+async function setAdminId() {
+  const connection = await mysql.createConnection(process.env.DB_URI);
+
+  const userId = 'U90bf2669b1d454c38d3879b9bd7a3a24';
+
+  console.log('Connected to TiDB.');
+  
+  // Clear any existing LINE_GROUP entries first so it ONLY notifies this one
+  await connection.query("DELETE FROM master_data WHERE category = 'LINE_GROUP'");
+  
+  // Insert the new one
+  await connection.query(
+    "INSERT INTO master_data (category, value) VALUES ('LINE_GROUP', ?)",
+    [userId]
+  );
+  
+  console.log(`Successfully set admin notification ID to: ${userId}`);
+  
+  await connection.end();
 }
-test();
+
+setAdminId().catch(console.error);

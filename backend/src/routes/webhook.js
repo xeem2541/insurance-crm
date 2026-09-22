@@ -509,7 +509,9 @@ You must ALWAYS respond with a strictly valid JSON object. Do not include markdo
               }
 
               let currentParts = [];
+              let hasImage = false;
               if (imageBuffer) {
+                hasImage = true;
                 currentParts.push({
                   inlineData: { data: imageBuffer.toString('base64'), mimeType: 'image/jpeg' }
                 });
@@ -527,10 +529,10 @@ You must ALWAYS respond with a strictly valid JSON object. Do not include markdo
 
               const generationConfig = { responseMimeType: "application/json" };
               const fallbackModels = [
-                 generativeModel ? generativeModel.model : 'gemini-1.5-flash',
+                 hasImage ? 'gemini-1.5-pro' : (generativeModel ? generativeModel.model : 'gemini-1.5-flash'),
+                 'gemini-1.5-pro',
                  'gemini-1.5-flash',
                  'gemini-1.5-flash-8b',
-                 'gemini-1.5-pro',
                  'gemini-flash-latest'
               ];
               const uniqueModels = [...new Set(fallbackModels)];
