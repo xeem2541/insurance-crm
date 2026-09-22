@@ -95,8 +95,7 @@ if (process.env.GEMINI_API_KEY) {
         .map(m => m.name.replace('models/', ''));
       
       const preferredModels = [
-        'gemini-1.5-pro',
-        'gemini-1.5-flash'
+        'gemini-1.5-pro'
       ];
       
       const bestModel = preferredModels.find(m => models.includes(m)) || 'gemini-1.5-pro';
@@ -539,11 +538,7 @@ You must ALWAYS respond with a strictly valid JSON object. Do not include markdo
               }
 
               const generationConfig = hasImage ? undefined : { responseMimeType: "application/json" };
-              const fallbackModels = [
-                 generativeModel ? generativeModel.model : 'gemini-1.5-pro',
-                 'gemini-1.5-flash',
-                 'gemini-1.5-flash-8b'
-              ];
+              const fallbackModels = [ 'gemini-1.5-pro' ];
               const uniqueModels = [...new Set(fallbackModels)];
               const MAX_RETRIES = 3; // Retry up to 3 times for random 503 errors since 1.5-flash is fast
               const delay = ms => new Promise(res => setTimeout(res, ms));
