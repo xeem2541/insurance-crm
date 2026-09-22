@@ -1,7 +1,7 @@
 const axios = require('axios');
 
 const sendLineNotify = async (message, db) => {
-  const token = process.env.LINE_CHANNEL_ACCESS_TOKEN;
+  const token = process.env.ADMIN_LINE_ACCESS_TOKEN || process.env.LINE_CHANNEL_ACCESS_TOKEN;
   if (!token) {
     console.log('LINE Channel Access Token is not configured. Skipping notification.');
     return;

@@ -157,6 +157,7 @@ const LINE_ACCESS_TOKEN = process.env.LINE_CHANNEL_ACCESS_TOKEN;
 // Notify Admin Function
 async function notifyAdminGroup(db, messageText) {
   try {
+    const adminToken = process.env.ADMIN_LINE_ACCESS_TOKEN || LINE_ACCESS_TOKEN;
     const [rows] = await db.query("SELECT value FROM master_data WHERE category = 'LINE_GROUP'");
     if (rows.length > 0) {
       for (const row of rows) {
@@ -166,13 +167,13 @@ async function notifyAdminGroup(db, messageText) {
         }, {
           headers: {
             'Content-Type': 'application/json',
-            'Authorization': `Bearer ${LINE_ACCESS_TOKEN}`
+            'Authorization': `Bearer ${adminToken}`
           }
         });
       }
     }
   } catch (err) {
-    console.error('Error notifying admin:', err);
+    console.error('Error notifying admin:', err.response ? err.response.data : err.message);
   }
 }
 
