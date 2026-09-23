@@ -23,10 +23,7 @@ import {
   findMatchingVehicleType,
   findMatchingColor,
   cleanAndExtractAddressFields,
-  translateThaiNumerals,
-  findBestAddressMatch,
   sanitizeAIResponse,
-  removeShadowsAndEnhance,
   compressImage
 } from '../utils/aiUtils';
 
@@ -413,7 +410,6 @@ const IssuePolicyNonMotorForm = () => {
 
       alert('สแกนและเพิ่มข้อมูลลงในชุดปัจจุบันเรียบร้อยแล้ว!');
     } catch (err) {
-      const errCode = err.response?.data?.error;
       let errMsg = err.response?.data?.message || err.response?.data?.error || err.message;
       if (typeof errMsg === 'object') {
         errMsg = errMsg.message || JSON.stringify(errMsg);

@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import { useMemo } from 'react';
 import Select from 'react-select';
 import thaiData from '../data/thai_address.json';
 

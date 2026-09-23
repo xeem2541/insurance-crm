@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import api from '../services/api';
@@ -31,7 +31,7 @@ const Dashboard = () => {
     sessionStorage.setItem('dashboardYear', filterYear);
   }, [filterMonth, filterYear]);
 
-  const { data: statsData, isLoading, isError } = useQuery({
+  const { data: statsData } = useQuery({
     queryKey: ['dashboardStats', filterMonth, filterYear],
     queryFn: async () => {
       const res = await api.get(`/dashboard/stats?month=${filterMonth}&year=${filterYear}`);

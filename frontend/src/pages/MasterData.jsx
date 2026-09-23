@@ -51,7 +51,7 @@ const MasterData = () => {
     enabled: activeTab === 'system_users'
   });
 
-  const { data: botPromptRes } = useQuery({
+  useQuery({
     queryKey: ['masterData', 'BotPrompt'],
     queryFn: async () => {
       const res = await api.get('/master-data?category=BotPrompt');

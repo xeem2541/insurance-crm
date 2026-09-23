@@ -28,6 +28,13 @@ describe('AI OCR Routes', () => {
     jest.clearAllMocks();
   });
 
+  afterAll(async () => {
+    const { pool } = require('../src/db');
+    if (pool && pool.end) {
+      await pool.end();
+    }
+  });
+
   describe('POST /api/ai-ocr/test-key', () => {
     it('should return 400 if no API key is provided', async () => {
       const response = await request(app).post('/api/ai-ocr/test-key');

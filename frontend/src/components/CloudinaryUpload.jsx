@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from 'react';
+import { useEffect, useRef } from 'react';
 
 const CloudinaryUpload = ({ onUploadSuccess, cloudName = 'dplaceholder', uploadPreset = 'unsigned_preset', buttonText = 'อัปโหลดไฟล์' }) => {
   const cloudinaryRef = useRef();

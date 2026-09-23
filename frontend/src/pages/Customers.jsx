@@ -1,8 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import api from '../services/api';
-import { Modal, Button, Form } from 'react-bootstrap';
-import { TableSkeleton, tableContainerVariants, tableRowVariants } from '../components/TableSkeleton';
+import { TableSkeleton } from '../components/TableSkeleton';
+import { tableContainerVariants, tableRowVariants } from '../utils/animationVariants';
 import { motion } from 'framer-motion';
 import CustomerFormModal from '../components/CustomerFormModal';
 import { exportToExcel } from '../utils/exportUtils';

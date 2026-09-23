@@ -1,13 +1,12 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import api from '../services/api';
-import { Card, Table, Form, Button, Row, Col, Badge, Spinner, Pagination } from 'react-bootstrap';
+import { Card, Table, Form, Button, Row, Col, Spinner, Pagination } from 'react-bootstrap';
 
 const ActivityLogs = () => {
   const [logs, setLogs] = useState([]);
   const [loading, setLoading] = useState(true);
   const [users, setUsers] = useState([]);
   const [stats, setStats] = useState({});
-  const [topUsers, setTopUsers] = useState([]);
   
   // Filters
   const [search, setSearch] = useState('');
@@ -46,7 +45,7 @@ const ActivityLogs = () => {
       setTotalPages(res.data.totalPages || 1);
       setTotalRecords(res.data.total || 0);
       setStats(res.data.stats || {});
-      setTopUsers(res.data.topUsers || []);
+      setStats(res.data.stats || {});
     } catch (err) {
       console.error('Failed to fetch activity logs:', err);
     } finally {
@@ -60,6 +59,7 @@ const ActivityLogs = () => {
 
   useEffect(() => {
     fetchLogs();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [page, actionFilter, userFilter, startDate, endDate]);
 
   const handleSearchSubmit = (e) => {

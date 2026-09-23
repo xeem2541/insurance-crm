@@ -1,7 +1,7 @@
-import React, { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Container, Row, Col, Card, ListGroup, Form, Button, Tabs, Tab, Badge, Spinner } from 'react-bootstrap';
 import api from '../services/api';
-import { Send, Users, MessageSquare, Megaphone, Settings, Bot, User } from 'lucide-react';
+import { Send, MessageSquare, Megaphone, Settings, Bot, User } from 'lucide-react';
 
 const LineAdmin = () => {
   const [users, setUsers] = useState([]);
@@ -25,6 +25,7 @@ const LineAdmin = () => {
       }
     }, 10000);
     return () => clearInterval(interval);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedUser]);
 
   const fetchUsers = async () => {

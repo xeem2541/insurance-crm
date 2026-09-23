@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { Calendar, momentLocalizer } from 'react-big-calendar';
 import moment from 'moment';
 import 'moment/locale/th';
@@ -39,7 +39,7 @@ const CalendarView = () => {
     }
   };
 
-  const eventStyleGetter = (event, start, end, isSelected) => {
+  const eventStyleGetter = (event) => {
     const today = new Date();
     today.setHours(0,0,0,0);
     const eventDate = new Date(event.start);

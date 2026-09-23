@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import api from '../services/api';
-import { TableSkeleton, tableContainerVariants, tableRowVariants } from '../components/TableSkeleton';
+import { TableSkeleton } from '../components/TableSkeleton';
+import { tableContainerVariants, tableRowVariants } from '../utils/animationVariants';
 import { motion } from 'framer-motion';
 import PolicyFormModal from '../components/PolicyFormModal';
 import { exportToExcel } from '../utils/exportUtils';
@@ -83,7 +84,7 @@ const Policies = () => {
     }
   });
 
-  const policies = data?.policies || [];
+  const policies = React.useMemo(() => data?.policies || [], [data?.policies]);
   const totalPages = data?.totalPages || 1;
   const customers = data?.customers || [];
   const vehicles = data?.vehicles || [];

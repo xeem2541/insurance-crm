@@ -1,9 +1,10 @@
-import React, { useState, useContext } from 'react';
+import { useState, useContext } from 'react';
 import api from '../services/api';
 import { AuthContext } from '../contexts/AuthContext';
 import { exportToExcel, exportToPDF } from '../utils/exportUtils';
 import { BarChart, Bar, LineChart, Line, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
-import { TableSkeleton, tableContainerVariants, tableRowVariants } from '../components/TableSkeleton';
+import { TableSkeleton } from '../components/TableSkeleton';
+import { tableContainerVariants, tableRowVariants } from '../utils/animationVariants';
 import { motion } from 'framer-motion';
 
 const formatThaiDate = (dateString) => {
