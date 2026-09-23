@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import axios from 'axios';
+
 import api from '../services/api';
 import { Form, Button, Row, Col, Accordion, Card, Badge, Modal } from 'react-bootstrap';
 import DebouncedInput from '../components/DebouncedInput';
@@ -12,7 +12,7 @@ import AiAccuracyHero from '../components/AiAccuracyHero';
 import { carBrands, carModels } from '../data/carData';
 import { formatPhone, formatIdCard, getUpcomingAnniversary, normalizeDate, addOneYear } from '../utils/formUtils';
 
-const DEFAULT_SERVER_KEY = import.meta.env.VITE_GEMINI_API_KEY || '';
+// Server key removed
 
 import { 
   GEMINI_EXTRACT_PROMPT,
@@ -171,67 +171,14 @@ const IssuePolicyNonMotorForm = () => {
   const [rotation, setRotation] = useState(0);
   const [previewModalUrl, setPreviewModalUrl] = useState(null);
   const [showCameraHelp, setShowCameraHelp] = useState(false);
-  const [showApiKeyModal, setShowApiKeyModal] = useState(false);
-  const [apiKeyInput, setApiKeyInput] = useState(localStorage.getItem('geminiApiKey') || '');
-  const [showApiKeyText, setShowApiKeyText] = useState(false);
-  const [apiKeyTestLoading, setApiKeyTestLoading] = useState(false);
-  const [apiKeyTestResult, setApiKeyTestResult] = useState(null);
+  // API key state removed
   const [aiAccuracyRate, setAiAccuracyRate] = useState(98.5);
 
   const fileInputRef = useRef(null);
   const cameraInputRef = useRef(null);
   const cameraScanInputRef = useRef(null);
 
-  const handleTestApiKey = async (keyToTest) => {
-    const key = (keyToTest !== undefined ? keyToTest : apiKeyInput || DEFAULT_SERVER_KEY).trim();
-    if (!key) {
-      setApiKeyTestResult({ success: false, message: 'กรุณากรอก API Key ก่อนทำการทดสอบ' });
-      return;
-    }
-    setApiKeyTestLoading(true);
-    setApiKeyTestResult(null);
-    const start = Date.now();
-    try {
-      // 1. Direct Ping to Google Gemini API (Works everywhere on web & mobile without server dependency)
-      await axios.get(
-        `https://generativelanguage.googleapis.com/v1beta/models?key=${encodeURIComponent(key)}`,
-        { timeout: 8000 }
-      );
-      const elapsed = Date.now() - start;
-      setApiKeyTestResult({
-        success: true,
-        message: `✅ เชื่อมต่อ Google Gemini AI สำเร็จ (${elapsed}ms) - คีย์ถูกต้องพร้อมใช้งาน!`
-      });
-    } catch (directErr) {
-      const rawMsg = directErr.response?.data?.error?.message || '';
-      if (rawMsg) {
-        let friendlyMsg = `Google API แจ้งเตือน: ${rawMsg}`;
-        if (rawMsg.includes('invalid authentication credentials') || rawMsg.includes('OAuth 2') || rawMsg.includes('login cookie')) {
-          friendlyMsg = '❌ รูปแบบ API Key ไม่ถูกต้อง: กรุณาใช้ Gemini API Key จาก Google AI Studio (คีย์ที่ถูกต้องจะขึ้นต้นด้วย "AIzaSy...") ไม่ใช่ OAuth Token หรือ Token อื่น';
-        } else if (rawMsg.includes('API key not valid') || rawMsg.includes('API_KEY_INVALID')) {
-          friendlyMsg = '❌ API Key ไม่ถูกต้อง หรือถูกระงับ/ยกเลิกแล้ว: กรุณาตรวจสอบหรือสร้าง API Key ใหม่ที่ Google AI Studio';
-        } else if (rawMsg.includes('RESOURCE_EXHAUSTED') || rawMsg.includes('quota') || rawMsg.includes('RATE_LIMIT')) {
-          friendlyMsg = '⚠️ โควตาการใช้งานเต็มชั่วคราว (Quota Exceeded): กรุณารอสักครู่แล้วลองใหม่ หรือสร้าง API Key จากโปรเจกต์ใหม่ใน Google AI Studio';
-        }
-
-        setApiKeyTestResult({
-          success: false,
-          message: friendlyMsg
-        });
-        return;
-      }
-      // 2. Server fallback if available
-      try {
-        const serverRes = await api.post('/ai-ocr/test-key', { apiKey: key });
-        setApiKeyTestResult({ success: true, message: serverRes.data.message });
-      } catch (err) {
-        const msg = err.response?.data?.message || directErr.message || 'ไม่สามารถเชื่อมต่อกับ Google AI ได้ กรุณาตรวจสอบอินเทอร์เน็ตหรือความถูกต้องของ API Key';
-        setApiKeyTestResult({ success: false, message: msg });
-      }
-    } finally {
-      setApiKeyTestLoading(false);
-    }
-  };
+  // Test function removed
 
   const fileToBase64 = (f) => new Promise((resolve, reject) => {
     const reader = new FileReader();
@@ -240,7 +187,7 @@ const IssuePolicyNonMotorForm = () => {
     reader.readAsDataURL(f);
   });
 
-  const extractDirectFromGemini = async (files, apiKey) => {
+  const extractDirectFromGemini = async (files) => {
     const parts = [{ text: GEMINI_EXTRACT_PROMPT }];
     for (const file of files) {
       const base64Data = await fileToBase64(file);
@@ -248,38 +195,22 @@ const IssuePolicyNonMotorForm = () => {
       parts.push({ inline_data: { mime_type: mimeType, data: base64Data } });
     }
 
-    const modelsToTry = ['gemini-3.5-flash-lite', 'gemini-3.5-flash', 'gemini-3.1-flash-lite', 'gemini-flash-latest'];
-    let lastErr = null;
-    
-    for (const modelName of modelsToTry) {
-      try {
-        const res = await axios.post(
-          `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${encodeURIComponent(apiKey)}`,
-          {
-            contents: [
-              { parts }
-            ],
-            generationConfig: { responseMimeType: "application/json", temperature: 0.0 }
-          },
-          { timeout: 35000 }
-        );
-        const jsonText = res.data?.candidates?.[0]?.content?.parts?.[0]?.text;
-        if (jsonText) {
-          return JSON.parse(jsonText);
-        }
-      } catch (err) {
-        lastErr = err;
-        console.warn(`Direct model ${modelName} error:`, err.response?.data || err.message);
+    try {
+      const res = await api.post('/ai/analyze', { parts });
+      const jsonText = res.data?.candidates?.[0]?.content?.parts?.[0]?.text;
+      if (jsonText) {
+        return JSON.parse(jsonText);
       }
+      throw new Error('No valid response from AI');
+    } catch (err) {
+      console.warn('AI Analysis error:', err.response?.data || err.message);
+      throw err;
     }
-    throw lastErr || new Error('Direct Gemini extraction failed');
   };
 
   const handleAIExtract = async (e) => {
     const rawFiles = Array.from(e.target.files);
     if (!rawFiles.length) return;
-
-    let geminiApiKey = localStorage.getItem('geminiApiKey') || '';
 
     setOcrLoading(true);
     setOcrSeconds(0);
@@ -302,20 +233,14 @@ const IssuePolicyNonMotorForm = () => {
         formData.append('images', compressedFile);
       }
 
-      const headers = {};
-      if (geminiApiKey) {
-        headers['x-gemini-api-key'] = geminiApiKey;
-      }
-
       // 2. Call API (Backend handles multiple images automatically)
       let rawAiRes = null;
       try {
-        const res = await api.post('/ai-ocr/extract', formData, { headers });
+        const res = await api.post('/ai-ocr/extract', formData);
         rawAiRes = res.data;
       } catch (serverErr) {
-        console.warn('Server OCR route not available, falling back to direct client-side Gemini Vision...', serverErr.message);
-        const activeKey = geminiApiKey || DEFAULT_SERVER_KEY;
-        rawAiRes = await extractDirectFromGemini(compressedFiles, activeKey);
+        console.warn('Server OCR route not available, falling back to new backend ai/analyze route...', serverErr.message);
+        rawAiRes = await extractDirectFromGemini(compressedFiles);
       }
 
       const data = sanitizeAIResponse(rawAiRes);
@@ -493,15 +418,8 @@ const IssuePolicyNonMotorForm = () => {
       if (typeof errMsg === 'object') {
         errMsg = errMsg.message || JSON.stringify(errMsg);
       }
-      if (errCode === 'GEMINI_API_KEY_REQUIRED' || errCode === 'INVALID_GEMINI_API_KEY') {
-        setShowApiKeyModal(true);
-        setApiKeyTestResult({
-          success: false,
-          message: `${errMsg} กรุณากรอก Gemini API Key เพื่อเริ่มใช้งาน (ขอรับฟรีได้ที่ Google AI Studio)`
-        });
-      } else {
-        alert('เกิดข้อผิดพลาดในการดึงข้อมูลด้วย AI: ' + errMsg);
-      }
+
+      alert('เกิดข้อผิดพลาดในการดึงข้อมูลด้วย AI: ' + errMsg);
     } finally {
       setOcrLoading(false);
       if (e.target) e.target.value = null; // reset input
@@ -1060,9 +978,7 @@ const IssuePolicyNonMotorForm = () => {
         ocrLoading={ocrLoading}
         ocrSeconds={ocrSeconds}
         onOpenSettings={() => {
-          setApiKeyInput(localStorage.getItem('geminiApiKey') || '');
-          setApiKeyTestResult(null);
-          setShowApiKeyModal(true);
+          alert('การตั้งค่า AI Key ถูกย้ายไปที่ Backend เพื่อความปลอดภัยแล้ว');
         }}
         onCameraClick={() => cameraScanInputRef.current && cameraScanInputRef.current.click()}
         onFileClick={() => fileInputRef.current && fileInputRef.current.click()}
@@ -1784,114 +1700,7 @@ const IssuePolicyNonMotorForm = () => {
         </Modal.Footer>
       </Modal>
 
-      {/* Gemini API Key Settings & Test Modal */}
-      <Modal show={showApiKeyModal} onHide={() => setShowApiKeyModal(false)} centered backdrop="static">
-        <Modal.Header closeButton className="border-0 pb-0">
-          <Modal.Title className="fw-bold fs-5 text-primary">
-            <i className="bi bi-key-fill me-2"></i>ตั้งค่า Gemini AI API Key
-          </Modal.Title>
-        </Modal.Header>
-        <Modal.Body className="pt-2">
-          <p className="text-muted small mb-3">
-            ระบบใช้ Gemini AI ในการอ่านเอกสารตารางกรมธรรม์และเล่มทะเบียน สามารถขอรับ API Key ได้ฟรีจาก Google AI Studio
-          </p>
-
-          <Form.Group className="mb-3">
-            <Form.Label className="fw-bold small text-secondary">
-              Gemini API Key
-              {localStorage.getItem('geminiApiKey') && (
-                <span className="badge bg-success-subtle text-success ms-2">บันทึกอยู่ในเครื่องแล้ว</span>
-              )}
-            </Form.Label>
-            <div className="input-group">
-              <Form.Control
-                type={showApiKeyText ? "text" : "password"}
-                placeholder="วาง API Key ที่นี่ (เช่น AIzaSy...)"
-                value={apiKeyInput}
-                onChange={(e) => {
-                  setApiKeyInput(e.target.value);
-                  setApiKeyTestResult(null);
-                }}
-                className="font-monospace"
-              />
-              <Button 
-                variant="outline-secondary" 
-                onClick={() => setShowApiKeyText(!showApiKeyText)}
-                title={showApiKeyText ? "ซ่อนคีย์" : "แสดงคีย์"}
-              >
-                <i className={`bi bi-eye${showApiKeyText ? '-slash' : ''}`}></i>
-              </Button>
-            </div>
-          </Form.Group>
-
-          {apiKeyTestResult && (
-            <div className={`alert alert-${apiKeyTestResult.success ? 'success' : 'danger'} py-2 px-3 small mb-3 border-0 rounded-3`}>
-              <i className={`bi bi-${apiKeyTestResult.success ? 'check-circle-fill' : 'exclamation-circle-fill'} me-2`}></i>
-              {apiKeyTestResult.message}
-            </div>
-          )}
-
-          <div className="d-flex justify-content-between align-items-center bg-light p-3 rounded-3 mb-2">
-            <div>
-              <div className="fw-bold small text-dark"><i className="bi bi-info-circle text-primary me-1"></i>ยังไม่มี API Key?</div>
-              <div className="text-muted" style={{ fontSize: '0.8rem' }}>ขอรับฟรี 100% ไม่ต้องผูกบัตรเครดิต</div>
-            </div>
-            <a 
-              href="https://aistudio.google.com/app/apikey" 
-              target="_blank" 
-              rel="noopener noreferrer" 
-              className="btn btn-sm btn-outline-primary fw-bold"
-            >
-              รับ API Key ฟรี <i className="bi bi-box-arrow-up-right ms-1"></i>
-            </a>
-          </div>
-        </Modal.Body>
-        <Modal.Footer className="border-0 pt-0 d-flex justify-content-between">
-          <Button 
-            variant="outline-danger" 
-            size="sm"
-            onClick={() => {
-              localStorage.removeItem('geminiApiKey');
-              setApiKeyInput('');
-              setApiKeyTestResult({ success: true, message: 'ล้างค่า API Key เรียบร้อยแล้ว (จะใช้คีย์ของระบบ Server ถ้ามี)' });
-            }}
-          >
-            <i className="bi bi-trash me-1"></i> ล้างคีย์
-          </Button>
-
-          <div className="d-flex gap-2">
-            <Button 
-              variant="outline-info" 
-              size="sm"
-              disabled={apiKeyTestLoading || !apiKeyInput.trim()}
-              onClick={() => handleTestApiKey(apiKeyInput)}
-              className="fw-bold"
-            >
-              {apiKeyTestLoading ? (
-                <><span className="spinner-border spinner-border-sm me-1"></span>กำลังทดสอบ...</>
-              ) : (
-                <><i className="bi bi-broadcast me-1"></i>ทดสอบเชื่อมต่อ</>
-              )}
-            </Button>
-
-            <Button 
-              variant="primary" 
-              size="sm"
-              className="fw-bold px-3"
-              onClick={() => {
-                if (apiKeyInput.trim()) {
-                  localStorage.setItem('geminiApiKey', apiKeyInput.trim());
-                } else {
-                  localStorage.removeItem('geminiApiKey');
-                }
-                setShowApiKeyModal(false);
-              }}
-            >
-              <i className="bi bi-check-lg me-1"></i> บันทึกและปิด
-            </Button>
-          </div>
-        </Modal.Footer>
-      </Modal>
+      {/* Settings Modal Removed for Security */}
     </div>
   );
 };
