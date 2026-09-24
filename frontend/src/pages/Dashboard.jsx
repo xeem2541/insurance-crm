@@ -127,28 +127,29 @@ const Dashboard = () => {
     <div className="pb-5">
       {/* Modern Hero & Filter Header */}
       <div className="card border-0 mb-4 p-4 rounded-4 shadow-sm" style={{
-        background: 'linear-gradient(135deg, #1e293b 0%, #0f172a 100%)',
+        background: 'linear-gradient(135deg, #0f172a 0%, #1e3a8a 100%)',
         color: '#ffffff',
         position: 'relative',
         overflow: 'hidden'
       }}>
+        {/* Subtle geometric overlay for corporate look */}
         <div style={{
-          position: 'absolute', top: '-60px', right: '-40px', width: '220px', height: '220px',
-          background: 'radial-gradient(circle, rgba(59, 130, 246, 0.25) 0%, rgba(0,0,0,0) 70%)',
-          borderRadius: '50%', pointerEvents: 'none'
+          position: 'absolute', top: 0, right: 0, bottom: 0, left: 0,
+          backgroundImage: 'linear-gradient(rgba(255, 255, 255, 0.05) 1px, transparent 1px), linear-gradient(90deg, rgba(255, 255, 255, 0.05) 1px, transparent 1px)',
+          backgroundSize: '30px 30px', opacity: 0.3, pointerEvents: 'none'
         }}></div>
 
         <div className="row align-items-center position-relative" style={{ zIndex: 1 }}>
           <div className="col-lg-7 mb-3 mb-lg-0">
             <div className="d-flex align-items-center gap-2 mb-2">
-              <span className="badge px-3 py-1 rounded-pill" style={{ background: 'rgba(255,255,255,0.1)', color: '#cba153', border: '1px solid rgba(203,161,83,0.3)', fontSize: '0.8rem' }}>
-                <i className="bi bi-shield-check me-1"></i> Apple Insurance Dashboard
+              <span className="badge px-3 py-1 rounded-pill" style={{ background: 'rgba(217, 119, 6, 0.2)', color: '#fbbf24', border: '1px solid rgba(251, 191, 36, 0.4)', fontSize: '0.8rem' }}>
+                <i className="bi bi-shield-check me-1"></i> Apple Insurance CRM
               </span>
               <span className="text-white-50 small">
                 {currentDate.toLocaleDateString('th-TH', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
               </span>
             </div>
-            <h2 className="fw-bold mb-2" style={{ fontFamily: "'IBM Plex Sans Thai', 'Sarabun', sans-serif", color: '#f8f9fa', letterSpacing: '-0.5px' }}>
+            <h2 className="fw-bold mb-2" style={{ fontFamily: "'IBM Plex Sans Thai', 'Sarabun', sans-serif", color: '#ffffff', letterSpacing: '-0.5px' }}>
               ภาพรวมระบบและการบริหารงาน
             </h2>
             <p className="text-white-50 mb-0 small" style={{ maxWidth: '560px' }}>
@@ -160,7 +161,7 @@ const Dashboard = () => {
             <div className="d-flex gap-2 flex-grow-1 flex-lg-grow-0">
               <select 
                 className="form-select fw-bold py-2 shadow-sm" 
-                style={{ borderRadius: '12px', fontSize: '0.88rem', background: '#ffffff', color: '#1e293b', minWidth: '130px' }}
+                style={{ borderRadius: '12px', fontSize: '0.88rem', background: '#ffffff', color: '#0f172a', minWidth: '130px', border: '2px solid transparent' }}
                 value={filterMonth} 
                 onChange={(e) => setFilterMonth(e.target.value)}
               >
@@ -170,7 +171,7 @@ const Dashboard = () => {
               </select>
               <select 
                 className="form-select fw-bold py-2 shadow-sm" 
-                style={{ borderRadius: '12px', fontSize: '0.88rem', background: '#ffffff', color: '#1e293b', minWidth: '100px' }}
+                style={{ borderRadius: '12px', fontSize: '0.88rem', background: '#ffffff', color: '#0f172a', minWidth: '100px', border: '2px solid transparent' }}
                 value={filterYear} 
                 onChange={(e) => setFilterYear(e.target.value)}
               >
@@ -181,20 +182,79 @@ const Dashboard = () => {
             </div>
             <Link 
               to="/issue-policy-motor" 
-              className="btn btn-success fw-bold px-3 py-2 rounded-3 shadow-sm d-flex align-items-center justify-content-center gap-2 text-nowrap"
-              style={{ background: 'linear-gradient(45deg, #00b09b, #96c93d)', border: 'none' }}
+              className="btn fw-bold px-3 py-2 rounded-3 shadow-sm d-flex align-items-center justify-content-center gap-2 text-nowrap"
+              style={{ background: '#10b981', color: 'white', border: 'none' }}
             >
-              <i className="bi bi-car-front-fill"></i>
-              <span>+ ออกกรมธรรม์ (Motor)</span>
+              <i className="bi bi-shield-check"></i>
+              <span>ออกกรมธรรม์ (Motor)</span>
             </Link>
             <Link 
               to="/issue-policy-non-motor" 
-              className="btn btn-primary fw-bold px-3 py-2 rounded-3 shadow-sm d-flex align-items-center justify-content-center gap-2 text-nowrap"
-              style={{ background: 'linear-gradient(45deg, #3b82f6, #60a5fa)', border: 'none' }}
+              className="btn fw-bold px-3 py-2 rounded-3 shadow-sm d-flex align-items-center justify-content-center gap-2 text-nowrap"
+              style={{ background: '#3b82f6', color: 'white', border: 'none' }}
             >
               <i className="bi bi-shield-plus"></i>
-              <span>+ ออกกรมธรรม์ (Non-Motor)</span>
+              <span>ออกกรมธรรม์ (Non-Motor)</span>
             </Link>
+          </div>
+        </div>
+      </div>
+
+      {/* Critical Alert Banner (Moved to top) */}
+      <div className="row mb-4">
+        <div className="col-12">
+          <div className="card shadow-sm rounded-4 overflow-hidden" style={{ border: 'none', borderLeft: '5px solid #f59e0b', background: 'var(--bs-body-bg)' }}>
+            <div className="card-header bg-transparent border-bottom-0 py-3 d-flex justify-content-between align-items-center flex-wrap gap-2">
+              <h5 className="mb-0 fw-bold d-flex align-items-center gap-2" style={{ fontFamily: "'IBM Plex Sans Thai', 'Sarabun', sans-serif", color: '#d97706' }}>
+                <i className="bi bi-exclamation-triangle-fill" style={{ animation: 'pulse-orange 2s infinite' }}></i>
+                <span>แจ้งเตือนประกันใกล้หมดอายุ (ภายใน 90 วัน) - ต้องรีบดำเนินการ</span>
+              </h5>
+              <Link to="/policies" className="btn btn-sm btn-outline-warning fw-bold rounded-pill px-3">
+                ดูทั้งหมด <i className="bi bi-arrow-right"></i>
+              </Link>
+            </div>
+            {stats.expiringPolicies && stats.expiringPolicies.length > 0 && (
+              <div className="card-body p-0">
+                <div className="table-responsive">
+                  <table className="table table-hover align-middle mb-0">
+                    <thead className="table-light">
+                      <tr>
+                        <th className="ps-4">ลูกค้า</th>
+                        <th>ทะเบียน / กรมธรรม์</th>
+                        <th>ประเภท</th>
+                        <th className="text-end pe-4">สถานะ</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {stats.expiringPolicies.slice(0, 5).map((p, idx) => {
+                        let badgeClass = 'bg-secondary';
+                        let label = p.category;
+                        if (p.category === 'Motor') { badgeClass = 'bg-primary'; label = 'รถยนต์'; }
+                        else if (p.category === 'Non-Motor') { badgeClass = 'bg-info text-dark'; label = 'Non-Motor'; }
+                        else if (p.category === 'Tax') { badgeClass = 'bg-primary'; label = 'ภาษีรถยนต์'; }
+                        else if (p.category === 'Act') { badgeClass = 'bg-purple'; label = 'พ.ร.บ.'; }
+
+                        return (
+                          <tr key={p.id || `exp-${idx}`}>
+                            <td className="ps-4 fw-bold">{p.first_name} {p.last_name}</td>
+                            <td className="text-muted"><code className="text-dark bg-light px-2 py-1 rounded">{p.plate_no || '-'}</code> {p.policy_no && ` | ${p.policy_no}`}</td>
+                            <td><span className={`badge ${badgeClass} rounded-pill`}>{label}</span></td>
+                            <td className="text-end pe-4">
+                              <span className="badge rounded-pill px-3 py-2 shadow-sm" style={{ background: p.days_left <= 30 ? '#ef4444' : '#f59e0b', color: 'white' }}>
+                                เหลือ {p.days_left} วัน
+                              </span>
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )}
+            {(!stats.expiringPolicies || stats.expiringPolicies.length === 0) && (
+              <div className="card-body text-center text-muted py-4">ไม่มีรายการแจ้งเตือนใกล้หมดอายุ</div>
+            )}
           </div>
         </div>
       </div>
@@ -203,44 +263,40 @@ const Dashboard = () => {
       <div className="row g-4 mb-4">
         {/* Yearly Total Sales */}
         <div className="col-12 col-sm-6 col-xl-3">
-          <div className="card card-stat-modern h-100 p-4" style={{
-            background: 'linear-gradient(135deg, #1e3a8a 0%, #1e40af 100%)',
-            color: '#ffffff',
-            border: '1px solid rgba(255,255,255,0.15)'
-          }}>
+          <div className="card h-100 p-4 border-0 shadow-sm rounded-4" style={{ borderLeft: '4px solid #1e3a8a' }}>
             <div className="d-flex justify-content-between align-items-start mb-3">
               <div>
-                <span className="text-white-50 small fw-semibold text-uppercase tracking-wider">ยอดรวมสิ้นปี (ปี {filterYear})</span>
-                <h3 className="fw-bold mt-1 mb-0 text-white" style={{ fontFamily: 'Plus Jakarta Sans, sans-serif' }}>
+                <span className="text-muted small fw-bold text-uppercase tracking-wider">ยอดรวมสิ้นปี (ปี {filterYear})</span>
+                <h2 className="fw-bolder mt-1 mb-0" style={{ fontFamily: 'Plus Jakarta Sans, sans-serif', color: '#0f172a' }}>
                   {formatMoney((parseFloat(stats.salesThisYear) || 0) + (parseFloat(stats.nmSalesThisYear) || 0))}
-                </h3>
+                </h2>
               </div>
-              <div className="icon-capsule" style={{ background: 'rgba(255,255,255,0.15)', color: '#60a5fa' }}>
-                <i className="bi bi-graph-up-arrow"></i>
+              <div className="icon-capsule" style={{ background: 'rgba(30, 58, 138, 0.1)', color: '#1e3a8a', padding: '12px', borderRadius: '12px' }}>
+                <i className="bi bi-graph-up-arrow fs-4"></i>
               </div>
             </div>
-            <div className="d-flex justify-content-between pt-2 border-top border-white-50 small text-white-50">
-              <span>Motor: {formatMoney(stats.salesThisYear)}</span>
-              <span>Non-Motor: {formatMoney(stats.nmSalesThisYear)}</span>
+            <div className="d-flex justify-content-between pt-2 border-top small fw-semibold text-muted">
+              <span><i className="bi bi-shield-check text-primary"></i> Motor: {formatMoney(stats.salesThisYear)}</span>
+              <span><i className="bi bi-house-heart text-info"></i> Non-Motor: {formatMoney(stats.nmSalesThisYear)}</span>
             </div>
           </div>
         </div>
 
         {/* Sales Selected Month */}
         <div className="col-12 col-sm-6 col-xl-3">
-          <div className="card card-stat-modern stat-emerald h-100 p-4">
+          <div className="card h-100 p-4 border-0 shadow-sm rounded-4" style={{ borderLeft: '4px solid #10b981' }}>
             <div className="d-flex justify-content-between align-items-start mb-3">
               <div>
-                <span className="text-muted small fw-semibold text-uppercase tracking-wider">ยอดขาย {filterMonth === 'all' ? '(ทั้งปี)' : '(เดือนที่เลือก)'}</span>
-                <h3 className="fw-bold mt-1 mb-0 text-success" style={{ fontFamily: 'Plus Jakarta Sans, sans-serif' }}>
+                <span className="text-muted small fw-bold text-uppercase tracking-wider">ยอดขาย {filterMonth === 'all' ? '(ทั้งปี)' : '(เดือนที่เลือก)'}</span>
+                <h2 className="fw-bolder mt-1 mb-0 text-success" style={{ fontFamily: 'Plus Jakarta Sans, sans-serif' }}>
                   {formatMoney((parseFloat(stats.salesThisMonth) || 0) + (parseFloat(stats.nmSalesThisMonth) || 0))}
-                </h3>
+                </h2>
               </div>
-              <div className="icon-capsule" style={{ background: 'rgba(16, 185, 129, 0.1)', color: '#10b981' }}>
-                <i className="bi bi-cash-stack"></i>
+              <div className="icon-capsule" style={{ background: 'rgba(16, 185, 129, 0.1)', color: '#10b981', padding: '12px', borderRadius: '12px' }}>
+                <i className="bi bi-shield-check fs-4"></i>
               </div>
             </div>
-            <div className="d-flex justify-content-between pt-2 border-top small text-muted">
+            <div className="d-flex justify-content-between pt-2 border-top small fw-semibold text-muted">
               <span>Motor: {formatMoney(stats.salesThisMonth)}</span>
               <span>Non-Motor: {formatMoney(stats.nmSalesThisMonth)}</span>
             </div>
@@ -249,19 +305,19 @@ const Dashboard = () => {
 
         {/* Commission Selected Month */}
         <div className="col-12 col-sm-6 col-xl-3">
-          <div className="card card-stat-modern stat-amber h-100 p-4">
+          <div className="card h-100 p-4 border-0 shadow-sm rounded-4" style={{ borderLeft: '4px solid #f59e0b' }}>
             <div className="d-flex justify-content-between align-items-start mb-3">
               <div>
-                <span className="text-muted small fw-semibold text-uppercase tracking-wider">คอมมิชชัน {filterMonth === 'all' ? '(ทั้งปี)' : '(เดือนที่เลือก)'}</span>
-                <h3 className="fw-bold mt-1 mb-0 text-warning" style={{ fontFamily: 'Plus Jakarta Sans, sans-serif' }}>
+                <span className="text-muted small fw-bold text-uppercase tracking-wider">คอมมิชชัน {filterMonth === 'all' ? '(ทั้งปี)' : '(เดือนที่เลือก)'}</span>
+                <h2 className="fw-bolder mt-1 mb-0 text-warning" style={{ fontFamily: 'Plus Jakarta Sans, sans-serif' }}>
                   {formatMoney((parseFloat(stats.commThisMonth) || 0) + (parseFloat(stats.nmCommThisMonth) || 0))}
-                </h3>
+                </h2>
               </div>
-              <div className="icon-capsule" style={{ background: 'rgba(245, 158, 11, 0.1)', color: '#f59e0b' }}>
-                <i className="bi bi-percent"></i>
+              <div className="icon-capsule" style={{ background: 'rgba(245, 158, 11, 0.1)', color: '#f59e0b', padding: '12px', borderRadius: '12px' }}>
+                <i className="bi bi-percent fs-4"></i>
               </div>
             </div>
-            <div className="d-flex justify-content-between pt-2 border-top small text-muted">
+            <div className="d-flex justify-content-between pt-2 border-top small fw-semibold text-muted">
               <span>Motor: {formatMoney(stats.commThisMonth)}</span>
               <span>Non-Motor: {formatMoney(stats.nmCommThisMonth)}</span>
             </div>
@@ -270,19 +326,19 @@ const Dashboard = () => {
 
         {/* New Customers This Month */}
         <div className="col-12 col-sm-6 col-xl-3">
-          <div className="card card-stat-modern stat-purple h-100 p-4">
+          <div className="card h-100 p-4 border-0 shadow-sm rounded-4" style={{ borderLeft: '4px solid #6366f1' }}>
             <div className="d-flex justify-content-between align-items-start mb-3">
               <div>
-                <span className="text-muted small fw-semibold text-uppercase tracking-wider">ลูกค้าใหม่ {filterMonth === 'all' ? '(ทั้งปี)' : '(เดือนที่เลือก)'}</span>
-                <h3 className="fw-bold mt-1 mb-0 text-primary" style={{ fontFamily: 'Plus Jakarta Sans, sans-serif' }}>
+                <span className="text-muted small fw-bold text-uppercase tracking-wider">ลูกค้าใหม่ {filterMonth === 'all' ? '(ทั้งปี)' : '(เดือนที่เลือก)'}</span>
+                <h2 className="fw-bolder mt-1 mb-0 text-primary" style={{ fontFamily: 'Plus Jakarta Sans, sans-serif' }}>
                   {stats.newCustomersThisMonth || 0} <span className="fs-6 fw-normal text-muted">ราย</span>
-                </h3>
+                </h2>
               </div>
-              <div className="icon-capsule" style={{ background: 'rgba(99, 102, 241, 0.1)', color: '#6366f1' }}>
-                <i className="bi bi-people-fill"></i>
+              <div className="icon-capsule" style={{ background: 'rgba(99, 102, 241, 0.1)', color: '#6366f1', padding: '12px', borderRadius: '12px' }}>
+                <i className="bi bi-person-check-fill fs-4"></i>
               </div>
             </div>
-            <div className="pt-2 border-top small text-muted">
+            <div className="pt-2 border-top small fw-semibold text-muted">
               ลูกค้าในระบบทั้งหมด: <span className="fw-bold text-dark">{stats.totalCustomers || 0}</span> ราย
             </div>
           </div>
@@ -293,55 +349,60 @@ const Dashboard = () => {
       <div className="row g-4 mb-4">
         {/* Cash Sales */}
         <div className="col-12 col-sm-6 col-xl-3">
-          <div className="card card-stat-modern h-100 p-4">
+          <div className="card h-100 p-4 border-0 shadow-sm rounded-4" style={{ borderLeft: '4px solid #64748b' }}>
             <div className="d-flex justify-content-between align-items-start mb-2">
               <div>
-                <span className="text-muted small fw-semibold">ยอดเงินสด (รวม)</span>
-                <h4 className="fw-bold mt-1 mb-0 text-secondary" style={{ fontFamily: 'Plus Jakarta Sans, sans-serif' }}>
+                <span className="text-muted small fw-bold">ยอดเงินสด (รวม)</span>
+                <h3 className="fw-bold mt-1 mb-0 text-secondary" style={{ fontFamily: 'Plus Jakarta Sans, sans-serif' }}>
                   {formatMoney(stats.cashSalesTotal || 0)}
-                </h4>
+                </h3>
               </div>
-              <div className="icon-capsule" style={{ background: 'rgba(234, 88, 12, 0.1)', color: '#ea580c' }}>
-                <i className="bi bi-wallet2"></i>
+              <div className="icon-capsule" style={{ background: 'rgba(100, 116, 139, 0.1)', color: '#64748b', padding: '10px', borderRadius: '10px' }}>
+                <i className="bi bi-wallet2 fs-5"></i>
               </div>
             </div>
-            <div className="small text-muted pt-2 border-top">รับชำระเงินสดเต็มจำนวน</div>
+            <div className="small text-muted pt-2 border-top fw-semibold">รับชำระเงินสดเต็มจำนวน</div>
           </div>
         </div>
         
         {/* Installment Sales */}
         <div className="col-12 col-sm-6 col-xl-3">
-          <div className="card card-stat-modern h-100 p-4">
+          <div className="card h-100 p-4 border-0 shadow-sm rounded-4" style={{ borderLeft: '4px solid #3b82f6' }}>
             <div className="d-flex justify-content-between align-items-start mb-2">
               <div>
-                <span className="text-muted small fw-semibold">ยอดเงินผ่อน (รวม)</span>
-                <h4 className="fw-bold mt-1 mb-0 text-primary" style={{ fontFamily: 'Plus Jakarta Sans, sans-serif' }}>
+                <span className="text-muted small fw-bold">ยอดเงินผ่อน (รวม)</span>
+                <h3 className="fw-bold mt-1 mb-0 text-primary" style={{ fontFamily: 'Plus Jakarta Sans, sans-serif' }}>
                   {formatMoney(stats.installmentSalesTotal || 0)}
-                </h4>
+                </h3>
               </div>
-              <div className="icon-capsule" style={{ background: 'rgba(59, 130, 246, 0.1)', color: '#3b82f6' }}>
-                <i className="bi bi-credit-card-fill"></i>
+              <div className="icon-capsule" style={{ background: 'rgba(59, 130, 246, 0.1)', color: '#3b82f6', padding: '10px', borderRadius: '10px' }}>
+                <i className="bi bi-credit-card-fill fs-5"></i>
               </div>
             </div>
-            <div className="small text-muted pt-2 border-top">ยอดสัญญาเงินผ่อนทั้งหมด</div>
+            <div className="small text-muted pt-2 border-top fw-semibold">ยอดสัญญาเงินผ่อนทั้งหมด</div>
           </div>
         </div>
         
         {/* Unpaid / Overdue */}
         <div className="col-12 col-sm-6 col-xl-3">
-          <div className="card card-stat-modern stat-rose h-100 p-4">
+          <div className="card h-100 p-4 border-0 shadow-sm rounded-4 position-relative" style={{ borderLeft: '4px solid #b91c1c', backgroundColor: 'var(--bs-body-bg)' }}>
+            {(stats.overdueCustomersCount > 0) && (
+              <span className="position-absolute top-0 start-100 translate-middle p-2 bg-danger border border-light rounded-circle" style={{ animation: 'pulse-red 2s infinite' }}>
+                <span className="visually-hidden">New alerts</span>
+              </span>
+            )}
             <div className="d-flex justify-content-between align-items-start mb-2">
               <div>
-                <span className="text-muted small fw-semibold">ยอดค้างชำระผ่อน</span>
-                <h4 className="fw-bold mt-1 mb-0 text-danger" style={{ fontFamily: 'Plus Jakarta Sans, sans-serif' }}>
+                <span className="text-muted small fw-bold">ยอดค้างชำระผ่อน</span>
+                <h3 className="fw-bold mt-1 mb-0 text-danger" style={{ fontFamily: 'Plus Jakarta Sans, sans-serif' }}>
                   {formatMoney(stats.unpaidInstallmentTotal || 0)}
-                </h4>
+                </h3>
               </div>
-              <div className="icon-capsule" style={{ background: 'rgba(244, 63, 94, 0.1)', color: '#f43f5e' }}>
-                <i className="bi bi-exclamation-octagon-fill"></i>
+              <div className="icon-capsule" style={{ background: 'rgba(185, 28, 28, 0.1)', color: '#b91c1c', padding: '10px', borderRadius: '10px' }}>
+                <i className="bi bi-exclamation-octagon-fill fs-5"></i>
               </div>
             </div>
-            <div className="small text-danger pt-2 border-top fw-semibold">
+            <div className="small pt-2 border-top fw-bold" style={{ color: stats.overdueCustomersCount > 0 ? '#b91c1c' : '#64748b' }}>
               ค้างชำระ: {stats.overdueCustomersCount || 0} ราย
             </div>
           </div>
@@ -349,19 +410,19 @@ const Dashboard = () => {
         
         {/* Collected this month */}
         <div className="col-12 col-sm-6 col-xl-3">
-          <div className="card card-stat-modern stat-emerald h-100 p-4">
+          <div className="card h-100 p-4 border-0 shadow-sm rounded-4" style={{ borderLeft: '4px solid #059669' }}>
             <div className="d-flex justify-content-between align-items-start mb-2">
               <div>
-                <span className="text-muted small fw-semibold">ยอดเก็บค่างวด {filterMonth === 'all' ? '(ทั้งปี)' : '(เดือนนี้)'}</span>
-                <h4 className="fw-bold mt-1 mb-0 text-success" style={{ fontFamily: 'Plus Jakarta Sans, sans-serif' }}>
+                <span className="text-muted small fw-bold">ยอดเก็บค่างวด {filterMonth === 'all' ? '(ทั้งปี)' : '(เดือนนี้)'}</span>
+                <h3 className="fw-bold mt-1 mb-0 text-success" style={{ fontFamily: 'Plus Jakarta Sans, sans-serif' }}>
                   {formatMoney(stats.collectedThisMonth || 0)}
-                </h4>
+                </h3>
               </div>
-              <div className="icon-capsule" style={{ background: 'rgba(16, 185, 129, 0.1)', color: '#10b981' }}>
-                <i className="bi bi-check-circle-fill"></i>
+              <div className="icon-capsule" style={{ background: 'rgba(5, 150, 105, 0.1)', color: '#059669', padding: '10px', borderRadius: '10px' }}>
+                <i className="bi bi-check-circle-fill fs-5"></i>
               </div>
             </div>
-            <div className="small text-success pt-2 border-top fw-semibold">รับชำระค่างวดสำเร็จ</div>
+            <div className="small text-success pt-2 border-top fw-bold">รับชำระค่างวดสำเร็จ</div>
           </div>
         </div>
       </div>
@@ -410,68 +471,43 @@ const Dashboard = () => {
       </div>
 
       <div className="row g-4 mb-4">
-        <div className="col-lg-6">
-          <div className="card shadow-sm border-0 rounded-4 h-100 overflow-hidden">
-            <div className="card-header bg-danger-subtle border-bottom py-3">
-              <h5 className="mb-0 fw-bold text-danger d-flex align-items-center gap-2" style={{ fontFamily: "'IBM Plex Sans Thai', 'Sarabun', sans-serif" }}>
-                <i className="bi bi-bell-fill"></i>
-                <span>แจ้งเตือนประกันใกล้หมดอายุ (ภายใน 90 วัน)</span>
-              </h5>
-            </div>
-            <div className="card-body p-0">
-              <ul className="list-group list-group-flush">
-                {stats.expiringPolicies && stats.expiringPolicies.length > 0 ? stats.expiringPolicies.slice(0, 8).map((p, idx) => {
-                  let badgeClass = 'bg-secondary';
-                  let label = p.category;
-                  if (p.category === 'Motor') { badgeClass = 'bg-primary'; label = 'รถยนต์'; }
-                  else if (p.category === 'Non-Motor') { badgeClass = 'bg-info text-dark'; label = 'Non-Motor'; }
-                  else if (p.category === 'Tax') { badgeClass = 'bg-primary'; label = 'ภาษีรถยนต์'; }
-                  else if (p.category === 'Act') { badgeClass = 'bg-purple'; label = 'พ.ร.บ.'; }
-
-                  return (
-                    <li className="list-group-item d-flex justify-content-between align-items-center py-3 px-4" key={p.id || `exp-${idx}`}>
-                      <div>
-                        <div className="fw-bold text-dark d-flex align-items-center gap-2">
-                          {p.first_name} {p.last_name}
-                          <span className={`badge ${badgeClass} rounded-pill`} style={p.category === 'Act' ? {backgroundColor: '#9C27B0'} : {}}>{label}</span>
-                        </div>
-                        <div className="text-muted small">ทะเบียน: {p.plate_no || '-'} | กรมธรรม์: {p.policy_no || '-'}</div>
-                      </div>
-                      <span className="badge bg-danger rounded-pill px-3 py-2">เหลือ {p.days_left} วัน</span>
-                    </li>
-                  );
-                }) : (
-                  <li className="list-group-item text-center text-muted py-5">ไม่มีรายการแจ้งเตือน</li>
-                )}
-              </ul>
-            </div>
-          </div>
-        </div>
+        {/* (Removed Expiring Policies section from here, moved to top) */}
         
-        <div className="col-lg-6">
-          <div className="card shadow-sm border-0 rounded-4 h-100 overflow-hidden">
-            <div className="card-header bg-warning-subtle border-bottom py-3">
-              <h5 className="mb-0 fw-bold text-dark d-flex align-items-center gap-2" style={{ fontFamily: "'IBM Plex Sans Thai', 'Sarabun', sans-serif" }}>
+        <div className="col-lg-12">
+          <div className="card shadow-sm border-0 rounded-4 h-100 overflow-hidden" style={{ borderTop: '4px solid #fbbf24' }}>
+            <div className="card-header bg-transparent border-bottom py-3">
+              <h5 className="mb-0 fw-bold d-flex align-items-center gap-2" style={{ fontFamily: "'IBM Plex Sans Thai', 'Sarabun', sans-serif" }}>
                 <i className="bi bi-trophy-fill text-warning"></i>
                 <span>Top 10 พนักงานขาย (ปี {filterYear})</span>
               </h5>
             </div>
             <div className="card-body p-0">
-              <ul className="list-group list-group-flush">
-                {stats.topSales && stats.topSales.length > 0 ? stats.topSales.map((s, idx) => (
-                  <li className="list-group-item d-flex justify-content-between align-items-center py-3 px-4" key={idx}>
-                    <div className="d-flex align-items-center gap-2">
-                      <span className={`badge rounded-circle ${idx === 0 ? 'bg-warning text-dark' : idx === 1 ? 'bg-secondary text-white' : idx === 2 ? 'bg-bronze text-white' : 'bg-light text-dark border'}`} style={{ width: '28px', height: '28px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                        {idx + 1}
-                      </span>
-                      <span className="fw-bold text-dark">{s.name}</span>
-                    </div>
-                    <span className="fw-bold text-success" style={{ fontFamily: 'Plus Jakarta Sans, sans-serif' }}>{formatMoney(s.total_sales)}</span>
-                  </li>
-                )) : (
-                  <li className="list-group-item text-center text-muted py-5">ไม่มีข้อมูลพนักงานขาย</li>
-                )}
-              </ul>
+              <div className="table-responsive">
+                <table className="table table-hover align-middle mb-0">
+                  <thead className="table-light">
+                    <tr>
+                      <th className="ps-4">อันดับ</th>
+                      <th>พนักงานขาย</th>
+                      <th className="text-end pe-4">ยอดขายรวม</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {stats.topSales && stats.topSales.length > 0 ? stats.topSales.map((s, idx) => (
+                      <tr key={idx}>
+                        <td className="ps-4">
+                          <span className={`badge rounded-circle ${idx === 0 ? 'bg-warning text-dark' : idx === 1 ? 'bg-secondary text-white' : idx === 2 ? 'bg-bronze text-white' : 'bg-light text-dark border'}`} style={{ width: '28px', height: '28px', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>
+                            {idx + 1}
+                          </span>
+                        </td>
+                        <td className="fw-bold">{s.name}</td>
+                        <td className="fw-bold text-success text-end pe-4" style={{ fontFamily: 'Plus Jakarta Sans, sans-serif' }}>{formatMoney(s.total_sales)}</td>
+                      </tr>
+                    )) : (
+                      <tr><td colSpan="3" className="text-center text-muted py-5">ไม่มีข้อมูลพนักงานขาย</td></tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
             </div>
           </div>
         </div>

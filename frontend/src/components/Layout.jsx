@@ -90,22 +90,24 @@ const Layout = () => {
   };
 
   const menuItems = [
-    { path: '/', label: 'ภาพรวมระบบ', icon: 'bi-grid-1x2-fill', color: '#38bdf8', roles: ['Admin', 'Manager', 'Staff', 'Sales', 'Viewer'] },
-    { path: '/issue-policy-motor', label: 'ออกกรมธรรม์ (Motor)', icon: 'bi-car-front-fill', color: '#34d399', badge: 'AI 100%', badgeBg: 'linear-gradient(45deg, #10b981, #059669)', roles: ['Admin', 'Manager', 'Staff', 'Sales'] },
-    { path: '/issue-policy-non-motor', label: 'ออกกรมธรรม์ (Non-Motor)', icon: 'bi-shield-plus', color: '#f472b6', roles: ['Admin', 'Manager', 'Staff', 'Sales'] },
-    { path: '/calendar', label: 'ปฏิทินงาน', icon: 'bi-calendar3', color: '#fbbf24', roles: ['Admin', 'Manager', 'Staff', 'Sales', 'Viewer'] },
-    { path: '/customers', label: 'ข้อมูลลูกค้า', icon: 'bi-people-fill', color: '#a78bfa', roles: ['Admin', 'Manager', 'Staff', 'Sales', 'Viewer'] },
-    { path: '/policies', label: 'Motor Insurance (รถยนต์)', icon: 'bi-shield-fill-check', color: '#60a5fa', roles: ['Admin', 'Manager', 'Staff', 'Sales', 'Viewer'] },
-    { path: '/non-motor', label: 'Non-Motor (ประกันอื่น)', icon: 'bi-shield-plus', color: '#f472b6', roles: ['Admin', 'Manager', 'Staff', 'Sales', 'Viewer'] },
-    { path: '/payments', label: 'ระบบรับชำระเงิน', icon: 'bi-wallet2', color: '#4ade80', roles: ['Admin', 'Manager', 'Staff', 'Sales'] },
-    { path: '/line-admin', label: 'LINE Admin', icon: 'bi-chat-dots-fill', color: '#10b981', roles: ['Admin', 'Manager', 'Staff'] },
-    { path: '/documents', label: 'ระบบเอกสาร', icon: 'bi-file-earmark-medical-fill', color: '#2dd4bf', roles: ['Admin', 'Manager', 'Staff', 'Sales', 'Viewer'] },
-    { path: '/reports', label: 'รายงาน', icon: 'bi-bar-chart-line-fill', color: '#fb923c', roles: ['Admin', 'Manager', 'Sales'] },
-    { path: '/activity-logs', label: 'ประวัติการทำงาน (Logs)', icon: 'bi-clock-history', color: '#ec4899', roles: ['Admin', 'Manager'] },
+    { category: 'ส่วนงานขายและบริการ' },
+    { path: '/issue-policy-motor', label: 'ออกกรมธรรม์ (Motor)', icon: 'bi-car-front-fill', color: '#10b981', badge: 'AI 100%', badgeBg: 'linear-gradient(45deg, #10b981, #059669)', roles: ['Admin', 'Manager', 'Staff', 'Sales'] },
+    { path: '/issue-policy-non-motor', label: 'ออกกรมธรรม์ (Non-Motor)', icon: 'bi-house-heart-fill', color: '#3b82f6', roles: ['Admin', 'Manager', 'Staff', 'Sales'] },
+    { path: '/customers', label: 'ข้อมูลลูกค้า', icon: 'bi-person-check-fill', color: '#6366f1', roles: ['Admin', 'Manager', 'Staff', 'Sales', 'Viewer'] },
+    { path: '/policies', label: 'Motor Insurance', icon: 'bi-shield-check', color: '#0ea5e9', roles: ['Admin', 'Manager', 'Staff', 'Sales', 'Viewer'] },
+    { path: '/non-motor', label: 'Non-Motor Insurance', icon: 'bi-shield-plus', color: '#8b5cf6', roles: ['Admin', 'Manager', 'Staff', 'Sales', 'Viewer'] },
+    { path: '/payments', label: 'ระบบรับชำระเงิน', icon: 'bi-wallet2', color: '#f59e0b', roles: ['Admin', 'Manager', 'Staff', 'Sales'] },
+    { category: 'ระบบจัดการและรายงาน' },
+    { path: '/', label: 'ภาพรวมระบบ (Dashboard)', icon: 'bi-grid-1x2-fill', color: '#fbbf24', roles: ['Admin', 'Manager', 'Staff', 'Sales', 'Viewer'] },
+    { path: '/calendar', label: 'ปฏิทินงาน', icon: 'bi-calendar-event', color: '#14b8a6', roles: ['Admin', 'Manager', 'Staff', 'Sales', 'Viewer'] },
+    { path: '/line-admin', label: 'LINE Admin', icon: 'bi-chat-dots-fill', color: '#22c55e', roles: ['Admin', 'Manager', 'Staff'] },
+    { path: '/documents', label: 'ระบบเอกสาร', icon: 'bi-file-earmark-medical-fill', color: '#64748b', roles: ['Admin', 'Manager', 'Staff', 'Sales', 'Viewer'] },
+    { path: '/reports', label: 'รายงาน', icon: 'bi-bar-chart-line-fill', color: '#f97316', roles: ['Admin', 'Manager', 'Sales'] },
+    { path: '/activity-logs', label: 'ประวัติการทำงาน', icon: 'bi-clock-history', color: '#ec4899', roles: ['Admin', 'Manager'] },
     { path: '/master-data', label: 'ตั้งค่าระบบ', icon: 'bi-gear-fill', color: '#94a3b8', roles: ['Admin', 'Manager'] }
   ];
 
-  const filteredMenuItems = menuItems.filter(item => item.roles.includes(user?.role));
+  const filteredMenuItems = menuItems.filter(item => item.category || (item.roles && item.roles.includes(user?.role)));
 
   return (
     <div className={`d-flex ${darkMode ? 'bg-dark text-light' : 'bg-light text-dark'}`} style={{ minHeight: '100vh' }}>
@@ -123,12 +125,12 @@ const Layout = () => {
               style={{ 
                 width: '48px', 
                 height: '48px', 
-                backgroundColor: '#020617',
-                border: '2px solid rgba(212, 175, 55, 0.75)',
-                boxShadow: '0 0 14px rgba(212, 175, 55, 0.35)',
-                borderRadius: '14px',
+                background: 'linear-gradient(135deg, #0f172a 0%, #1e3a8a 100%)',
+                border: '2px solid rgba(212, 175, 55, 0.8)',
+                boxShadow: '0 4px 12px rgba(15, 23, 42, 0.4), inset 0 0 8px rgba(212, 175, 55, 0.3)',
+                borderRadius: '12px',
                 overflow: 'hidden',
-                padding: '2px'
+                padding: '3px'
               }}
             >
               <img 
@@ -177,11 +179,10 @@ const Layout = () => {
           </button>
         </div>
 
-        {/* Status Capsule: AI & Database 24/7 Connected */}
-        <div className="mx-3 my-2 p-2 rounded-3 text-center" style={{ background: 'rgba(255, 255, 255, 0.04)', border: '1px solid rgba(255, 255, 255, 0.08)' }}>
+        <div className="mx-3 my-2 p-2 rounded-3 text-center position-relative overflow-hidden" style={{ background: 'linear-gradient(90deg, rgba(15,23,42,0.3) 0%, rgba(30,58,138,0.2) 100%)', border: '1px solid rgba(255, 255, 255, 0.08)' }}>
           <div className="d-flex align-items-center justify-content-center gap-2 mb-1">
-            <span className="pulse-dot-online"></span>
-            <span style={{ color: '#00ff88', fontSize: '0.76rem', fontWeight: '600', letterSpacing: '0.3px', fontFamily: "'Inter', sans-serif" }}>AI OCR Gemini Ready</span>
+            <span className="pulse-dot-online" style={{ animation: 'pulse-green 2s infinite' }}></span>
+            <span style={{ color: '#00ff88', fontSize: '0.76rem', fontWeight: '700', letterSpacing: '0.3px', fontFamily: "'Inter', sans-serif" }}>AI OCR Gemini Ready</span>
           </div>
           <div className="d-flex align-items-center justify-content-center gap-1" style={{ borderTop: '1px solid rgba(255, 255, 255, 0.06)', paddingTop: '4px' }}>
             <i className="bi bi-database-check" style={{ color: '#38bdf8', fontSize: '0.75rem' }}></i>
@@ -190,28 +191,54 @@ const Layout = () => {
         </div>
         
         <ul className="nav flex-column mb-auto px-2 mt-2">
-          <li className="nav-item mb-2 px-3">
-            <small className="text-white-50 fw-bold text-uppercase" style={{ letterSpacing: '1.2px', fontSize: '0.7rem' }}>เมนูหลัก</small>
-          </li>
-          {filteredMenuItems.map(item => (
-            <li className="nav-item w-100 mb-1" key={item.path}>
-              <Link 
-                to={item.path} 
-                className={`nav-link ${location.pathname === item.path ? 'active' : ''}`}
-                onClick={() => setIsSidebarOpen(false)}
-              >
-                <span className="menu-icon-box" style={{ color: item.color }}>
-                  <i className={`bi ${item.icon}`}></i>
-                </span>
-                <span className="flex-grow-1 text-truncate">{item.label}</span>
-                {item.badge && (
-                  <span className="badge rounded-pill px-2 py-1 ms-auto shadow-sm" style={{ background: item.badgeBg || '#3b82f6', fontSize: '0.68rem', color: '#ffffff', fontWeight: '700', letterSpacing: '0.3px' }}>
-                    {item.badge}
+          {filteredMenuItems.map((item, index) => {
+            if (item.category) {
+              return (
+                <li className="nav-item mb-1 mt-3 px-3" key={`cat-${index}`}>
+                  <small className="fw-bold text-uppercase" style={{ letterSpacing: '1px', fontSize: '0.7rem', color: '#64748b' }}>{item.category}</small>
+                </li>
+              );
+            }
+            const isActive = location.pathname === item.path;
+            return (
+              <li className="nav-item w-100 mb-1" key={item.path}>
+                <Link 
+                  to={item.path} 
+                  className={`nav-link premium-nav-link ${isActive ? 'active' : ''}`}
+                  onClick={() => setIsSidebarOpen(false)}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    padding: '10px 16px',
+                    borderRadius: '8px',
+                    color: isActive ? (darkMode ? '#ffffff' : '#0f172a') : (darkMode ? '#94a3b8' : '#475569'),
+                    background: isActive ? (darkMode ? 'rgba(30, 58, 138, 0.3)' : 'rgba(241, 245, 249, 0.8)') : 'transparent',
+                    borderLeft: isActive ? '4px solid #fbbf24' : '4px solid transparent',
+                    fontWeight: isActive ? '600' : '500',
+                    transition: 'all 0.2s ease',
+                    textDecoration: 'none'
+                  }}
+                >
+                  <span className="menu-icon-box" style={{ 
+                    color: isActive ? item.color : (darkMode ? '#64748b' : '#94a3b8'),
+                    marginRight: '12px',
+                    fontSize: '1.1rem',
+                    display: 'flex',
+                    alignItems: 'center',
+                    transition: 'color 0.2s ease'
+                  }}>
+                    <i className={`bi ${item.icon}`}></i>
                   </span>
-                )}
-              </Link>
-            </li>
-          ))}
+                  <span className="flex-grow-1 text-truncate" style={{ fontSize: '0.88rem' }}>{item.label}</span>
+                  {item.badge && (
+                    <span className="badge rounded-pill px-2 py-1 ms-auto shadow-sm" style={{ background: item.badgeBg || '#3b82f6', fontSize: '0.65rem', color: '#ffffff', fontWeight: '700', letterSpacing: '0.3px' }}>
+                      {item.badge}
+                    </span>
+                  )}
+                </Link>
+              </li>
+            );
+          })}
         </ul>
         
         <div className="px-3 mb-4 mt-auto">
