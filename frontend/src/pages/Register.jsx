@@ -107,7 +107,7 @@ const Register = () => {
           <div className="brand-logo-wrap mb-2">
             <div className="logo-badge-container" style={{ width: '100px', height: '100px', borderRadius: '20px' }}>
               <img
-                src="/logo.png"
+                src="/logo-new.png"
                 alt="สำนักงานเปิ้ล ประกันภัยครบวงจร"
               />
             </div>

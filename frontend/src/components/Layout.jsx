@@ -134,12 +134,12 @@ const Layout = () => {
               }}
             >
               <img 
-                src="/logo.png" 
+                src="/logo-new.png" 
                 alt="สำนักงานเปิ้ล ประกันภัยครบวงจร" 
                 style={{ 
                   width: '100%', 
                   height: '100%', 
-                  objectFit: 'cover',
+                  objectFit: 'contain',
                   borderRadius: '10px',
                   display: 'block'
                 }} 
