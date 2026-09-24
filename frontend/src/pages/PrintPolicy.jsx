@@ -85,10 +85,13 @@ const PrintPolicy = () => {
       <div id="print-section" className="a4-container">
         {/* Header */}
         <div className="row mb-5 pb-3 border-bottom border-2 border-dark">
-          <div className="col-8">
+          <div className="col-8 d-flex align-items-center">
+            <img src="/logo-new.png" alt="Logo" style={{ height: '70px', objectFit: 'contain' }} className="me-3" />
+            <div>
             <h1 className="fw-bold text-primary mb-1">สำนักงานเปิ้ลประกันภัย</h1>
             <p className="text-muted mb-0">ศูนย์รวมประกันภัย พรบ. และบริการต่อภาษี ครบวงจร</p>
             <p className="text-muted">123 ถ.สุขุมวิท กรุงเทพมหานคร 10110 | โทร: 02-123-4567</p>
+            </div>
           </div>
           <div className="col-4 text-end">
             <h2 className="fw-bold text-uppercase text-secondary">ใบแจ้งหนี้ / ใบเสนอราคา</h2>

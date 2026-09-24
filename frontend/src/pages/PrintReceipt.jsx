@@ -55,7 +55,10 @@ const PrintReceipt = () => {
             <p className="text-muted mb-0">Receipt / Tax Invoice (Abbreviated)</p>
           </div>
           <div className="text-end">
-            <h1 className="fw-bold text-dark mb-0">Apple Insurance & Services</h1>
+            <div className="d-flex justify-content-end align-items-center mb-2">
+              <img src="/logo-new.png" alt="Logo" style={{ height: '50px', objectFit: 'contain' }} className="me-2" />
+              <h1 className="fw-bold text-dark mb-0">Apple Insurance & Services</h1>
+            </div>
             <p className="text-muted mb-0">สำนักงานเปิ้ลประกันภัย (บริการครบ... จบที่เดียว)</p>
             <p className="text-muted mb-0">123 ถนนสุขุมวิท กรุงเทพมหานคร 10110</p>
           </div>
