@@ -162,25 +162,32 @@ const NonMotorPolicies = () => {
 
   return (
     <div>
-      <div className="d-flex justify-content-between align-items-center mb-4">
-        <h2 className="fw-bold">จัดการกรมธรรม์ Non-Motor (ประกันวินาศภัยอื่น)</h2>
-        <div>
-          <button className="btn btn-outline-success fw-bold me-2" onClick={handleExport}>
-            <i className="bi bi-file-earmark-excel"></i> Export Excel
+      <div className="d-flex flex-column flex-md-row justify-content-between align-items-md-center mb-4 gap-3">
+        <h2 className="fw-bold mb-0" style={{ fontFamily: "'IBM Plex Sans Thai', 'Sarabun', sans-serif", color: '#0f172a' }}>
+          <i className="bi bi-shield-plus me-2" style={{ color: '#3b82f6' }}></i>
+          รายการกรมธรรม์ (Non-Motor)
+        </h2>
+        <div className="d-flex gap-2">
+          <button className="btn btn-outline-secondary fw-bold px-3 rounded-3 shadow-sm d-flex align-items-center gap-2" onClick={handleExport}>
+            <i className="bi bi-file-earmark-excel-fill text-success"></i> Export Excel
           </button>
-          <button className="btn btn-primary fw-bold" onClick={() => handleOpenModal()}>
-            + เพิ่มกรมธรรม์ Non-Motor
+          <button className="btn fw-bold px-3 rounded-3 shadow-sm d-flex align-items-center gap-2" onClick={() => handleOpenModal()} style={{ background: '#3b82f6', color: 'white', border: 'none' }}>
+            <i className="bi bi-plus-circle-fill"></i> เพิ่มกรมธรรม์ Non-Motor
           </button>
         </div>
       </div>
 
-      <div className="card shadow-sm border-0 mb-4">
-        <div className="card-body">
+      <div className="card shadow-sm border-0 mb-4 rounded-4" style={{ borderLeft: '4px solid #8b5cf6', background: 'var(--bs-body-bg)' }}>
+        <div className="card-body p-3 p-md-4">
           <div className="position-relative">
+            <span className="position-absolute top-50 start-0 translate-middle-y ms-3 text-muted">
+              <i className="bi bi-search"></i>
+            </span>
             <input 
               type="text" 
-              className="form-control form-control-lg pe-5" 
-              placeholder="ค้นหาเลขกรมธรรม์, ชื่อลูกค้า, ผู้เอาประกัน, บริษัทประกัน, ประเภทประกัน, เบอร์โทร..." 
+              className="form-control form-control-lg ps-5 pe-5 rounded-pill border-secondary-subtle shadow-sm" 
+              style={{ fontSize: '1rem' }}
+              placeholder="ค้นหาเลขกรมธรรม์, ชื่อลูกค้า, ผู้เอาประกัน, บริษัทประกัน, ประเภทประกัน..." 
               value={search} 
               onChange={(e) => setSearch(e.target.value)} 
             />
@@ -192,29 +199,29 @@ const NonMotorPolicies = () => {
                 style={{ fontSize: '1.2rem', padding: '0 8px' }}
                 title="ล้างคำค้นหา"
               >
-                ✕
+                <i className="bi bi-x-circle-fill"></i>
               </button>
             )}
           </div>
         </div>
       </div>
 
-      <div className="table-container-enterprise">
+      <div className="card shadow-sm border-0 rounded-4 overflow-hidden mb-4">
         <div className="table-responsive">
-          <table className="table table-enterprise align-middle">
-            <thead>
+          <table className="table table-hover table-striped align-middle mb-0">
+            <thead className="table-light" style={{ borderBottom: '2px solid #e2e8f0' }}>
               <tr>
-                <th>เลขกรมธรรม์</th>
-                <th>ลูกค้า / ผู้เอาประกัน</th>
-                <th>ประเภทประกัน / บริษัท</th>
-                <th>ทุนประกัน</th>
-                <th>เบี้ยรวม</th>
-                <th>คอมมิชชั่น</th>
-                <th style={{ cursor: 'pointer', userSelect: 'none' }} onClick={() => requestSort('start_date')}>
+                <th className="ps-4 py-3 text-secondary fw-semibold">เลขกรมธรรม์</th>
+                <th className="py-3 text-secondary fw-semibold">ลูกค้า / ผู้เอาประกัน</th>
+                <th className="py-3 text-secondary fw-semibold">ประเภทประกัน / บริษัท</th>
+                <th className="py-3 text-secondary fw-semibold text-end">ทุนประกัน</th>
+                <th className="py-3 text-secondary fw-semibold text-end">เบี้ยรวม</th>
+                <th className="py-3 text-secondary fw-semibold text-end">คอมมิชชั่น</th>
+                <th className="py-3 text-secondary fw-semibold text-center" style={{ cursor: 'pointer', userSelect: 'none' }} onClick={() => requestSort('start_date')}>
                   วันเริ่ม - สิ้นสุด {sortConfig.key === 'start_date' ? (sortConfig.direction === 'ascending' ? '▲' : '▼') : '⇅'}
                 </th>
-                <th>สถานะ</th>
-                <th className="text-end">จัดการ</th>
+                <th className="py-3 text-secondary fw-semibold text-center">สถานะ</th>
+                <th className="pe-4 py-3 text-secondary fw-semibold text-end">จัดการ</th>
               </tr>
             </thead>
             {loading ? (
@@ -227,21 +234,29 @@ const NonMotorPolicies = () => {
               >
                 {sortedPolicies.length > 0 ? sortedPolicies.map(p => (
                   <motion.tr key={p.id} variants={tableRowVariants}>
-                    <td><strong>{p.policy_no}</strong></td>
-                    <td>{p.first_name} {p.last_name}<br/><small className="text-muted">{p.insured_name}</small></td>
-                    <td>{p.type_name}<br/><small className="text-muted">{p.company}</small></td>
-                    <td>{new Intl.NumberFormat('th-TH', { style: 'currency', currency: 'THB' }).format(p.sum_insured)}</td>
-                    <td>{new Intl.NumberFormat('th-TH', { style: 'currency', currency: 'THB' }).format(p.total_premium)}</td>
-                    <td>{new Intl.NumberFormat('th-TH', { style: 'currency', currency: 'THB' }).format(p.commission_baht)}</td>
-                    <td>{formatThaiDate(p.start_date)} - {formatThaiDate(p.expiry_date)}</td>
-                    <td>{getStatusBadge(p.status)}</td>
-                    <td className="text-end">
-                      <button className="btn btn-sm btn-outline-primary me-2" onClick={() => handleOpenModal(p)} title="แก้ไข">
-                        <i className="bi bi-pencil"></i>
-                      </button>
-                      <button className="btn btn-sm btn-outline-danger" onClick={() => handleDelete(p.id)} title="ลบ" disabled={deleteMutation.isPending}>
-                        <i className="bi bi-trash"></i>
-                      </button>
+                    <td className="ps-4"><strong className="text-dark" style={{ fontFamily: 'Plus Jakarta Sans, sans-serif' }}>{p.policy_no}</strong></td>
+                    <td>
+                      <div className="fw-medium text-dark">{p.first_name} {p.last_name}</div>
+                      <small className="text-muted"><i className="bi bi-person-badge"></i> {p.insured_name || '-'}</small>
+                    </td>
+                    <td>
+                      <span className="badge bg-light text-dark border px-2 py-1 mb-1" style={{ fontSize: '0.85rem' }}>{p.type_name}</span><br/>
+                      <small className="fw-bold text-muted">{p.company}</small>
+                    </td>
+                    <td className="text-end text-muted" style={{ fontFamily: 'Plus Jakarta Sans, sans-serif' }}>{new Intl.NumberFormat('th-TH', { style: 'currency', currency: 'THB' }).format(p.sum_insured)}</td>
+                    <td className="text-end fw-bold text-dark" style={{ fontFamily: 'Plus Jakarta Sans, sans-serif' }}>{new Intl.NumberFormat('th-TH', { style: 'currency', currency: 'THB' }).format(p.total_premium)}</td>
+                    <td className="text-end fw-bold text-success" style={{ fontFamily: 'Plus Jakarta Sans, sans-serif' }}>{new Intl.NumberFormat('th-TH', { style: 'currency', currency: 'THB' }).format(p.commission_baht)}</td>
+                    <td className="text-center text-muted small">{formatThaiDate(p.start_date)} - {formatThaiDate(p.expiry_date)}</td>
+                    <td className="text-center">{getStatusBadge(p.status)}</td>
+                    <td className="text-end pe-4">
+                      <div className="d-flex justify-content-end gap-1">
+                        <button className="btn btn-sm btn-light text-primary border shadow-sm" onClick={() => handleOpenModal(p)} title="แก้ไข">
+                          <i className="bi bi-pencil-square"></i>
+                        </button>
+                        <button className="btn btn-sm btn-light text-danger border shadow-sm" onClick={() => handleDelete(p.id)} title="ลบ" disabled={deleteMutation.isPending}>
+                          <i className="bi bi-trash3"></i>
+                        </button>
+                      </div>
                     </td>
                   </motion.tr>
                 )) : (
@@ -262,11 +277,11 @@ const NonMotorPolicies = () => {
         
         {/* Pagination Controls */}
         {totalPages > 1 && (
-          <div className="d-flex justify-content-between align-items-center mt-3 pt-3 border-top">
-            <div className="text-muted small">
-              แสดงหน้า {page} จากทั้งหมด {totalPages} หน้า
+          <div className="card-footer bg-white border-top py-3 px-4 d-flex justify-content-between align-items-center">
+            <div className="text-muted small fw-semibold">
+              แสดงหน้า <span className="text-dark fw-bold">{page}</span> จากทั้งหมด <span className="text-dark fw-bold">{totalPages}</span> หน้า
             </div>
-            <div className="btn-group">
+            <div className="btn-group shadow-sm">
               <button 
                 className="btn btn-outline-secondary btn-sm" 
                 onClick={() => setPage(p => Math.max(1, p - 1))}
