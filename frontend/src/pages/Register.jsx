@@ -63,10 +63,10 @@ const Register = () => {
       };
 
       const res = await api.post('/auth/register', payload);
-      setSuccessMsg(res.data?.message || 'ลงทะเบียนพนักงานสำเร็จเรียบร้อย! กำลังนำท่านไปยังหน้าเข้าสู่ระบบ...');
+      setSuccessMsg(res.data?.message || 'ลงทะเบียนพนักงานใหม่สำเร็จเรียบร้อย! กำลังนำท่านกลับสู่หน้าหลัก...');
 
       setTimeout(() => {
-        navigate('/login');
+        navigate('/');
       }, 1800);
     } catch (err) {
       setError(err?.response?.data?.error || err?.response?.data?.message || 'เกิดข้อผิดพลาดในการลงทะเบียน');
@@ -373,15 +373,14 @@ const Register = () => {
             </button>
           </div>
 
-          {/* Return to Login Link */}
+          {/* Return to Dashboard Link */}
           <div className="text-center mt-3 pt-2 border-top border-white border-opacity-10">
-            <span className="text-white-50 small me-1">มีบัญชีผู้ใช้งานอยู่แล้ว?</span>
             <Link
-              to="/login"
+              to="/"
               className="text-info fw-bold text-decoration-none small hover-underline"
               style={{ letterSpacing: '0.2px' }}
             >
-              เข้าสู่ระบบ (Sign In) <i className="bi bi-arrow-right ms-1"></i>
+              <i className="bi bi-arrow-left me-1"></i> กลับสู่หน้าหลัก (Dashboard)
             </Link>
           </div>
         </form>

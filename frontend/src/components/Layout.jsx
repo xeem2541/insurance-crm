@@ -104,6 +104,7 @@ const Layout = () => {
     { path: '/documents', label: 'ระบบเอกสาร', icon: 'bi-file-earmark-medical-fill', color: '#64748b', roles: ['Admin', 'Manager', 'Staff', 'Sales', 'Viewer'] },
     { path: '/reports', label: 'รายงาน', icon: 'bi-bar-chart-line-fill', color: '#f97316', roles: ['Admin', 'Manager', 'Sales'] },
     { path: '/activity-logs', label: 'ประวัติการทำงาน', icon: 'bi-clock-history', color: '#ec4899', roles: ['Admin', 'Manager'] },
+    { path: '/register', label: 'ลงทะเบียนพนักงาน', icon: 'bi-person-plus-fill', color: '#10b981', roles: ['Admin'] },
     { path: '/master-data', label: 'ตั้งค่าระบบ', icon: 'bi-gear-fill', color: '#94a3b8', roles: ['Admin', 'Manager'] }
   ];
 
