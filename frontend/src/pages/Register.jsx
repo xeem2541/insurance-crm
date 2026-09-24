@@ -336,9 +336,6 @@ const Register = () => {
                     style={{ cursor: 'pointer', appearance: 'auto' }}
                   >
                     <option value="Staff">พนักงานทั่วไป (Staff) - คีย์ข้อมูลและดูรายงาน</option>
-                    <option value="Sales">เจ้าหน้าที่ฝ่ายขาย / ตัวแทน (Sales) - แจ้งงานและติดตามลูกค้า</option>
-                    <option value="Manager">ผู้จัดการ / หัวหน้างาน (Manager) - จัดการและดูภาพรวม</option>
-                    <option value="Admin">ผู้ดูแลระบบ (Admin) - สิทธิ์ดูแลระบบทั้งหมด</option>
                   </select>
                 </div>
               </div>
