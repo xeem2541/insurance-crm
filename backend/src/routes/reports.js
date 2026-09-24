@@ -3,7 +3,7 @@ const router = express.Router();
 const { authenticateToken, authorizeRole } = require('../middlewares/auth');
 
 // Get generic report data (Sales, Commission, etc.)
-router.get('/', [authenticateToken, authorizeRole(['Admin', 'Manager', 'Sales'])], async (req, res) => {
+router.get('/', [authenticateToken, authorizeRole(['Admin', 'Manager', 'Sales', 'Staff'])], async (req, res) => {
   const { type, start_date, end_date } = req.query;
   
   if (!start_date || !end_date) {
