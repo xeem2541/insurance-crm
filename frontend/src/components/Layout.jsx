@@ -134,7 +134,7 @@ const Layout = () => {
               }}
             >
               <img 
-                src="/logo-new.png" 
+                src="/logo-new.jpg" 
                 alt="สำนักงานเปิ้ล ประกันภัยครบวงจร" 
                 style={{ 
                   width: '100%', 

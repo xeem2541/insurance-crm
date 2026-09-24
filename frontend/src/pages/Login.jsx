@@ -63,7 +63,7 @@ const Login = () => {
           <div className="brand-logo-wrap">
             <div className="logo-badge-container">
               <img
-                src="/logo-new.png"
+                src="/logo-new.jpg"
                 alt="สำนักงานเปิ้ล ประกันภัยครบวงจร"
               />
             </div>
