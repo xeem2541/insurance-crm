@@ -267,16 +267,16 @@ const MasterData = () => {
   return (
     <div>
       <div className="d-flex justify-content-between align-items-center mb-4">
-        <h2 className="fw-bold"><i className="bi bi-gear-fill text-primary me-2"></i> ตั้งค่าระบบ (System Settings)</h2>
+        <h2 className="fw-bold text-navy"><i className="bi bi-gear-fill text-navy me-2"></i> ตั้งค่าระบบ (System Settings)</h2>
       </div>
 
-      <div className="card shadow-sm border-0 mb-4">
+      <div className="card premium-card border-0 shadow-sm mb-4">
         <div className="card-header bg-white border-bottom p-0">
           <ul className="nav nav-tabs px-3 pt-3 border-bottom-0 d-flex flex-wrap">
             {categories.map(cat => (
               <li className="nav-item" key={cat.id}>
                 <button
-                  className={`nav-link fw-bold ${activeTab === cat.id ? 'active text-primary border-bottom-0' : 'text-muted'}`}
+                  className={`nav-link fw-bold ${activeTab === cat.id ? 'active text-navy border-bottom-0' : 'text-muted'}`}
                   onClick={() => setActiveTab(cat.id)}
                   style={{ borderRadius: '10px 10px 0 0' }}
                 >
@@ -286,7 +286,7 @@ const MasterData = () => {
             ))}
             <li className="nav-item ms-auto">
               <button
-                className={`nav-link fw-bold ${activeTab === 'system_users' ? 'active text-primary border-bottom-0' : 'text-muted'}`}
+                className={`nav-link fw-bold ${activeTab === 'system_users' ? 'active text-navy border-bottom-0' : 'text-muted'}`}
                 onClick={() => setActiveTab('system_users')}
                 style={{ borderRadius: '10px 10px 0 0' }}
               >
@@ -295,7 +295,7 @@ const MasterData = () => {
             </li>
             <li className="nav-item">
               <button
-                className={`nav-link fw-bold ${activeTab === 'system_password' ? 'active text-primary border-bottom-0' : 'text-muted'}`}
+                className={`nav-link fw-bold ${activeTab === 'system_password' ? 'active text-navy border-bottom-0' : 'text-muted'}`}
                 onClick={() => setActiveTab('system_password')}
                 style={{ borderRadius: '10px 10px 0 0' }}
               >
@@ -304,7 +304,7 @@ const MasterData = () => {
             </li>
             <li className="nav-item">
               <button
-                className={`nav-link fw-bold ${activeTab === 'BotPrompt' ? 'active text-primary border-bottom-0' : 'text-muted'}`}
+                className={`nav-link fw-bold ${activeTab === 'BotPrompt' ? 'active text-navy border-bottom-0' : 'text-muted'}`}
                 onClick={() => setActiveTab('BotPrompt')}
                 style={{ borderRadius: '10px 10px 0 0' }}
               >
@@ -335,7 +335,7 @@ const MasterData = () => {
               </div>
 
               <div className="table-responsive">
-                <table className="table table-hover align-middle border">
+                <table className="table custom-table table-hover align-middle border">
                   <thead className="table-light">
                     <tr>
                       <th width="80%">ค่าที่แสดงผล (Value)</th>
@@ -368,14 +368,14 @@ const MasterData = () => {
           {activeTab === 'system_users' && (
             <>
               <div className="d-flex justify-content-between align-items-center mb-3">
-                <h5 className="fw-bold mb-0">รายชื่อผู้ใช้งาน (Users)</h5>
+                <h5 className="fw-bold text-navy mb-0">รายชื่อผู้ใช้งาน (Users)</h5>
                 <button className="btn btn-primary fw-bold" onClick={() => handleOpenUserModal()}>
                   <i className="bi bi-person-plus-fill me-1"></i> เพิ่มผู้ใช้งาน
                 </button>
               </div>
 
               <div className="table-responsive">
-                <table className="table table-hover align-middle border">
+                <table className="table custom-table table-hover align-middle border">
                   <thead className="table-light">
                     <tr>
                       <th>ชื่อบัญชี (Username)</th>
@@ -418,7 +418,7 @@ const MasterData = () => {
           {activeTab === 'system_password' && (
             <div className="row justify-content-center py-4">
               <div className="col-md-6">
-                <h4 className="fw-bold mb-4">เปลี่ยนรหัสผ่านผู้ดูแลระบบ</h4>
+                <h4 className="fw-bold mb-4 text-navy">เปลี่ยนรหัสผ่านผู้ดูแลระบบ</h4>
                 {pwdMsg.text && (
                   <div className={`alert alert-${pwdMsg.type} shadow-sm border-0`} role="alert">
                     {pwdMsg.type === 'success' ? <i className="bi bi-check-circle-fill me-2"></i> : <i className="bi bi-exclamation-triangle-fill me-2"></i>}
@@ -428,7 +428,7 @@ const MasterData = () => {
                 <Form onSubmit={handleChangePassword}>
                   <Form.Group className="mb-3">
                     <Form.Label className="fw-bold">รหัสผ่านปัจจุบัน</Form.Label>
-                    <Form.Control 
+                    <Form.Control className="premium-input" 
                       type="password" 
                       value={pwdData.currentPassword}
                       onChange={(e) => setPwdData({...pwdData, currentPassword: e.target.value})}
@@ -437,7 +437,7 @@ const MasterData = () => {
                   </Form.Group>
                   <Form.Group className="mb-3">
                     <Form.Label className="fw-bold">รหัสผ่านใหม่ (อย่างน้อย 6 ตัวอักษร)</Form.Label>
-                    <Form.Control 
+                    <Form.Control className="premium-input" 
                       type="password" 
                       value={pwdData.newPassword}
                       onChange={(e) => setPwdData({...pwdData, newPassword: e.target.value})}
@@ -446,7 +446,7 @@ const MasterData = () => {
                   </Form.Group>
                   <Form.Group className="mb-4">
                     <Form.Label className="fw-bold">ยืนยันรหัสผ่านใหม่</Form.Label>
-                    <Form.Control 
+                    <Form.Control className="premium-input" 
                       type="password" 
                       value={pwdData.confirmPassword}
                       onChange={(e) => setPwdData({...pwdData, confirmPassword: e.target.value})}
@@ -465,7 +465,7 @@ const MasterData = () => {
           {activeTab === 'BotPrompt' && (
             <div className="row justify-content-center py-4">
               <div className="col-md-10">
-                <h4 className="fw-bold mb-4">ตั้งค่า AI บอท (LINE)</h4>
+                <h4 className="fw-bold mb-4 text-navy">ตั้งค่า AI บอท (LINE)</h4>
                 <p className="text-muted mb-4">
                   กำหนดบุคลิกภาพ, ข้อห้าม, กฎกติกา หรือวิธีตอบคำถามของ แอดมินเปิ้ล (AI) ได้ที่นี่
                 </p>
@@ -478,7 +478,7 @@ const MasterData = () => {
                 <Form onSubmit={handleBotPromptSubmit}>
                   <Form.Group className="mb-4">
                     <Form.Label className="fw-bold">System Prompt (คำสั่งตั้งต้นสำหรับ AI)</Form.Label>
-                    <Form.Control 
+                    <Form.Control className="premium-input" 
                       as="textarea"
                       rows={20}
                       value={botPromptData.value}
@@ -507,7 +507,7 @@ const MasterData = () => {
               </p>
               
               <div className="bg-light p-4 rounded-3 text-start mx-auto shadow-sm mb-4" style={{ maxWidth: '400px' }}>
-                <h5 className="fw-bold mb-3"><i className="bi bi-list-check me-2"></i>เลือกข้อมูลที่ต้องการลบ</h5>
+                <h5 className="fw-bold text-navy mb-3"><i className="bi bi-list-check me-2"></i>เลือกข้อมูลที่ต้องการลบ</h5>
                 <div className="form-check mb-2">
                   <input className="form-check-input" type="checkbox" id="clearCustomers" value="customers" 
                     onChange={(e) => {

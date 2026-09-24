@@ -218,7 +218,7 @@ const Documents = () => {
   return (
     <div>
       <div className="d-flex justify-content-between align-items-center mb-4">
-        <h2 className="fw-bold">
+        <h2 className="fw-bold text-navy">
           {viewMode === 'trash' ? (
             <><i className="bi bi-trash-fill text-danger me-2"></i> ถังขยะเอกสาร (Recycle Bin)</>
           ) : (
@@ -243,7 +243,7 @@ const Documents = () => {
         </div>
       </div>
 
-      <div className="card shadow-sm border-0 mb-4">
+      <div className="card premium-card border-0 shadow-sm mb-4">
         <div className="card-body">
           <input 
             type="text" 

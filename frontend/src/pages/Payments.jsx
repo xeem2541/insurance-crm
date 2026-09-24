@@ -141,17 +141,17 @@ const Payments = () => {
   return (
     <div>
       <div className="d-flex justify-content-between align-items-center mb-4">
-        <h2 className="fw-bold"><i className="bi bi-wallet2 text-success me-2"></i> ระบบรับชำระเงิน</h2>
+        <h2 className="fw-bold text-navy"><i className="bi bi-wallet2 text-success me-2"></i> ระบบรับชำระเงิน</h2>
         <Button variant="outline-success" className="fw-bold" onClick={handleExport}>
           <i className="bi bi-file-earmark-excel-fill me-1"></i> ส่งออก Excel
         </Button>
       </div>
 
-      <div className="card shadow-sm border-0 mb-4">
+      <div className="card premium-card border-0 shadow-sm mb-4">
         <div className="card-body p-4">
           <Row className="mb-4 g-3">
             <Col md={6}>
-              <Form.Control 
+              <Form.Control className="premium-input" 
                 type="text" 
                 placeholder="ค้นหาชื่อลูกค้า, ทะเบียนกรมธรรม์..." 
                 value={searchTerm}
@@ -167,9 +167,9 @@ const Payments = () => {
             </Col>
           </Row>
 
-          <div className="table-container-enterprise mt-3">
+          <div className="table-container-premium mt-3">
             <div className="table-responsive">
-              <table className="table table-enterprise align-middle mb-0">
+              <table className="table custom-table table-hover align-middle mb-0">
                 <thead>
                   <tr>
                     <th>วันที่สร้าง</th>
@@ -203,7 +203,7 @@ const Payments = () => {
                       filteredData.map(p => (
                         <motion.tr key={p.id} variants={tableRowVariants}>
                           <td>{formatThaiDate(p.created_at)}</td>
-                          <td className="fw-bold text-primary">{p.policy_no || '-'}</td>
+                          <td className="fw-bold text-navy">{p.policy_no || '-'}</td>
                           <td>{p.first_name} {p.last_name}</td>
                           <td className="fw-bold">฿{(Number(p.total_premium)||0).toLocaleString()}</td>
                           <td>

@@ -253,7 +253,7 @@ const LineAdmin = () => {
                   </Card.Body>
                   <Card.Footer>
                     <Form onSubmit={handleSendReply} className="d-flex">
-                      <Form.Control
+                      <Form.Control className="premium-input"
                         type="text"
                         placeholder={selectedUser.is_bot_paused ? "พิมพ์ข้อความตอบกลับ..." : "คลิกปุ่ม 'AI ตอบ' ด้านบนขวา เพื่อปิด AI ก่อนพิมพ์ข้อความ"}
                         value={replyMessage}
@@ -292,7 +292,7 @@ const LineAdmin = () => {
               <Form onSubmit={handleSendBroadcast}>
                 <Form.Group className="mb-3">
                   <Form.Label>ข้อความ (Text Message)</Form.Label>
-                  <Form.Control
+                  <Form.Control className="premium-input"
                     as="textarea"
                     rows={6}
                     placeholder="พิมพ์ข้อความที่คุณต้องการส่งหาลูกค้าทุกคน (เช่น โปรโมชั่น, ประกาศวันหยุด)..."
@@ -323,7 +323,7 @@ const LineAdmin = () => {
               </p>
               <Form onSubmit={handleUpdatePrompt}>
                 <Form.Group className="mb-3">
-                  <Form.Control
+                  <Form.Control className="premium-input"
                     as="textarea"
                     rows={12}
                     value={botPrompt}

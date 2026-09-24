@@ -129,10 +129,10 @@ const Reports = () => {
   return (
     <div>
       <div className="d-flex justify-content-between align-items-center mb-4">
-        <h2 className="fw-bold">รายงาน (Reports)</h2>
+        <h2 className="fw-bold text-navy">รายงาน (Reports)</h2>
       </div>
 
-      <div className="card shadow-sm border-0 mb-4">
+      <div className="card premium-card border-0 shadow-sm mb-4">
         <div className="card-body">
           <form onSubmit={fetchReport} className="row g-3 align-items-end">
             <div className="col-md-3">
@@ -178,8 +178,8 @@ const Reports = () => {
         <>
           {/* Charts Section */}
           {['motor_sales_daily', 'motor_sales_monthly', 'non_motor_sales_daily', 'non_motor_sales_monthly'].includes(reportType) && (
-            <div className="card shadow-sm border-0 mb-4 p-4">
-              <h5 className="fw-bold mb-4 text-primary">แนวโน้มยอดขายรวม</h5>
+            <div className="card premium-card border-0 shadow-sm mb-4 p-4">
+              <h5 className="fw-bold text-navy mb-4 text-navy">แนวโน้มยอดขายรวม</h5>
               <div style={{ width: '100%', height: 350 }}>
                 <ResponsiveContainer>
                   <LineChart data={getChartData()} margin={{ top: 5, right: 30, left: 20, bottom: 5 }}>
@@ -196,8 +196,8 @@ const Reports = () => {
           )}
 
           {['sales_by_person', 'sales_by_company'].includes(reportType) && (
-            <div className="card shadow-sm border-0 mb-4 p-4">
-              <h5 className="fw-bold mb-4 text-success">เปรียบเทียบยอดขายรวม</h5>
+            <div className="card premium-card border-0 shadow-sm mb-4 p-4">
+              <h5 className="fw-bold text-navy mb-4 text-success">เปรียบเทียบยอดขายรวม</h5>
               <div style={{ width: '100%', height: 350 }}>
                 <ResponsiveContainer>
                   <BarChart data={reportData} margin={{ top: 5, right: 30, left: 20, bottom: 5 }}>
@@ -214,8 +214,8 @@ const Reports = () => {
           )}
 
           {reportType === 'sales_by_type' && (
-            <div className="card shadow-sm border-0 mb-4 p-4">
-              <h5 className="fw-bold mb-4 text-warning">สัดส่วนยอดขายตามประเภทประกันภัย</h5>
+            <div className="card premium-card border-0 shadow-sm mb-4 p-4">
+              <h5 className="fw-bold text-navy mb-4 text-warning">สัดส่วนยอดขายตามประเภทประกันภัย</h5>
               <div style={{ width: '100%', height: 350 }}>
                 <ResponsiveContainer>
                   <PieChart>
@@ -240,7 +240,7 @@ const Reports = () => {
             </div>
           )}
 
-          <div className="table-container-enterprise">
+          <div className="table-container-premium">
             <div className="card-header bg-white border-bottom py-3 px-4 d-flex justify-content-between align-items-center">
               <h5 className="mb-0 fw-bold">ตารางข้อมูล ({reportData.length} รายการ)</h5>
               <div>
@@ -253,7 +253,7 @@ const Reports = () => {
               </div>
             </div>
             <div className="table-responsive">
-              <table className="table table-enterprise align-middle">
+              <table className="table custom-table table-hover align-middle">
                 <thead>
                   {renderTableHeaders()}
                 </thead>

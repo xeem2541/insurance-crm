@@ -231,19 +231,18 @@ const ActivityLogs = () => {
                 <span className="input-group-text bg-light border-end-0">
                   <i className="bi bi-search text-muted"></i>
                 </span>
-                <Form.Control
+                <Form.Control className="premium-input border-start-0"
                   type="text"
                   placeholder="พิมพ์ชื่อพนักงาน, เลขกรมธรรม์, คำอธิบาย..."
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
-                  className="border-start-0"
                 />
               </div>
             </Col>
 
             <Col xs={6} md={2}>
               <Form.Label className="small text-muted fw-bold mb-1">ประเภทการกระทำ</Form.Label>
-              <Form.Select value={actionFilter} onChange={(e) => { setActionFilter(e.target.value); setPage(1); }}>
+              <Form.Select className="premium-input" value={actionFilter} onChange={(e) => { setActionFilter(e.target.value); setPage(1); }}>
                 <option value="all">ทั้งหมด (All Actions)</option>
                 <option value="CREATE_POLICY">สร้างกรมธรรม์ (Create Policy)</option>
                 <option value="UPDATE_POLICY">แก้ไขกรมธรรม์ (Update Policy)</option>
@@ -257,7 +256,7 @@ const ActivityLogs = () => {
 
             <Col xs={6} md={2}>
               <Form.Label className="small text-muted fw-bold mb-1">พนักงานผู้ทำรายการ</Form.Label>
-              <Form.Select value={userFilter} onChange={(e) => { setUserFilter(e.target.value); setPage(1); }}>
+              <Form.Select className="premium-input" value={userFilter} onChange={(e) => { setUserFilter(e.target.value); setPage(1); }}>
                 <option value="all">ทุกคน (All Users)</option>
                 {users.map(u => (
                   <option key={u.id} value={u.id}>{u.name || u.username} ({u.role})</option>
@@ -267,14 +266,14 @@ const ActivityLogs = () => {
 
             <Col xs={6} md={2}>
               <Form.Label className="small text-muted fw-bold mb-1">ตั้งแต่วันที่</Form.Label>
-              <Form.Control type="date" value={startDate} onChange={(e) => { setStartDate(e.target.value); setPage(1); }} />
+              <Form.Control className="premium-input" type="date" value={startDate} onChange={(e) => { setStartDate(e.target.value); setPage(1); }} />
             </Col>
 
             <Col xs={6} md={2}>
               <div className="d-flex gap-2">
                 <div className="flex-grow-1">
                   <Form.Label className="small text-muted fw-bold mb-1">ถึงวันที่</Form.Label>
-                  <Form.Control type="date" value={endDate} onChange={(e) => { setEndDate(e.target.value); setPage(1); }} />
+                  <Form.Control className="premium-input" type="date" value={endDate} onChange={(e) => { setEndDate(e.target.value); setPage(1); }} />
                 </div>
                 <Button variant="light" onClick={handleResetFilters} title="ล้างตัวกรอง" className="border align-self-end py-2 px-3">
                   <i className="bi bi-x-lg text-danger"></i>
@@ -289,10 +288,10 @@ const ActivityLogs = () => {
       <Card className="border-0 shadow-sm rounded-4 overflow-hidden mb-4">
         <div className="card-header bg-white border-bottom py-3 d-flex justify-content-between align-items-center">
           <h5 className="mb-0 fw-bold d-flex align-items-center gap-2">
-            <i className="bi bi-clock-history text-primary"></i>
+            <i className="bi bi-clock-history text-navy"></i>
             <span>รายการบันทึกประวัติการทำงาน</span>
           </h5>
-          <span className="badge bg-primary-subtle text-primary rounded-pill px-3 py-1 fw-bold">
+          <span className="badge bg-primary-subtle text-navy rounded-pill px-3 py-1 fw-bold">
             พบ {totalRecords} รายการ
           </span>
         </div>
