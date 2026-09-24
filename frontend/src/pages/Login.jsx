@@ -32,25 +32,12 @@ const Login = () => {
 
   return (
     <div className={`login-centered-layout ${darkMode ? 'dark-theme' : 'light-theme'}`}>
-      {/* Background Ambience: Warm glow on right, dark blue on left */}
-      <div className="bg-glow-warm" aria-hidden="true"></div>
-      <div className="bg-glow-cool" aria-hidden="true"></div>
-
-      {/* Floating Glass Cubes */}
-      <div className="floating-glass-cube cube-1" aria-hidden="true"></div>
-      <div className="floating-glass-cube cube-2" aria-hidden="true"></div>
-      <div className="floating-glass-cube cube-3" aria-hidden="true"></div>
-      <div className="floating-glass-cube cube-4" aria-hidden="true"></div>
-      <div className="floating-glass-cube cube-5" aria-hidden="true"></div>
-
-      {/* Sparkle Bokeh Particles */}
-      <div className="sparkle-particle sparkle-1" aria-hidden="true"></div>
-      <div className="sparkle-particle sparkle-2" aria-hidden="true"></div>
-      <div className="sparkle-particle sparkle-3" aria-hidden="true"></div>
-      <div className="sparkle-particle sparkle-4" aria-hidden="true"></div>
-      <div className="sparkle-particle sparkle-5" aria-hidden="true"></div>
-      <div className="sparkle-particle sparkle-6" aria-hidden="true"></div>
-      <div className="sparkle-particle sparkle-7" aria-hidden="true"></div>
+      {/* Corporate/Security Background */}
+      <div className="login-corporate-bg" aria-hidden="true">
+        <div className="grid-overlay"></div>
+        <div className="abstract-shape shape-1"></div>
+        <div className="abstract-shape shape-2"></div>
+      </div>
 
       {/* Top Right: Dark Mode Toggle Switch with text */}
       <div className="top-theme-switch-wrap">
@@ -68,8 +55,8 @@ const Login = () => {
         </span>
       </div>
 
-      {/* Glassmorphic Login Card */}
-      <div className="login-glass-card">
+      {/* Premium Login Card */}
+      <div className="login-premium-card">
         {/* Brand Logo & Header */}
         <div className="brand-header">
           {/* Official Ple Insurance Logo Badge */}
@@ -86,6 +73,11 @@ const Login = () => {
           <p className="office-subtitle">
             ศูนย์รวมประกัน & งานทะเบียน ครบ จบ ดูแลต่อเนื่อง
           </p>
+          {/* Trust Signal */}
+          <div className="trust-badge">
+            <i className="bi bi-shield-check"></i>
+            <span>ปลอดภัยและเชื่อถือได้</span>
+          </div>
         </div>
 
         {/* Error Alert */}

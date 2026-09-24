@@ -77,23 +77,12 @@ const Register = () => {
 
   return (
     <div className={`login-centered-layout ${darkMode ? 'dark-theme' : 'light-theme'}`}>
-      {/* Background Ambience: Warm glow on right, dark blue on left */}
-      <div className="bg-glow-warm" aria-hidden="true"></div>
-      <div className="bg-glow-cool" aria-hidden="true"></div>
-
-      {/* Floating Glass Cubes */}
-      <div className="floating-glass-cube cube-1" aria-hidden="true"></div>
-      <div className="floating-glass-cube cube-2" aria-hidden="true"></div>
-      <div className="floating-glass-cube cube-3" aria-hidden="true"></div>
-      <div className="floating-glass-cube cube-4" aria-hidden="true"></div>
-      <div className="floating-glass-cube cube-5" aria-hidden="true"></div>
-
-      {/* Sparkle Bokeh Particles */}
-      <div className="sparkle-particle sparkle-1" aria-hidden="true"></div>
-      <div className="sparkle-particle sparkle-2" aria-hidden="true"></div>
-      <div className="sparkle-particle sparkle-3" aria-hidden="true"></div>
-      <div className="sparkle-particle sparkle-4" aria-hidden="true"></div>
-      <div className="sparkle-particle sparkle-5" aria-hidden="true"></div>
+      {/* Corporate/Security Background */}
+      <div className="login-corporate-bg" aria-hidden="true">
+        <div className="grid-overlay"></div>
+        <div className="abstract-shape shape-1"></div>
+        <div className="abstract-shape shape-2"></div>
+      </div>
 
       {/* Top Right: Dark Mode Toggle Switch */}
       <div className="top-theme-switch-wrap">
@@ -111,8 +100,8 @@ const Register = () => {
         </span>
       </div>
 
-      {/* Glassmorphic Registration Card */}
-      <div className="login-glass-card register-glass-card">
+      {/* Premium Registration Card */}
+      <div className="login-premium-card register-premium-card">
         {/* Brand Logo & Header */}
         <div className="brand-header mb-3">
           <div className="brand-logo-wrap mb-2">
